@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT License" }
 authors = [
-  { name = "Your Name / Organization", email = "your@email.com" },
+  { name = "Jascha Wanger / Tarnover, LLC", email = "jascha@tarnover.com" },
 ]
 keywords = ["mcp", "api", "mock", "fastapi", "openapi", "swagger", "generator"]
 classifiers = [
@@ -45,8 +45,8 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/mockloop-mcp" # Replace with actual URL
-Repository = "https://github.com/yourusername/mockloop-mcp" # Replace with actual URL
+Homepage = "https://github.com/mockloop/mockloop-mcp" 
+Repository = "https://github.com/mockloop/mockloop-mcp" 
 # Documentation = "https://yourusername.github.io/mockloop-mcp/" # If you add docs
 
 # [project.scripts] # If you want to create CLI entry points for mockloop-mcp itself
