@@ -1,7 +1,7 @@
 import os
 import time
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union, Optional
 from jinja2 import Environment, FileSystemLoader
 
 class APIGenerationError(Exception):
@@ -89,7 +89,7 @@ def generate_mock_api(
         # Generate main FastAPI app file
         main_app_template_str = """
 from fastapi import FastAPI
-from .logging_middleware import LoggingMiddleware # Import from the generated file
+from logging_middleware import LoggingMiddleware # Import from the generated file
 
 app = FastAPI(title="{{ api_title }}", version="{{ api_version }}")
 
