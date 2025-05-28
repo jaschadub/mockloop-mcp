@@ -1,0 +1,9 @@
+{# Jinja2 template for a FastAPI route #}
+@app.{{ method | lower }}("{{ path }}", summary="{{ summary }}")
+async def mock_{{ method | lower }}_{{ path.strip('/').replace('/', '_').replace('{', '').replace('}', '').replace('-', '_') }}():
+    """
+    Mock endpoint for {{ method | upper }} {{ path }}
+    Summary: {{ summary }}
+    """
+    # TODO: Enhance to use actual schema examples if available in the spec
+    return {"message": "mock response for {{ method | upper }} {{ path }}"}

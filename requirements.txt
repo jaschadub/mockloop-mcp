@@ -1,5 +1,15 @@
+# Core dependencies for mockloop-mcp server
 fastapi
-uvicorn
-jinja2
-pyyaml
+uvicorn[standard]
+Jinja2
+PyYAML
 requests
+
+# MCP SDK
+mcp[cli]
+
+# For development (optional, can be in requirements-dev.txt)
+# pytest
+# black
+# flake8
+# mypy

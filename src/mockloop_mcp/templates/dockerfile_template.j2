@@ -1,0 +1,21 @@
+{# Jinja2 template for Dockerfile #}
+FROM python:{{ python_version | default('3.9-slim') }}
+
+ARG APP_PORT={{ port | default(8000) }}
+
+WORKDIR /app
+
+COPY ./requirements_mock.txt .
+RUN pip install --no-cache-dir -r requirements_mock.txt
+
+COPY ./main.py .
+COPY ./logging_middleware.py . 
+
+EXPOSE ${APP_PORT}
+
+# Healthcheck (optional, but good practice)
+# HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+#   CMD curl -f http://localhost:${APP_PORT}/health || exit 1
+# (Requires a /health endpoint in the mock API)
+
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "${APP_PORT}"]

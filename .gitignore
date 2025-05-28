@@ -1,3 +1,52 @@
-memory-bank
-.clinerules
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+dist/
+build/
+*.so
+*.pyc
 
+# Virtual environment
+.venv/
+venv/
+env/
+ENV/
+pip-selfcheck.json
+
+# IDEs and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Generated files
+generated_mocks/
+*.log
+
+# Coverage reports
+.coverage
+coverage.xml
+htmlcov/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# MyPy
+.mypy_cache/
+
+# Ruff
+.ruff_cache/
+
+# Pytest
+.pytest_cache/

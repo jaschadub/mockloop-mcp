@@ -1,0 +1,72 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mockloop-mcp"
+version = "0.1.0"
+description = "MCP server to generate and run mock APIs from specifications."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT License" }
+authors = [
+  { name = "Your Name / Organization", email = "your@email.com" },
+]
+keywords = ["mcp", "api", "mock", "fastapi", "openapi", "swagger", "generator"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Testing :: Mocking",
+    "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
+]
+
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "Jinja2",
+    "PyYAML",
+    "requests",
+    "mcp[cli]",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "black",
+    "ruff", # Replaces flake8, isort
+    "mypy",
+]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/mockloop-mcp" # Replace with actual URL
+Repository = "https://github.com/yourusername/mockloop-mcp" # Replace with actual URL
+# Documentation = "https://yourusername.github.io/mockloop-mcp/" # If you add docs
+
+# [project.scripts] # If you want to create CLI entry points for mockloop-mcp itself
+# mockloop-cli = "mockloop_mcp.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.black]
+line-length = 88
+target-version = ['py39', 'py310', 'py311', 'py312']
+
+[tool.ruff]
+line-length = 88
+select = ["E", "W", "F", "I", "UP", "C4", "B", "A", "RUF"] # Common selections
+ignore = ["E501"] # Let black handle line length for E501
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+# Add other mypy configurations as needed
+# exclude = ['src/mockloop_mcp/templates/'] # Exclude Jinja templates from mypy

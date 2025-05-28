@@ -1,0 +1,19 @@
+{# Jinja2 template for docker-compose.yml #}
+version: '3.8'
+
+services:
+  {{ service_name | default('mock_api_service') }}:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        APP_PORT: {{ container_port | default(8000) }}
+    ports:
+      - "{{ host_port | default(8000) }}:{{ container_port | default(8000) }}"
+    container_name: {{ service_name | default('mock_api_service') }}_{{ timestamp_id }} # Unique name
+    environment:
+      - LOG_LEVEL=INFO
+      # Add any other environment variables needed by the mock server
+    # volumes: # Optional: for development with live reload if uvicorn --reload is used
+    #   - .:/app
+    restart: unless-stopped

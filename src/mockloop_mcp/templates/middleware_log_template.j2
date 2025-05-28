@@ -1,0 +1,121 @@
+{# Jinja2 template for FastAPI logging middleware #}
+import logging
+import time
+import json
+from fastapi import Request, Response
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.types import Message
+
+# Configure basic logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler()] # Ensure logs go to stdout
+)
+logger = logging.getLogger("mock_api_logger")
+
+class LoggingMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint):
+        start_time = time.time()
+
+        # Attempt to read request body without consuming it for the endpoint
+        # This is tricky with FastAPI/Starlette's request object model
+        # One common approach is to read it and then reconstruct it if necessary
+        # For simple JSON, this is often okay. For streaming/form data, it's more complex.
+        
+        request_body_bytes = await request.body()
+        # Store the body so the endpoint can re-read it if necessary
+        # Starlette's Request object has a _body attribute that can be set
+        # or use a more robust method if issues arise with specific content types
+        
+        async def receive() -> Message:
+            return {"type": "http.request", "body": request_body_bytes, "more_body": False}
+        
+        # Create a new Request object with the captured body for the endpoint
+        # This ensures the endpoint receives the body correctly after we've read it here.
+        # However, directly modifying request._receive or creating a new request like this
+        # can be complex. A simpler approach for logging might be to log only metadata
+        # or use a more advanced APM tool if full body logging becomes problematic.
+        # For now, we'll log what we can and note potential complexities.
+
+        request_body_str = ""
+        try:
+            request_body_str = request_body_bytes.decode('utf-8')
+        except UnicodeDecodeError:
+            request_body_str = "[binary data]"
+        
+        request_log_data = {
+            "timestamp": time.strftime('%Y-%m-%dT%H:%M:%S%z', time.gmtime(start_time)),
+            "type": "request",
+            "method": request.method,
+            "path": request.url.path,
+            "query_params": str(request.query_params),
+            "client_host": request.client.host if request.client else "N/A",
+            "client_port": request.client.port if request.client else "N/A",
+            "headers": dict(request.headers),
+            "body": request_body_str, # Consider truncating large bodies
+        }
+        logger.info(json.dumps(request_log_data))
+
+        # Re-assign the body to the request object so it can be read by the endpoint
+        # This is a common pattern but can have edge cases.
+        # Starlette's Request object uses a stream for the body.
+        # Once read, it's consumed. We need to "reset" it.
+        # The `request._receive` mechanism is internal and can change.
+        # A more robust way is to pass the body along if the framework supports it,
+        # or accept that logging the body here means it might not be available downstream
+        # without special handling.
+        # For this mock server, we assume endpoints might not need the body if it's simple.
+        # If they do, this part needs to be very robust.
+
+        # Create a new scope for the request with the original body
+        # This is a more robust way to ensure the body is available for the endpoint
+        scope = request.scope
+        
+        # Create a new receive channel that will provide the body
+        async def new_receive():
+            return {"type": "http.request", "body": request_body_bytes, "more_body": False}
+
+        # Create a new request object with the new receive channel
+        # This is not straightforward as Request objects are not meant to be mutated this way easily.
+        # The most reliable way is often to have the endpoint itself log its received body if critical.
+        # Or, use a framework feature if available.
+        # For now, we log the body as read, and accept limitations.
+
+        response = await call_next(Request(scope, receive=new_receive)) # Pass new request with body
+
+        process_time_ms = int((time.time() - start_time) * 1000)
+
+        response_body_bytes = b""
+        async for chunk in response.body_iterator:
+            response_body_bytes += chunk
+        
+        response_body_str = ""
+        try:
+            response_body_str = response_body_bytes.decode('utf-8')
+        except UnicodeDecodeError:
+            response_body_str = "[binary data]"
+
+        response_log_data = {
+            "timestamp": time.strftime('%Y-%m-%dT%H:%M:%S%z', time.gmtime()),
+            "type": "response",
+            "method": request.method,
+            "path": request.url.path,
+            "status_code": response.status_code,
+            "process_time_ms": process_time_ms,
+            "headers": dict(response.headers),
+            "body": response_body_str, # Consider truncating
+        }
+        logger.info(json.dumps(response_log_data))
+        
+        # Return a new response with the consumed body, as body_iterator consumes it
+        return Response(
+            content=response_body_bytes,
+            status_code=response.status_code,
+            headers=dict(response.headers),
+            media_type=response.media_type
+        )
+
+# In the generated main.py, this middleware will be added to the app:
+# from .logging_middleware import LoggingMiddleware # Assuming it's saved as logging_middleware.py
+# app.add_middleware(LoggingMiddleware)
