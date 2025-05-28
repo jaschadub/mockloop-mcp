@@ -1,4 +1,5 @@
-# MockLoop MCP Server (`mockloop-mcp`)
+![MockLoop](logo.png "MockLoop")
+# MCP Server (`mockloop-mcp`)
 
 `mockloop-mcp` is a Model Context Protocol (MCP) server designed to generate and run mock API servers from API documentation (e.g., OpenAPI/Swagger specifications). This allows developers to quickly spin up mock backends for development, testing, and integration purposes.
 
