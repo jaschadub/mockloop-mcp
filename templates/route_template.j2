@@ -1,0 +1,3 @@
+@app.{{ method }}("{{ path }}")
+async def mock_{{ method }}_{{ path.strip('/').replace('/', '_').replace('{', '').replace('}', '') }}():
+    return {{ response_body }}
