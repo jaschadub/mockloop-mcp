@@ -50,3 +50,6 @@ Desktop.ini
 
 # Pytest
 .pytest_cache/
+
+# Memory Bank
+memory-bank/
