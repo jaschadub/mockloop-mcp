@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Union, Optional
 from jinja2 import Environment, FileSystemLoader
 
-# print("GENERATOR.PY TOP LEVEL PRINT STATEMENT - VERSION CHECK - FINAL") # For debug if needed
+print("GENERATOR.PY TOP LEVEL PRINT STATEMENT - VERSION CHECK - FINAL") 
 
 class APIGenerationError(Exception):
     """Custom exception for API generation errors."""
@@ -80,7 +80,10 @@ def generate_mock_api(
     admin_ui_enabled_bool = _to_bool(admin_ui_enabled)
     storage_enabled_bool = _to_bool(storage_enabled)
 
-    # print(f"Generator: Effective auth_enabled: {auth_enabled_bool}") 
+    print(f"Generator (Processed): auth_enabled: {auth_enabled_bool} (type: {type(auth_enabled_bool)}) from original: {auth_enabled}")
+    print(f"Generator (Processed): webhooks_enabled: {webhooks_enabled_bool} (type: {type(webhooks_enabled_bool)}) from original: {webhooks_enabled}")
+    print(f"Generator (Processed): admin_ui_enabled: {admin_ui_enabled_bool} (type: {type(admin_ui_enabled_bool)}) from original: {admin_ui_enabled}")
+    print(f"Generator (Processed): storage_enabled: {storage_enabled_bool} (type: {type(storage_enabled_bool)}) from original: {storage_enabled}")
 
     try:
         api_title = spec_data.get("info", {}).get("title", "mock_api").lower().replace(" ", "_").replace("-", "_")
@@ -113,6 +116,7 @@ def generate_mock_api(
                 f.write(auth_middleware_code)
             with open(mock_server_dir / "requirements_mock.txt", "a", encoding="utf-8") as f: 
                 f.write("pyjwt\n")
+                f.write("python-multipart\n") # Add python-multipart here
         
         if webhooks_enabled_bool:
             webhook_template = jinja_env.get_template("webhook_template.j2")
@@ -204,7 +208,7 @@ def generate_mock_api(
         auth_endpoints_str = "@app.post(\"/token\", summary=\"Get access token\", tags=[\"authentication\"])\nasync def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):\n    return generate_token_response(form_data.username, form_data.password)\n" if auth_enabled_bool else ""
         
         admin_api_endpoints_str = ""
-        if admin_ui_enabled_bool: # This check is for the /admin/api/... endpoints themselves
+        if admin_ui_enabled_bool: 
             admin_api_endpoints_str = """
 # --- Admin API Endpoints ---
 @app.get("/admin/api/requests", tags=["_admin"])
@@ -225,11 +229,11 @@ async def get_request_logs():
                         if response: log_entry["response"] = response
                         logs.append(log_entry)
                 except json.JSONDecodeError: continue
-    except Exception: pass # Simplified error handling
+    except Exception: pass 
     return logs
 """
         webhook_api_endpoints_str = ""
-        if webhooks_enabled_bool and admin_ui_enabled_bool: # Webhook admin APIs need admin UI
+        if webhooks_enabled_bool and admin_ui_enabled_bool: 
             webhook_api_endpoints_str = """
 @app.get("/admin/api/webhooks", tags=["_admin"])
 async def admin_get_webhooks(): return get_webhooks()
@@ -242,13 +246,12 @@ async def admin_delete_webhook(webhook_id: str): return delete_webhook(webhook_i
 async def admin_get_webhook_history(): return get_webhook_history()
 """
         storage_api_endpoints_str = ""
-        if storage_enabled_bool and admin_ui_enabled_bool: # Storage admin APIs need admin UI
+        if storage_enabled_bool and admin_ui_enabled_bool: 
             storage_api_endpoints_str = """
 @app.get("/admin/api/storage/stats", tags=["_admin"])
 async def admin_get_storage_stats(): return get_storage_stats()
 @app.get("/admin/api/storage/collections", tags=["_admin"])
 async def admin_get_collections(): return get_collections()
-# ... (other storage admin endpoints simplified for brevity) ...
 """
 
         admin_ui_endpoint_str = f'''
