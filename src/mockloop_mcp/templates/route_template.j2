@@ -1,14 +1,58 @@
 {# Jinja2 template for a FastAPI route #}
 @app.{{ method | lower }}("{{ path }}", summary="{{ summary }}")
-async def mock_{{ method | lower }}_{{ path.strip('/').replace('/', '_').replace('{', '').replace('}', '').replace('-', '_') }}({% if path_params %}{{ path_params }}{% endif %}):
+async def mock_{{ method | lower }}_{{ path.strip('/').replace('/', '_').replace('{', '').replace('}', '').replace('-', '_') }}({% if path_params %}{{ path_params }}, {% endif %}background_tasks: BackgroundTasks):
     """
     Mock endpoint for {{ method | upper }} {{ path }}
     Summary: {{ summary }}
     """
     {% if example_response %}
     # Response based on schema example
-    return {{ example_response }}
+    response_data = {{ example_response }}
     {% else %}
     # No example available in schema
-    return {"message": "mock response for {{ method | upper }} {{ path }}"}
+    response_data = {"message": "mock response for {{ method | upper }} {{ path }}"}
     {% endif %}
+    
+    # Trigger webhooks if enabled
+    {% if webhooks_enabled %}
+    try:
+        # Determine event type based on HTTP method and path
+        event_type = None
+        if "{{ method | upper }}" == "POST":
+            event_type = "data.created"
+        elif "{{ method | upper }}" == "PUT" or "{{ method | upper }}" == "PATCH":
+            event_type = "data.updated"
+        elif "{{ method | upper }}" == "DELETE":
+            event_type = "data.deleted"
+        elif "{{ method | upper }}" == "GET":
+            # Only trigger for specific GET endpoints that might be considered data access
+            if "{{ path }}" != "/health" and not "{{ path }}".startswith("/admin"):
+                event_type = "data.accessed"
+        
+        if event_type:
+            # Create webhook payload
+            webhook_payload = {
+                "method": "{{ method | upper }}",
+                "path": "{{ path }}",
+                "timestamp": time.time(),
+                "response": response_data
+            }
+            
+            # Add path parameters to payload if they exist
+            {% if path_params %}
+            webhook_payload["path_params"] = {
+                {% for param in path_params.split(', ') %}
+                {% set param_name = param.split(':')[0].strip() %}
+                "{{ param_name }}": {{ param_name }},
+                {% endfor %}
+            }
+            {% endif %}
+            
+            # Trigger webhooks in background
+            await trigger_webhooks(event_type, webhook_payload, background_tasks)
+    except Exception as e:
+        # Don't let webhook errors affect the main response
+        logger.error(f"Webhook trigger error: {e}")
+    {% endif %}
+    
+    return response_data

@@ -187,6 +187,18 @@
             border: 1px solid #ddd;
             border-radius: 4px;
             font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+        
+        .form-control.error {
+            border-color: var(--danger-color);
+            box-shadow: 0 0 0 2px rgba(231, 76, 60, 0.2);
         }
         
         .alert {
@@ -411,7 +423,7 @@
                         <div class="form-group">
                             <label for="webhook-event">Event Type</label>
                             <select id="webhook-event" class="form-control" required>
-                                <option value="">Select Event Type</option>
+                                <option value="" disabled selected>Select Event Type</option>
                                 <option value="data.created">Data Created</option>
                                 <option value="data.updated">Data Updated</option>
                                 <option value="data.deleted">Data Deleted</option>
@@ -961,7 +973,199 @@
             document.getElementById('filter-method').addEventListener('change', async function() {
                 await loadRequestsWithFilters();
             });
+            
+            // Webhook form submission
+            {% if webhooks_enabled %}
+            const webhookForm = document.getElementById('webhook-form');
+            if (webhookForm) {
+                webhookForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    
+                    const eventTypeElement = document.getElementById('webhook-event');
+                    const urlElement = document.getElementById('webhook-url');
+                    const descriptionElement = document.getElementById('webhook-description');
+                    
+                    const eventType = eventTypeElement.value;
+                    const url = urlElement.value;
+                    const description = descriptionElement.value;
+                    
+                    // Clear any previous validation styling
+                    eventTypeElement.style.borderColor = '';
+                    urlElement.style.borderColor = '';
+                    
+                    // Validate required fields
+                    let hasErrors = false;
+                    
+                    if (!eventType || eventType === '') {
+                        eventTypeElement.style.borderColor = '#e74c3c';
+                        alert('Please select an event type from the dropdown');
+                        eventTypeElement.focus();
+                        hasErrors = true;
+                    }
+                    
+                    if (!url || url.trim() === '') {
+                        urlElement.style.borderColor = '#e74c3c';
+                        if (!hasErrors) {
+                            alert('Please enter a webhook URL');
+                            urlElement.focus();
+                        }
+                        hasErrors = true;
+                    }
+                    
+                    if (hasErrors) {
+                        return;
+                    }
+                    
+                    try {
+                        const response = await fetch('/admin/api/webhooks', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                event_type: eventType,
+                                url: url,
+                                description: description || null
+                            })
+                        });
+                        
+                        if (response.ok) {
+                            const result = await response.json();
+                            alert('Webhook registered successfully!');
+                            
+                            // Clear the form
+                            webhookForm.reset();
+                            
+                            // Refresh the webhooks table
+                            await loadWebhooks();
+                            
+                            // Update dashboard stats
+                            await loadDashboardStats();
+                        } else {
+                            const error = await response.text();
+                            alert(`Failed to register webhook: ${error}`);
+                        }
+                    } catch (error) {
+                        console.error('Error registering webhook:', error);
+                        alert('Error registering webhook. Please check the console for details.');
+                    }
+                });
+            }
+            
+            // Load webhooks when the webhooks tab is clicked
+            document.querySelector('.nav-link[data-tab="webhooks"]').addEventListener('click', async function() {
+                await loadWebhooks();
+                await loadWebhookHistory();
+            });
+            {% endif %}
         });
+        
+        // Function to load webhooks
+        {% if webhooks_enabled %}
+        async function loadWebhooks() {
+            try {
+                const response = await fetch('/admin/api/webhooks');
+                if (response.ok) {
+                    const webhooks = await response.json();
+                    updateWebhooksTable(webhooks);
+                } else {
+                    console.error('Failed to load webhooks');
+                }
+            } catch (error) {
+                console.error('Error loading webhooks:', error);
+            }
+        }
+        
+        // Function to update webhooks table
+        function updateWebhooksTable(webhooks) {
+            const tbody = document.querySelector('#webhooks-table tbody');
+            if (!webhooks || webhooks.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5">No webhooks registered</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = webhooks.map(webhook => `
+                <tr>
+                    <td>${webhook.id}</td>
+                    <td><span class="badge badge-info">${webhook.event_type}</span></td>
+                    <td><a href="${webhook.url}" target="_blank">${webhook.url}</a></td>
+                    <td><span class="badge ${webhook.active ? 'badge-success' : 'badge-danger'}">${webhook.active ? 'Active' : 'Inactive'}</span></td>
+                    <td>
+                        <button class="btn btn-danger btn-sm" onclick="deleteWebhook('${webhook.id}')">Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        // Function to delete a webhook
+        async function deleteWebhook(webhookId) {
+            if (!confirm('Are you sure you want to delete this webhook?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/admin/api/webhooks/${webhookId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    alert('Webhook deleted successfully!');
+                    await loadWebhooks();
+                    await loadDashboardStats();
+                } else {
+                    const error = await response.text();
+                    alert(`Failed to delete webhook: ${error}`);
+                }
+            } catch (error) {
+                console.error('Error deleting webhook:', error);
+                alert('Error deleting webhook. Please check the console for details.');
+            }
+        }
+        
+        // Function to load webhook history
+        async function loadWebhookHistory() {
+            try {
+                const response = await fetch('/admin/api/webhooks/history');
+                if (response.ok) {
+                    const history = await response.json();
+                    updateWebhookHistoryTable(history);
+                } else {
+                    console.error('Failed to load webhook history');
+                }
+            } catch (error) {
+                console.error('Error loading webhook history:', error);
+            }
+        }
+        
+        // Function to update webhook history table
+        function updateWebhookHistoryTable(history) {
+            const tbody = document.querySelector('#webhook-history-table tbody');
+            if (!history || history.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5">No webhook delivery history</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = history.map(record => `
+                <tr>
+                    <td>${record.timestamp ? new Date(record.timestamp * 1000).toLocaleString() : 'N/A'}</td>
+                    <td><span class="badge badge-info">${record.payload?.event_type || 'N/A'}</span></td>
+                    <td><a href="${record.url}" target="_blank">${record.url}</a></td>
+                    <td><span class="badge ${getWebhookStatusBadgeClass(record.status)}">${record.status}</span></td>
+                    <td>${record.attempts || 0}</td>
+                </tr>
+            `).join('');
+        }
+        
+        // Function to get appropriate badge class for webhook status
+        function getWebhookStatusBadgeClass(status) {
+            switch (status) {
+                case 'success': return 'badge-success';
+                case 'failed': return 'badge-danger';
+                case 'pending': return 'badge-warning';
+                default: return 'badge-info';
+            }
+        }
+        {% endif %}
         
         // Export data functionality
         async function exportData() {

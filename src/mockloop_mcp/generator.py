@@ -194,16 +194,23 @@ def generate_mock_api(
                                     if mock_data: example_response = json.dumps(mock_data); break
                             if example_response: break
                 route_template = jinja_env.get_template("route_template.j2")
-                route_code = route_template.render(method=method.lower(), path=path_url, summary=details.get("summary", f"{method.upper()} {path_url}"), path_params=path_params, example_response=example_response)
+                route_code = route_template.render(
+                    method=method.lower(),
+                    path=path_url,
+                    summary=details.get("summary", f"{method.upper()} {path_url}"),
+                    path_params=path_params,
+                    example_response=example_response,
+                    webhooks_enabled=webhooks_enabled_bool
+                )
                 routes_code_parts.append(route_code)
         all_routes_code = "\n\n".join(routes_code_parts)
         middleware_template = jinja_env.get_template("middleware_log_template.j2")
         logging_middleware_code = middleware_template.render()
         with open(mock_server_dir / "logging_middleware.py", "w", encoding="utf-8") as f: f.write(logging_middleware_code)
         
-        common_imports = "from fastapi import FastAPI, Request, Depends, HTTPException, status, Form, Body, Query, Path\nfrom fastapi.responses import HTMLResponse, JSONResponse\nfrom fastapi.templating import Jinja2Templates\nfrom fastapi.staticfiles import StaticFiles\nfrom fastapi.middleware.cors import CORSMiddleware\nfrom typing import List, Dict, Any, Optional\nimport json\nimport os\nimport time\nimport sqlite3\nfrom datetime import datetime\nfrom pathlib import Path\nfrom logging_middleware import LoggingMiddleware\n"
+        common_imports = "from fastapi import FastAPI, Request, Depends, HTTPException, status, Form, Body, Query, Path, BackgroundTasks\nfrom fastapi.responses import HTMLResponse, JSONResponse\nfrom fastapi.templating import Jinja2Templates\nfrom fastapi.staticfiles import StaticFiles\nfrom fastapi.middleware.cors import CORSMiddleware\nfrom typing import List, Dict, Any, Optional\nimport json\nimport os\nimport time\nimport sqlite3\nimport logging\nfrom datetime import datetime\nfrom pathlib import Path\nfrom logging_middleware import LoggingMiddleware\n"
         auth_imports = "from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer\nfrom auth_middleware import verify_api_key, verify_jwt_token, generate_token_response\n" if auth_enabled_bool else ""
-        webhook_imports = "from webhook_handler import register_webhook, get_webhooks, delete_webhook, get_webhook_history\n" if webhooks_enabled_bool else ""
+        webhook_imports = "from webhook_handler import register_webhook, get_webhooks, delete_webhook, get_webhook_history, trigger_webhooks\n\n# Configure logging for webhook functionality\nlogger = logging.getLogger(\"webhook_handler\")\n" if webhooks_enabled_bool else ""
         storage_imports = "from storage import StorageManager, get_storage_stats, get_collections\n" if storage_enabled_bool else ""
         imports_section = common_imports + auth_imports + webhook_imports + storage_imports
         app_setup = "app = FastAPI(title=\"{{ api_title }}\", version=\"{{ api_version }}\")\ntemplates = Jinja2Templates(directory=\"templates\")\napp.add_middleware(LoggingMiddleware)\napp.add_middleware(CORSMiddleware, allow_origins=[\"*\"], allow_credentials=True, allow_methods=[\"*\"], allow_headers=[\"*\"])\n\n# Setup database path for logs (same as in middleware)\ndb_dir = Path(\"db\")\ndb_dir.mkdir(exist_ok=True)\nDB_PATH = db_dir / \"request_logs.db\"\n"
@@ -418,12 +425,17 @@ async def get_request_stats():
         return {"error": str(e), "total_requests": 0}
 """
         webhook_api_endpoints_str = ""
-        if webhooks_enabled_bool and admin_ui_enabled_bool: 
+        if webhooks_enabled_bool and admin_ui_enabled_bool:
             webhook_api_endpoints_str = """
 @app.get("/admin/api/webhooks", tags=["_admin"])
 async def admin_get_webhooks(): return get_webhooks()
 @app.post("/admin/api/webhooks", tags=["_admin"])
-async def admin_register_webhook(event_type: str = Body(..., embed=True), url: str = Body(..., embed=True), description: Optional[str] = Body(None, embed=True)):
+async def admin_register_webhook(webhook_data: dict = Body(...)):
+    event_type = webhook_data.get("event_type")
+    url = webhook_data.get("url")
+    description = webhook_data.get("description")
+    if not event_type or not url:
+        raise HTTPException(status_code=400, detail="event_type and url are required")
     return register_webhook(event_type, url, description)
 @app.delete("/admin/api/webhooks/{webhook_id}", tags=["_admin"])
 async def admin_delete_webhook(webhook_id: str): return delete_webhook(webhook_id)
