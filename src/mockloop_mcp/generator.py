@@ -214,7 +214,7 @@ def generate_mock_api(
             admin_api_endpoints_str = """
 # --- Admin API Endpoints ---
 @app.get("/admin/api/requests", tags=["_admin"])
-async def get_request_logs(limit: int = 100, offset: int = 0, method: str = None, path: str = None, include_admin: bool = False):
+async def get_request_logs(limit: int = 100, offset: int = 0, method: str = None, path: str = None, include_admin: bool = False, id: int = None):
     try:
         conn = sqlite3.connect(str(DB_PATH))
         conn.row_factory = sqlite3.Row

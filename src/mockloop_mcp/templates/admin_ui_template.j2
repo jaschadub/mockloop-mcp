@@ -817,11 +817,13 @@
                 document.getElementById('response-body').textContent = 'Loading...';
                 document.getElementById('request-details').style.display = 'block';
                 
-                const response = await fetch(`/admin/api/requests?limit=1&offset=0&id=${requestId}`);
+                const response = await fetch(`/admin/api/requests?id=${requestId}`);
                 if (response.ok) {
-                    const requests = await response.json();
-                    if (requests && requests.length > 0) {
-                        const req = requests[0];
+                    const data = await response.json();
+                    // Handle both array and single object responses
+                    const req = Array.isArray(data) ? data[0] : data;
+                    
+                    if (req && req.id) {
                         document.getElementById('request-headers').textContent = JSON.stringify(req.headers || {}, null, 2);
                         document.getElementById('request-body').textContent = req.request_body || 'No request body';
                         document.getElementById('response-body').textContent = req.response_body || 'No response body';
