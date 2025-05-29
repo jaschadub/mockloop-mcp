@@ -225,6 +225,11 @@ async def get_request_logs(limit: int = 100, offset: int = 0, method: str = None
         params = []
         where_clauses = []
         
+        # Filter by exact ID if provided
+        if id is not None:
+            where_clauses.append("id = ?")
+            params.append(id)
+        
         if method:
             where_clauses.append("method = ?")
             params.append(method)
@@ -233,15 +238,19 @@ async def get_request_logs(limit: int = 100, offset: int = 0, method: str = None
             where_clauses.append("path LIKE ?")
             params.append(f"%{path}%")
         
-        # Filter out admin requests by default
-        if not include_admin:
+        # Filter out admin requests by default, but only if not querying by specific ID
+        if not include_admin and id is None:
             where_clauses.append("(is_admin = 0 OR is_admin IS NULL)")
         
         if where_clauses:
             query += " WHERE " + " AND ".join(where_clauses)
         
-        query += " ORDER BY id DESC LIMIT ? OFFSET ?"
-        params.extend([limit, offset])
+        # Skip limit/offset when querying by exact ID
+        if id is not None:
+            query += " ORDER BY id DESC"
+        else:
+            query += " ORDER BY id DESC LIMIT ? OFFSET ?"
+            params.extend([limit, offset])
         
         cursor.execute(query, params)
         rows = cursor.fetchall()
@@ -257,6 +266,11 @@ async def get_request_logs(limit: int = 100, offset: int = 0, method: str = None
             logs.append(log_entry)
         
         conn.close()
+        
+        # If we're querying by ID and have a result, return just that single record instead of an array
+        if id is not None and logs:
+            return logs[0]
+        
         return logs
     except Exception as e:
         print(f"Error getting request logs: {e}")
