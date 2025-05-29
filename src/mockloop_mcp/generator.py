@@ -299,12 +299,15 @@ def generate_mock_api(
         # Generate main FastAPI app file with or without auth
         if auth_enabled:
             main_app_template_str = '''
-from fastapi import FastAPI, Depends, HTTPException, status, Form
+from fastapi import FastAPI, Depends, HTTPException, status, Form, Request
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 from fastapi.security import OAuth2PasswordRequestForm
 from logging_middleware import LoggingMiddleware # Import from the generated file
 from auth_middleware import verify_api_key, verify_jwt_token, generate_token_response
 
 app = FastAPI(title="{{ api_title }}", version="{{ api_version }}")
+templates = Jinja2Templates(directory="templates")
 
 # Add middleware
 app.add_middleware(LoggingMiddleware)
@@ -322,6 +325,16 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 {{ routes_code }}
 # --- End Generated Routes ---
 
+{% if admin_ui_enabled %}
+@app.get("/admin", response_class=HTMLResponse, summary="Admin UI", tags=["_system"])
+async def read_admin_ui(request: Request):
+    return templates.TemplateResponse("admin.html", {
+        "request": request,
+        "api_title": "{{ api_title }}",
+        "api_version": "{{ api_version }}"
+    })
+{% endif %}
+
 # Optional: Add a health check endpoint
 @app.get("/health", summary="Health check endpoint", tags=["_system"])
 async def health_check():
@@ -334,10 +347,13 @@ if __name__ == "__main__":
 '''
         else:
             main_app_template_str = '''
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 from logging_middleware import LoggingMiddleware # Import from the generated file
 
 app = FastAPI(title="{{ api_title }}", version="{{ api_version }}")
+templates = Jinja2Templates(directory="templates")
 
 # Add middleware
 app.add_middleware(LoggingMiddleware)
@@ -345,6 +361,16 @@ app.add_middleware(LoggingMiddleware)
 # --- Generated Routes ---
 {{ routes_code }}
 # --- End Generated Routes ---
+
+{% if admin_ui_enabled %}
+@app.get("/admin", response_class=HTMLResponse, summary="Admin UI", tags=["_system"])
+async def read_admin_ui(request: Request):
+    return templates.TemplateResponse("admin.html", {
+        "request": request,
+        "api_title": "{{ api_title }}",
+        "api_version": "{{ api_version }}"
+    })
+{% endif %}
 
 # Optional: Add a health check endpoint
 @app.get("/health", summary="Health check endpoint", tags=["_system"])
@@ -361,7 +387,8 @@ if __name__ == "__main__":
             api_title=spec_data.get("info", {}).get("title", "Mock API"),
             api_version=spec_data.get("info", {}).get("version", "1.0.0"),
             routes_code=all_routes_code,
-            default_port=8000 
+            default_port=8000,
+            admin_ui_enabled=admin_ui_enabled  # Pass this to the template context
         )
         with open(mock_server_dir / "main.py", "w", encoding="utf-8") as f:
             f.write(main_py_content)
