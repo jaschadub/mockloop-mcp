@@ -2,6 +2,7 @@
 FROM python:{{ python_version | default('3.9-slim') }}
 
 ARG APP_PORT={{ port | default(8000) }}
+ENV APP_PORT=${APP_PORT}
 
 WORKDIR /app
 
@@ -18,4 +19,4 @@ EXPOSE ${APP_PORT}
 #   CMD curl -f http://localhost:${APP_PORT}/health || exit 1
 # (Requires a /health endpoint in the mock API)
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "${APP_PORT}"]
+CMD uvicorn main:app --host 0.0.0.0 --port $APP_PORT

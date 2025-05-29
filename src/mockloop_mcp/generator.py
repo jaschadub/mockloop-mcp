@@ -21,7 +21,7 @@ if not TEMPLATE_DIR.is_dir():
     if not TEMPLATE_DIR.is_dir():
          raise APIGenerationError(f"Template directory not found at expected locations: {Path(__file__).parent / 'templates'} or {Path('src/mockloop_mcp/templates')}")
 
-jinja_env = Environment(loader=FileSystemLoader(TEMPLATE_DIR), autoescape=True)
+jinja_env = Environment(loader=FileSystemLoader(TEMPLATE_DIR), autoescape=False)
 
 def _generate_mock_data_from_schema(schema: Dict[str, Any]) -> Any:
     """
