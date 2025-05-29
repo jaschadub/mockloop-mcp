@@ -1,7 +1,7 @@
 import argparse
 import sys
 from pathlib import Path
-from typing import Optional, TypedDict # Removed Dict, Any as they are not directly used for type hints here
+from typing import Optional, TypedDict, Any # Added Any back
 
 # Handle imports for different execution contexts
 # This allows the script to be run directly (e.g., by 'mcp dev')
@@ -67,15 +67,37 @@ async def generate_mock_api_tool(
         # ctx: The MCP Context object, automatically injected if type-hinted.
     """
     try:
+        # Helper to robustly convert to boolean
+        def _tool_to_bool(value: Any) -> bool:
+            if isinstance(value, bool):
+                return value
+            if isinstance(value, str):
+                return value.lower() in ('true', 'yes', '1', 'on')
+            if isinstance(value, int):
+                return value != 0
+            return bool(value)
+
+        # Explicitly convert boolean flags at the tool entry point
+        # auth_enabled_bool = _tool_to_bool(auth_enabled)
+        # webhooks_enabled_bool = _tool_to_bool(webhooks_enabled)
+        # admin_ui_enabled_bool = _tool_to_bool(admin_ui_enabled)
+        # storage_enabled_bool = _tool_to_bool(storage_enabled)
+
+        # DEBUG: Hardcode to True to test propagation to generator.py
+        auth_enabled_debug = True
+        webhooks_enabled_debug = True
+        admin_ui_enabled_debug = True
+        storage_enabled_debug = True
+
         # If using ctx for logging to MCP client:
         # await ctx.info(f"Loading API specification from: {spec_url_or_path}")
         print(f"Tool: Loading API specification from: {spec_url_or_path}") # Server-side log
         
         # Print received boolean flags for debugging
-        print(f"Tool: Received auth_enabled: {auth_enabled} (type: {type(auth_enabled)})")
-        print(f"Tool: Received webhooks_enabled: {webhooks_enabled} (type: {type(webhooks_enabled)})")
-        print(f"Tool: Received admin_ui_enabled: {admin_ui_enabled} (type: {type(admin_ui_enabled)})")
-        print(f"Tool: Received storage_enabled: {storage_enabled} (type: {type(storage_enabled)})")
+        print(f"Tool: Hardcoded auth_enabled: {auth_enabled_debug} (type: {type(auth_enabled_debug)}) (original was: {auth_enabled})")
+        print(f"Tool: Hardcoded webhooks_enabled: {webhooks_enabled_debug} (type: {type(webhooks_enabled_debug)}) (original was: {webhooks_enabled})")
+        print(f"Tool: Hardcoded admin_ui_enabled: {admin_ui_enabled_debug} (type: {type(admin_ui_enabled_debug)}) (original was: {admin_ui_enabled})")
+        print(f"Tool: Hardcoded storage_enabled: {storage_enabled_debug} (type: {type(storage_enabled_debug)}) (original was: {storage_enabled})")
         
         parsed_spec = load_api_specification(spec_url_or_path)
         
@@ -88,10 +110,10 @@ async def generate_mock_api_tool(
         generated_path = generate_mock_api(
             spec_data=parsed_spec,
             mock_server_name=output_dir_name,
-            auth_enabled=auth_enabled,
-            webhooks_enabled=webhooks_enabled,
-            admin_ui_enabled=admin_ui_enabled,
-            storage_enabled=storage_enabled
+            auth_enabled=auth_enabled_debug, # Pass debug hardcoded True
+            webhooks_enabled=webhooks_enabled_debug, # Pass debug hardcoded True
+            admin_ui_enabled=admin_ui_enabled_debug, # Pass debug hardcoded True
+            storage_enabled=storage_enabled_debug # Pass debug hardcoded True
             # output_base_dir can be configured if needed, defaults to "generated_mocks"
         )
         
