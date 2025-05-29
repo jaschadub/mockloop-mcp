@@ -628,6 +628,20 @@
                         </div>
                         
                         <div class="form-group">
+                            <label for="auto-refresh-interval">Auto-Refresh Interval (seconds)</label>
+                            <input type="number" id="auto-refresh-interval" class="form-control" min="1" max="60" value="5">
+                            <small>How often to automatically refresh request logs (0 to disable)</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="auto-refresh-enabled" checked> 
+                                Enable Auto-Refresh
+                            </label>
+                            <small>Automatically refresh request logs</small>
+                        </div>
+                        
+                        <div class="form-group">
                             <label>
                                 <input type="checkbox" id="validate-requests"> 
                                 Validate Requests
@@ -797,6 +811,12 @@
         // Function to show request details
         async function showRequestDetails(requestId) {
             try {
+                // Clear previous details first
+                document.getElementById('request-headers').textContent = 'Loading...';
+                document.getElementById('request-body').textContent = 'Loading...';
+                document.getElementById('response-body').textContent = 'Loading...';
+                document.getElementById('request-details').style.display = 'block';
+                
                 const response = await fetch(`/admin/api/requests?limit=1&offset=0&id=${requestId}`);
                 if (response.ok) {
                     const requests = await response.json();
@@ -805,11 +825,21 @@
                         document.getElementById('request-headers').textContent = JSON.stringify(req.headers || {}, null, 2);
                         document.getElementById('request-body').textContent = req.request_body || 'No request body';
                         document.getElementById('response-body').textContent = req.response_body || 'No response body';
-                        document.getElementById('request-details').style.display = 'block';
+                    } else {
+                        document.getElementById('request-headers').textContent = 'No data available';
+                        document.getElementById('request-body').textContent = 'No data available';
+                        document.getElementById('response-body').textContent = 'No data available';
                     }
+                } else {
+                    document.getElementById('request-headers').textContent = 'Failed to load data';
+                    document.getElementById('request-body').textContent = 'Failed to load data';
+                    document.getElementById('response-body').textContent = 'Failed to load data';
                 }
             } catch (error) {
                 console.error('Error fetching request details:', error);
+                document.getElementById('request-headers').textContent = 'Error loading data';
+                document.getElementById('request-body').textContent = 'Error loading data';
+                document.getElementById('response-body').textContent = 'Error loading data';
             }
         }
         
@@ -836,12 +866,87 @@
             const showAdminToggle = document.getElementById('show-admin-requests');
             const adminToggleStatus = document.getElementById('admin-toggle-status');
             let showAdminRequests = false;
-
+            
+            // Auto-refresh settings
+            let autoRefreshEnabled = true;
+            let autoRefreshInterval = 5; // Default 5 seconds
+            let autoRefreshTimer = null;
+            
+            // Initialize auto-refresh controls
+            const autoRefreshToggle = document.getElementById('auto-refresh-enabled');
+            const autoRefreshIntervalInput = document.getElementById('auto-refresh-interval');
+            
             // Style the toggle switch
             const sliderStyle = document.querySelector('.slider');
             if (sliderStyle) {
                 sliderStyle.style.backgroundColor = '#ccc';
             }
+            
+            // Setup auto-refresh functionality
+            function setupAutoRefresh() {
+                // Clear any existing timer
+                if (autoRefreshTimer) {
+                    clearInterval(autoRefreshTimer);
+                    autoRefreshTimer = null;
+                }
+                
+                // Get settings
+                autoRefreshEnabled = autoRefreshToggle.checked;
+                autoRefreshInterval = parseInt(autoRefreshIntervalInput.value, 10) || 5;
+                
+                // If enabled, start a new timer
+                if (autoRefreshEnabled && autoRefreshInterval > 0) {
+                    autoRefreshTimer = setInterval(async () => {
+                        // Only refresh if we're on the requests tab
+                        if (document.getElementById('requests').classList.contains('active')) {
+                            await loadRequestsWithFilters();
+                            console.log('Auto-refreshed request logs');
+                        }
+                        
+                        // Also refresh dashboard if it's active
+                        if (document.getElementById('dashboard').classList.contains('active')) {
+                            loadDashboardStats();
+                            console.log('Auto-refreshed dashboard');
+                        }
+                    }, autoRefreshInterval * 1000);
+                    console.log(`Auto-refresh enabled: every ${autoRefreshInterval} seconds`);
+                } else {
+                    console.log('Auto-refresh disabled');
+                }
+                
+                // Save settings to localStorage
+                try {
+                    localStorage.setItem('autoRefreshEnabled', autoRefreshEnabled);
+                    localStorage.setItem('autoRefreshInterval', autoRefreshInterval);
+                } catch (e) {
+                    console.error('Could not save settings to localStorage:', e);
+                }
+            }
+            
+            // Load auto-refresh settings from localStorage
+            try {
+                const savedEnabled = localStorage.getItem('autoRefreshEnabled');
+                const savedInterval = localStorage.getItem('autoRefreshInterval');
+                
+                if (savedEnabled !== null) {
+                    autoRefreshEnabled = savedEnabled === 'true';
+                    autoRefreshToggle.checked = autoRefreshEnabled;
+                }
+                
+                if (savedInterval !== null) {
+                    autoRefreshInterval = parseInt(savedInterval, 10) || 5;
+                    autoRefreshIntervalInput.value = autoRefreshInterval;
+                }
+            } catch (e) {
+                console.error('Could not load settings from localStorage:', e);
+            }
+            
+            // Setup event listeners for auto-refresh controls
+            autoRefreshToggle.addEventListener('change', setupAutoRefresh);
+            autoRefreshIntervalInput.addEventListener('change', setupAutoRefresh);
+            
+            // Initialize auto-refresh on page load
+            setupAutoRefresh();
             
             // Toggle show/hide admin requests
             showAdminToggle.addEventListener('change', async function() {
