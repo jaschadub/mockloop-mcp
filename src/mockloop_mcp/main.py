@@ -170,45 +170,12 @@ def main_cli():
 if __name__ == "__main__":
     # Check if --cli flag is passed, otherwise assume MCP server run
     if "--cli" in sys.argv:
-        # Adjust sys.argv for argparse if --cli is present
-        # This is a simple way to allow `python main.py --cli spec_source`
-        cli_arg_index = sys.argv.index("--cli")
-        # Remove '--cli' and elements before it for argparse
-        # This is a bit hacky; a more robust CLI would use subcommands or a dedicated script.
-        # For now, assume `python main.py --cli spec_source [-o name]`
-        # We need to remove `main.py` and `--cli` from sys.argv for argparse
-        # If script is `main.py`, sys.argv[0] is 'main.py'.
-        # If `python -m src.mockloop_mcp.main --cli ...`, sys.argv[0] is path to main.py
-        
-        # A simpler CLI invocation for testing:
-        # python src/mockloop_mcp/main.py spec_source [-o name]
-        # And then check if __name__ == "__main__" and not an MCP context.
-        # The MCP SDK's `mcp run` or `mcp dev` will handle server execution.
-        # So, if __name__ == "__main__", we can assume it's for CLI testing.
         print("Running in CLI test mode...")
-        # Remove the script name itself from args for argparse
-        # sys.argv = sys.argv[1:] # This would be if we didn't have --cli
-        
-        # Let's make the CLI explicit: `python src/mockloop_mcp/main.py cli spec_source ...`
-        # Or just assume if not run by `mcp` command, it's for CLI.
-        # The `mcp` command usually sets some environment variables or runs the script in a specific way.
-        # For simplicity, if __name__ == "__main__", we run the CLI.
-        # The `mcp_server.run()` would typically be here for direct execution.
-        
-        # The provided SDK docs show `mcp.run()` at the end for direct execution.
-        # Let's assume `mcp dev` or `mcp run` is the primary way to start the server.
-        # So, `if __name__ == "__main__"` can be dedicated to the CLI utility.
         main_cli()
     else:
-        # This block would be executed if the script is imported or run by a system
-        # that doesn't set __name__ to "__main__" in the same way as direct execution.
-        # However, `mcp dev` and `mcp run` likely import and run the `mcp_server` object.
-        # The `mcp_server.run()` call is usually for when you want `python your_server_file.py` to start it.
-        # For now, let `mcp dev/run` handle server startup.
-        # If direct `python main.py` should start server, add:
-        # print("Starting MCP server directly (use 'mcp dev/run' for full features)...")
-        # mcp_server.run() # This would make `python main.py` start the server.
-        pass
+        # Start the MCP server
+        print("Starting MockLoop MCP Server...")
+        server.run()
 
 
 # To make `python src/mockloop_mcp/main.py` start the server as per SDK docs:

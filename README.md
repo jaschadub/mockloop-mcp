@@ -57,9 +57,51 @@
     # python src/mockloop_mcp/main.py 
     ```
 
+### Configuring MCP Clients
+
+To use MockLoop MCP with your MCP client, you'll need to add it to your client's configuration.
+
+#### Cline (VS Code Extension)
+
+Add the following to your Cline MCP settings file (typically located at `~/.config/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json`):
+
+```json
+{
+  "mcpServers": {
+    "MockLoopLocal": {
+      "autoApprove": [],
+      "disabled": false,
+      "timeout": 60,
+      "command": "/path/to/your/mockloop-mcp/.venv/bin/python",
+      "args": [
+        "/path/to/your/mockloop-mcp/src/mockloop_mcp/main.py"
+      ],
+      "transportType": "stdio"
+    }
+  }
+}
+```
+
+**Important:** Replace `/path/to/your/mockloop-mcp/` with the actual path to your MockLoop MCP installation.
+
+#### Claude Desktop
+
+Add the following to your Claude Desktop configuration file:
+
+```json
+{
+  "mcpServers": {
+    "mockloop": {
+      "command": "/path/to/your/mockloop-mcp/.venv/bin/python",
+      "args": ["/path/to/your/mockloop-mcp/src/mockloop_mcp/main.py"]
+    }
+  }
+}
+```
+
 ### Using the `generate_mock_api` Tool
 
-Once `mockloop-mcp` is running, you can use an MCP client to call its `generate_mock_api` tool.
+Once `mockloop-mcp` is configured and running in your MCP client, you can use the `generate_mock_api` tool.
 
 **Tool Parameters (Example):**
 *   `spec_url_or_path`: (string, required) URL or local file path to the API specification (e.g., `https://petstore3.swagger.io/api/v3/openapi.json` or `./my_api.yaml`).

@@ -1,6 +1,4 @@
 {# Jinja2 template for docker-compose.yml #}
-version: '3.8'
-
 services:
   {{ service_name | default('mock_api_service') }}:
     build:

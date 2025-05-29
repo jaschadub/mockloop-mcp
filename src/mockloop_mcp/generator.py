@@ -108,7 +108,7 @@ def _generate_mock_data_from_schema(schema: Dict[str, Any]) -> Any:
 
 def generate_mock_api(
     spec_data: Dict[str, Any],
-    output_base_dir: Union[str, Path] = "generated_mocks",
+    output_base_dir: Union[str, Path] = None,
     mock_server_name: Optional[str] = None,
     auth_enabled: bool = False,
     webhooks_enabled: bool = False,
@@ -140,7 +140,12 @@ def generate_mock_api(
         # Sanitize mock_server_name to be a valid directory name
         mock_server_name = "".join(c if c.isalnum() or c in ['_', '-'] else '_' for c in mock_server_name)
 
-
+        # Set default output directory relative to the project root
+        if output_base_dir is None:
+            # Use the project's generated_mocks directory
+            project_root = Path(__file__).parent.parent.parent  # Go up from src/mockloop_mcp/
+            output_base_dir = project_root / "generated_mocks"
+        
         mock_server_dir = Path(output_base_dir) / mock_server_name
         mock_server_dir.mkdir(parents=True, exist_ok=True)
 
@@ -427,8 +432,26 @@ if __name__ == "__main__":
         # 4. Generate docker-compose.yml
         compose_template = jinja_env.get_template("docker_compose_template.j2")
         timestamp_for_id = str(int(time.time()))[-6:] # short unique-ish id part
+        
+        # Create a valid Docker service name (alphanumeric and hyphens only)
+        # Start with the original API title from spec
+        raw_api_title = spec_data.get("info", {}).get("title", "mock_api")
+        clean_service_name = raw_api_title.lower()
+        # Replace all non-alphanumeric characters with hyphens
+        clean_service_name = ''.join(c if c.isalnum() else '-' for c in clean_service_name)
+        # Remove multiple consecutive hyphens
+        while '--' in clean_service_name:
+            clean_service_name = clean_service_name.replace('--', '-')
+        # Remove leading/trailing hyphens
+        clean_service_name = clean_service_name.strip('-')
+        if not clean_service_name:
+            clean_service_name = 'mock-api'
+        
+        # Add suffix
+        final_service_name = f"{clean_service_name}-mock"
+            
         compose_content = compose_template.render(
-            service_name=f"{api_title.lower().replace(' ', '_')}_mock",
+            service_name=final_service_name,
             host_port=8000, # Or make configurable
             container_port=8000, # Or make configurable
             timestamp_id=timestamp_for_id
