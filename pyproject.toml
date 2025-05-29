@@ -7,7 +7,7 @@ name = "mockloop-mcp"
 version = "0.1.0"
 description = "MCP server to generate and run mock APIs from specifications."
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = { text = "MIT License" }
 authors = [
   { name = "Jascha Wanger / Tarnover, LLC", email = "jascha@tarnover.com" },
@@ -65,7 +65,7 @@ select = ["E", "W", "F", "I", "UP", "C4", "B", "A", "RUF"] # Common selections
 ignore = ["E501"] # Let black handle line length for E501
 
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
 # Add other mypy configurations as needed

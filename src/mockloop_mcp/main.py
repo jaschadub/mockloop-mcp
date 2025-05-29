@@ -3,19 +3,22 @@ import sys
 from pathlib import Path
 from typing import Optional, TypedDict # Removed Dict, Any as they are not directly used for type hints here
 
-# Use absolute imports for MCP server execution
-try:
-    # Try relative imports first (when used as a package)
+# Handle imports for different execution contexts
+# This allows the script to be run directly (e.g., by 'mcp dev')
+# or imported as part of a package.
+if __package__ is None or __package__ == '':
+    # Likely executed by 'mcp dev' or as a standalone script.
+    # Assumes 'src/mockloop_mcp/' is in sys.path.
+    from parser import load_api_specification, APIParsingError
+    from generator import generate_mock_api, APIGenerationError
+else:
+    # Imported as part of the 'src.mockloop_mcp' package.
     from .parser import load_api_specification, APIParsingError
     from .generator import generate_mock_api, APIGenerationError
-except ImportError:
-    # Fall back to absolute imports (when run directly)
-    from src.mockloop_mcp.parser import load_api_specification, APIParsingError
-    from src.mockloop_mcp.generator import generate_mock_api, APIGenerationError
 
 # Import FastMCP and Context from the MCP SDK
 from mcp.server.fastmcp import FastMCP
-from mcp.server.fastmcp.context import Context # For type hinting if needed in tools
+from mcp.server.fastmcp import Context # For type hinting if needed in tools
 
 # Define input and output structures for the tool
 # These can be Pydantic models for more robust validation if the SDK supports it,
@@ -32,13 +35,13 @@ class GenerateMockApiOutput(TypedDict):
 
 # Create an MCP server instance
 # The name "MockLoop" will be visible in MCP clients like Claude Desktop.
-mcp_server = FastMCP(
+server = FastMCP(
     name="MockLoop",
     description="Generates and manages mock API servers from specifications.",
     # dependencies=["fastapi", "uvicorn", "Jinja2", "PyYAML", "requests"] # Dependencies of the MCP server itself
 )
 
-@mcp_server.tool(
+@server.tool(
     name="generate_mock_api",
     description="Generates a FastAPI mock server from an API specification (e.g., OpenAPI). "
                 "The mock server includes request/response logging and Docker support.",
