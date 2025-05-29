@@ -365,9 +365,9 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td colspan="6">No request logs available</td>
-                            </tr>
+            <tr>
+                <td colspan="6">No request logs available yet. Make some API requests to see them logged here.</td>
+            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -723,6 +723,9 @@
                         // Update recent requests table
                         if (requests.length > 0) {
                             updateRecentRequestsTable(requests.slice(-10)); // Show last 10 requests
+                            
+                            // Also update the main requests table in the Requests tab
+                            updateRequestsTable(requests);
                         }
                     }
                 } catch (e) {
@@ -740,11 +743,9 @@
         function updateRecentRequestsTable(requests) {
             const tbody = document.querySelector('#recent-requests-table tbody');
             if (!requests || requests.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5">No request logs available</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5">No request logs available yet. Make some API requests to see them logged here.</td></tr>';
                 return;
             }
-            
-            console.log('Request logs data:', requests); // Debug log
             
             tbody.innerHTML = requests.map(req => `
                 <tr>
@@ -757,6 +758,47 @@
             `).join('');
         }
         
+        // Function to update the main requests table in the Requests tab
+        function updateRequestsTable(requests) {
+            const tbody = document.querySelector('#requests-table tbody');
+            if (!requests || requests.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6">No request logs available yet. Make some API requests to see them logged here.</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = requests.map(req => `
+                <tr>
+                    <td>${req.timestamp ? new Date(req.timestamp).toLocaleString() : 'N/A'}</td>
+                    <td><span class="badge badge-info">${req.method || 'N/A'}</span></td>
+                    <td>${req.path || 'N/A'}</td>
+                    <td><span class="badge ${getStatusBadgeClass(req.status_code)}">${req.status_code || 'N/A'}</span></td>
+                    <td>${(req.process_time_ms !== undefined && req.process_time_ms !== null) ? req.process_time_ms + 'ms' : 'N/A'}</td>
+                    <td>
+                        <button class="btn btn-info btn-sm" onclick="showRequestDetails(${req.id})">View Details</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        // Function to show request details
+        async function showRequestDetails(requestId) {
+            try {
+                const response = await fetch(`/admin/api/requests?limit=1&offset=0&id=${requestId}`);
+                if (response.ok) {
+                    const requests = await response.json();
+                    if (requests && requests.length > 0) {
+                        const req = requests[0];
+                        document.getElementById('request-headers').textContent = JSON.stringify(req.headers || {}, null, 2);
+                        document.getElementById('request-body').textContent = req.request_body || 'No request body';
+                        document.getElementById('response-body').textContent = req.response_body || 'No response body';
+                        document.getElementById('request-details').style.display = 'block';
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching request details:', error);
+            }
+        }
+        
         // Function to get appropriate badge class for HTTP status codes
         function getStatusBadgeClass(status) {
             if (status >= 200 && status < 300) return 'badge-success';
@@ -765,6 +807,37 @@
             if (status >= 500) return 'badge-danger';
             return 'badge-info';
         }
+        
+        // Initialize the application when the DOM is fully loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load request logs for the Requests tab
+            document.querySelector('.nav-link[data-tab="requests"]').addEventListener('click', async function() {
+                try {
+                    const response = await fetch('/admin/api/requests');
+                    if (response.ok) {
+                        const requests = await response.json();
+                        updateRequestsTable(requests);
+                    }
+                } catch (error) {
+                    console.error('Error loading requests:', error);
+                }
+            });
+            
+            // Setup filter by method
+            document.getElementById('filter-method').addEventListener('change', async function() {
+                const method = this.value;
+                try {
+                    const url = method ? `/admin/api/requests?method=${method}` : '/admin/api/requests';
+                    const response = await fetch(url);
+                    if (response.ok) {
+                        const requests = await response.json();
+                        updateRequestsTable(requests);
+                    }
+                } catch (error) {
+                    console.error('Error filtering requests:', error);
+                }
+            });
+        });
     </script>
 </body>
 </html>
