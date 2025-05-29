@@ -283,6 +283,13 @@ async def export_data():
 @app.get("/admin/api/requests", tags=["_admin"])
 async def get_request_logs(limit: int = 100, offset: int = 0, method: str = None, path: str = None, include_admin: bool = False, id: int = None):
     try:
+        # DEBUG: Log the received parameters
+        print(f"DEBUG: get_request_logs called with parameters:")
+        print(f"DEBUG:   limit={limit}, offset={offset}")
+        print(f"DEBUG:   method={method}, path={path}")
+        print(f"DEBUG:   include_admin={include_admin} (type: {type(include_admin)})")
+        print(f"DEBUG:   id={id}")
+        
         conn = sqlite3.connect(str(DB_PATH))
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
@@ -308,6 +315,9 @@ async def get_request_logs(limit: int = 100, offset: int = 0, method: str = None
         # Filter out admin requests by default, but only if not querying by specific ID
         if not include_admin and id is None:
             where_clauses.append("(is_admin = 0 OR is_admin IS NULL)")
+            print(f"DEBUG: Adding admin filter clause because include_admin={include_admin} and id={id}")
+        else:
+            print(f"DEBUG: NOT adding admin filter clause because include_admin={include_admin} and id={id}")
         
         if where_clauses:
             query += " WHERE " + " AND ".join(where_clauses)
@@ -319,8 +329,13 @@ async def get_request_logs(limit: int = 100, offset: int = 0, method: str = None
             query += " ORDER BY id DESC LIMIT ? OFFSET ?"
             params.extend([limit, offset])
         
+        print(f"DEBUG: Final query: {query}")
+        print(f"DEBUG: Query params: {params}")
+        
         cursor.execute(query, params)
         rows = cursor.fetchall()
+        
+        print(f"DEBUG: Found {len(rows)} rows in database")
         
         logs = []
         for row in rows:
@@ -331,6 +346,11 @@ async def get_request_logs(limit: int = 100, offset: int = 0, method: str = None
                 except:
                     log_entry["headers"] = {}
             logs.append(log_entry)
+        
+        # DEBUG: Log some details about the results
+        admin_count = sum(1 for log in logs if log.get('is_admin', 0) == 1)
+        non_admin_count = len(logs) - admin_count
+        print(f"DEBUG: Returning {len(logs)} logs ({admin_count} admin, {non_admin_count} non-admin)")
         
         conn.close()
         

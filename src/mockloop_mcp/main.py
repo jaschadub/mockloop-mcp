@@ -199,6 +199,8 @@ if __name__ == "__main__":
     # Check if --cli flag is passed, otherwise assume MCP server run
     if "--cli" in sys.argv:
         print("Running in CLI test mode...")
+        # Remove --cli from sys.argv so argparse doesn't see it
+        sys.argv.remove("--cli")
         main_cli()
     else:
         # Start the MCP server

@@ -165,6 +165,10 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         # Check if this is an admin request
         is_admin = request.url.path.startswith('/admin')
         
+        # DEBUG: Log admin request detection
+        print(f"DEBUG MIDDLEWARE: Request path: {request.url.path}")
+        print(f"DEBUG MIDDLEWARE: Is admin request: {is_admin}")
+        
         # Store request and response in SQLite database
         try:
             conn = sqlite3.connect(str(DB_PATH))
@@ -179,6 +183,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                 # Add the is_admin column to the table
                 cursor.execute('ALTER TABLE request_logs ADD COLUMN is_admin BOOLEAN DEFAULT 0')
                 conn.commit()
+                print("DEBUG MIDDLEWARE: Added is_admin column to database")
             
             cursor.execute('''
                 INSERT INTO request_logs (
@@ -202,9 +207,11 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                 1 if is_admin else 0
             ))
             conn.commit()
+            print(f"DEBUG MIDDLEWARE: Stored request log with is_admin={1 if is_admin else 0}")
             conn.close()
         except Exception as e:
             logger.error(f"Failed to store request log in database: {e}")
+            print(f"DEBUG MIDDLEWARE: Database error: {e}")
         
         # Return a new response with the consumed body, as body_iterator consumes it
         return Response(

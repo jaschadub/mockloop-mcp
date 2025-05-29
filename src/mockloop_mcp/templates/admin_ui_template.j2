@@ -279,7 +279,7 @@
                 <li><a href="#" class="nav-link active" data-tab="dashboard">Dashboard</a></li>
                 <li><a href="#" class="nav-link" data-tab="requests">Request Logs</a></li>
                 <li><a href="#" class="nav-link" data-tab="webhooks">Webhooks</a></li>
-                <li><a href="#" class="nav-link" data-tab="data">Stored Data</a></li>
+
                 <li><a href="#" class="nav-link" data-tab="auth">Authentication</a></li>
                 <li><a href="#" class="nav-link" data-tab="docs">API Documentation</a></li>
                 <li><a href="#" class="nav-link" data-tab="settings">Settings</a></li>
@@ -303,11 +303,7 @@
                         <p id="webhooks-description">Registered webhook endpoints</p>
                     </div>
                     
-                    <div class="card">
-                        <h3 class="card-title">Stored Data</h3>
-                        <div class="stat" id="stored-data-count">0</div>
-                        <p id="storage-description">Records in persistent storage</p>
-                    </div>
+
                     
                     <div class="card">
                         <h3 class="card-title">Server Status</h3>
@@ -476,60 +472,7 @@
                 </div>
             </div>
             
-            <!-- Stored Data Tab -->
-            <div id="data" class="tab-content">
-                <h2>Stored Data</h2>
-                {% if not storage_enabled %}
-                <div class="alert alert-warning">
-                    <strong>Storage feature is not enabled.</strong> This mock server was generated without persistent storage support.
-                </div>
-                {% else %}
-                <div class="card">
-                    <h3 class="card-title">Collections</h3>
-                    <div class="form-group">
-                        <label for="collection-select">Select Collection</label>
-                        <select id="collection-select" class="form-control">
-                            <option value="">Select a collection</option>
-                        </select>
-                    </div>
-                    
-                    <button id="create-collection-btn" class="btn">Create New Collection</button>
-                </div>
-                {% endif %}
-                
-                <div class="card" id="collection-data" style="display: none;">
-                    <h3 class="card-title">Collection Data: <span id="current-collection"></span></h3>
-                    <button id="add-record-btn" class="btn btn-success">Add New Record</button>
-                    <button id="clear-collection-btn" class="btn btn-danger">Clear Collection</button>
-                    
-                    <table id="data-table">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Created</th>
-                                <th>Updated</th>
-                                <th>Data</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td colspan="5">{% if not storage_enabled %}Storage feature not enabled{% else %}No data in this collection{% endif %}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                
-                <div class="card" id="edit-record" style="display: none;">
-                    <h3 class="card-title">Edit Record</h3>
-                    <div class="form-group">
-                        <label for="record-editor">JSON Data</label>
-                        <textarea id="record-editor" class="form-control" rows="10"></textarea>
-                    </div>
-                    <button id="save-record-btn" class="btn btn-success">Save Changes</button>
-                    <button id="cancel-edit-btn" class="btn">Cancel</button>
-                </div>
-            </div>
+
             
             <!-- Authentication Tab -->
             <div id="auth" class="tab-content">
@@ -721,23 +664,7 @@
                 document.getElementById('webhooks-description').textContent = 'Webhooks feature not enabled';
                 {% endif %}
                 
-                {% if storage_enabled %}
-                // Try to load storage statistics
-                try {
-                    const storageResponse = await fetch('/admin/api/storage/stats');
-                    if (storageResponse.ok) {
-                        const storageStats = await storageResponse.json();
-                        document.getElementById('stored-data-count').textContent = storageStats.total_records || '0';
-                    } else {
-                        document.getElementById('stored-data-count').textContent = '0';
-                    }
-                } catch (e) {
-                    document.getElementById('stored-data-count').textContent = '0';
-                }
-                {% else %}
-                document.getElementById('stored-data-count').textContent = 'N/A';
-                document.getElementById('storage-description').textContent = 'Storage feature not enabled';
-                {% endif %}
+
                 
                         // Try to load request logs
                 try {
@@ -955,6 +882,12 @@
                 showAdminRequests = this.checked;
                 adminToggleStatus.textContent = showAdminRequests ? 'Hide Admin Requests' : 'Show Admin Requests';
                 
+                // DEBUG: Log the toggle state change
+                console.log('DEBUG: Admin toggle changed');
+                console.log('DEBUG: Toggle checked:', this.checked);
+                console.log('DEBUG: showAdminRequests state:', showAdminRequests);
+                console.log('DEBUG: Status text:', adminToggleStatus.textContent);
+                
                 // Update the slider color
                 if (this.checked) {
                     this.nextElementSibling.style.backgroundColor = '#2196F3';
@@ -986,11 +919,21 @@
                         url += '?' + params.toString();
                     }
                     
+                    // DEBUG: Log the request details
+                    console.log('DEBUG: Loading requests with filters');
+                    console.log('DEBUG: showAdminRequests state:', showAdminRequests);
+                    console.log('DEBUG: methodFilter:', methodFilter);
+                    console.log('DEBUG: Final URL:', url);
+                    
                     const response = await fetch(url);
                     if (response.ok) {
                         const requests = await response.json();
+                        console.log('DEBUG: Received', requests.length, 'requests from API');
+                        console.log('DEBUG: First few requests:', requests.slice(0, 3));
                         // No need to filter here since the backend handles it now
                         updateRequestsTable(requests);
+                    } else {
+                        console.error('DEBUG: API response error:', response.status, response.statusText);
                     }
                 } catch (error) {
                     console.error('Error loading requests:', error);
