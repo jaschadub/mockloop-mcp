@@ -1,0 +1,512 @@
+{# Jinja2 template for mock data storage module #}
+import json
+import os
+from typing import Dict, List, Any, Optional, Union
+import logging
+from datetime import datetime
+import sqlite3
+from pathlib import Path
+
+# Configure logger
+logging.basicConfig(level=logging.INFO)
+storage_logger = logging.getLogger("storage")
+
+# Define storage path
+STORAGE_DIR = Path("./mock_data")
+STORAGE_DIR.mkdir(exist_ok=True)
+
+# SQLite database
+DB_PATH = STORAGE_DIR / "mock_data.db"
+
+class MockDataStorage:
+    """
+    Storage handler for mock API data, using SQLite for persistence.
+    Provides methods for storing and retrieving mock responses, webhooks, and settings.
+    """
+    
+    def __init__(self):
+        self._init_db()
+    
+    def _init_db(self):
+        """Initialize the database with required tables if they don't exist"""
+        conn = sqlite3.connect(str(DB_PATH))
+        cursor = conn.cursor()
+        
+        # Create mock responses table
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS mock_responses (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            method TEXT NOT NULL,
+            path TEXT NOT NULL,
+            status_code INTEGER DEFAULT 200,
+            response_data TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(method, path)
+        )
+        ''')
+        
+        # Create webhooks table
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS webhooks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            url TEXT NOT NULL,
+            payload TEXT NOT NULL,
+            headers TEXT NOT NULL,
+            status TEXT NOT NULL,
+            type TEXT DEFAULT 'webhook',
+            response TEXT,
+            error TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        ''')
+        
+        # Create settings table
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS settings (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        ''')
+        
+        # Initialize default settings if they don't exist
+        default_settings = {
+            "delay_ms": "0",
+            "log_level": "INFO",
+            "simulate_errors": "false"
+        }
+        
+        for key, value in default_settings.items():
+            cursor.execute(
+                "INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)",
+                (key, value)
+            )
+        
+        conn.commit()
+        conn.close()
+    
+    def get_mock_response(self, method: str, path: str) -> Optional[Dict[str, Any]]:
+        """
+        Get a stored mock response for a specific endpoint
+        
+        Args:
+            method: HTTP method (GET, POST, etc.)
+            path: API path
+            
+        Returns:
+            Mock response data or None if not found
+        """
+        conn = sqlite3.connect(str(DB_PATH))
+        cursor = conn.cursor()
+        
+        cursor.execute(
+            "SELECT status_code, response_data FROM mock_responses WHERE method = ? AND path = ?",
+            (method.upper(), path)
+        )
+        
+        result = cursor.fetchone()
+        conn.close()
+        
+        if result:
+            status_code, response_data = result
+            return {
+                "method": method.upper(),
+                "path": path,
+                "status_code": status_code,
+                "response": json.loads(response_data)
+            }
+        
+        return None
+    
+    def save_mock_response(self, method: str, path: str, response: Dict[str, Any], status_code: int = 200) -> bool:
+        """
+        Save or update a mock response for a specific endpoint
+        
+        Args:
+            method: HTTP method (GET, POST, etc.)
+            path: API path
+            response: Response data to return
+            status_code: HTTP status code to return
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            conn = sqlite3.connect(str(DB_PATH))
+            cursor = conn.cursor()
+            
+            # Convert response to JSON string
+            response_json = json.dumps(response)
+            
+            # Insert or replace response
+            cursor.execute(
+                """
+                INSERT OR REPLACE INTO mock_responses 
+                (method, path, status_code, response_data, updated_at) 
+                VALUES (?, ?, ?, ?, datetime('now'))
+                """,
+                (method.upper(), path, status_code, response_json)
+            )
+            
+            conn.commit()
+            conn.close()
+            
+            storage_logger.info(f"Saved mock response for {method.upper()} {path}")
+            return True
+            
+        except Exception as e:
+            storage_logger.error(f"Error saving mock response: {e}")
+            return False
+    
+    def get_all_mock_responses(self) -> List[Dict[str, Any]]:
+        """
+        Get all stored mock responses
+        
+        Returns:
+            List of all mock responses
+        """
+        conn = sqlite3.connect(str(DB_PATH))
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute(
+            "SELECT method, path, status_code, response_data FROM mock_responses ORDER BY path, method"
+        )
+        
+        results = []
+        for row in cursor.fetchall():
+            results.append({
+                "method": row["method"],
+                "path": row["path"],
+                "status_code": row["status_code"],
+                "response": json.loads(row["response_data"])
+            })
+        
+        conn.close()
+        return results
+    
+    def delete_mock_response(self, method: str, path: str) -> bool:
+        """
+        Delete a stored mock response
+        
+        Args:
+            method: HTTP method
+            path: API path
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            conn = sqlite3.connect(str(DB_PATH))
+            cursor = conn.cursor()
+            
+            cursor.execute(
+                "DELETE FROM mock_responses WHERE method = ? AND path = ?",
+                (method.upper(), path)
+            )
+            
+            conn.commit()
+            conn.close()
+            
+            storage_logger.info(f"Deleted mock response for {method.upper()} {path}")
+            return True
+            
+        except Exception as e:
+            storage_logger.error(f"Error deleting mock response: {e}")
+            return False
+    
+    def log_webhook(self, webhook_data: Dict[str, Any]) -> int:
+        """
+        Log a webhook to the database
+        
+        Args:
+            webhook_data: Webhook data including url, payload, headers, status, etc.
+            
+        Returns:
+            ID of the inserted webhook record
+        """
+        try:
+            conn = sqlite3.connect(str(DB_PATH))
+            cursor = conn.cursor()
+            
+            url = webhook_data.get("url", "")
+            payload = json.dumps(webhook_data.get("payload", {}))
+            headers = json.dumps(webhook_data.get("headers", {}))
+            status = webhook_data.get("status", "pending")
+            webhook_type = webhook_data.get("type", "webhook")
+            
+            response = None
+            if "response" in webhook_data and webhook_data["response"]:
+                response = json.dumps(webhook_data["response"])
+                
+            error = webhook_data.get("error")
+            
+            cursor.execute(
+                """
+                INSERT INTO webhooks 
+                (url, payload, headers, status, type, response, error) 
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (url, payload, headers, status, webhook_type, response, error)
+            )
+            
+            webhook_id = cursor.lastrowid
+            conn.commit()
+            conn.close()
+            
+            return webhook_id
+            
+        except Exception as e:
+            storage_logger.error(f"Error logging webhook: {e}")
+            return -1
+    
+    def get_webhook_history(self, limit: int = 100) -> List[Dict[str, Any]]:
+        """
+        Get webhook history
+        
+        Args:
+            limit: Maximum number of records to return
+            
+        Returns:
+            List of webhook records
+        """
+        conn = sqlite3.connect(str(DB_PATH))
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute(
+            """
+            SELECT id, url, payload, headers, status, type, response, error, created_at
+            FROM webhooks
+            ORDER BY created_at DESC
+            LIMIT ?
+            """,
+            (limit,)
+        )
+        
+        results = []
+        for row in cursor.fetchall():
+            webhook = {
+                "id": row["id"],
+                "url": row["url"],
+                "payload": json.loads(row["payload"]),
+                "headers": json.loads(row["headers"]),
+                "status": row["status"],
+                "type": row["type"],
+                "created_at": row["created_at"]
+            }
+            
+            if row["response"]:
+                webhook["response"] = json.loads(row["response"])
+                
+            if row["error"]:
+                webhook["error"] = row["error"]
+                
+            results.append(webhook)
+        
+        conn.close()
+        return results
+    
+    def clear_webhook_history(self) -> bool:
+        """
+        Clear all webhook history
+        
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            conn = sqlite3.connect(str(DB_PATH))
+            cursor = conn.cursor()
+            
+            cursor.execute("DELETE FROM webhooks")
+            
+            conn.commit()
+            conn.close()
+            
+            storage_logger.info("Cleared webhook history")
+            return True
+            
+        except Exception as e:
+            storage_logger.error(f"Error clearing webhook history: {e}")
+            return False
+    
+    def get_setting(self, key: str, default: Any = None) -> Any:
+        """
+        Get a setting value
+        
+        Args:
+            key: Setting key
+            default: Default value if setting doesn't exist
+            
+        Returns:
+            Setting value or default
+        """
+        conn = sqlite3.connect(str(DB_PATH))
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT value FROM settings WHERE key = ?", (key,))
+        result = cursor.fetchone()
+        conn.close()
+        
+        if result:
+            value = result[0]
+            
+            # Convert string values to appropriate types
+            if value.lower() == "true":
+                return True
+            elif value.lower() == "false":
+                return False
+            elif value.isdigit():
+                return int(value)
+            else:
+                try:
+                    return float(value)
+                except ValueError:
+                    return value
+        
+        return default
+    
+    def save_setting(self, key: str, value: Any) -> bool:
+        """
+        Save a setting
+        
+        Args:
+            key: Setting key
+            value: Setting value
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            conn = sqlite3.connect(str(DB_PATH))
+            cursor = conn.cursor()
+            
+            # Convert value to string
+            if isinstance(value, bool):
+                value_str = "true" if value else "false"
+            else:
+                value_str = str(value)
+            
+            cursor.execute(
+                """
+                INSERT OR REPLACE INTO settings 
+                (key, value, updated_at) 
+                VALUES (?, ?, datetime('now'))
+                """,
+                (key, value_str)
+            )
+            
+            conn.commit()
+            conn.close()
+            
+            storage_logger.info(f"Saved setting {key} = {value}")
+            return True
+            
+        except Exception as e:
+            storage_logger.error(f"Error saving setting: {e}")
+            return False
+    
+    def get_all_settings(self) -> Dict[str, Any]:
+        """
+        Get all settings
+        
+        Returns:
+            Dictionary of all settings
+        """
+        conn = sqlite3.connect(str(DB_PATH))
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT key, value FROM settings")
+        
+        settings = {}
+        for row in cursor.fetchall():
+            key = row["key"]
+            value = row["value"]
+            
+            # Convert string values to appropriate types
+            if value.lower() == "true":
+                settings[key] = True
+            elif value.lower() == "false":
+                settings[key] = False
+            elif value.isdigit():
+                settings[key] = int(value)
+            else:
+                try:
+                    settings[key] = float(value)
+                except ValueError:
+                    settings[key] = value
+        
+        conn.close()
+        return settings
+    
+    def export_data(self) -> Dict[str, Any]:
+        """
+        Export all data (responses, settings) as a dictionary
+        
+        Returns:
+            Dictionary containing all mock data
+        """
+        return {
+            "mock_responses": self.get_all_mock_responses(),
+            "settings": self.get_all_settings(),
+            "exported_at": datetime.now().isoformat()
+        }
+    
+    def import_data(self, data: Dict[str, Any]) -> bool:
+        """
+        Import data from dictionary
+        
+        Args:
+            data: Dictionary containing mock data
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            # Import mock responses
+            for mock_response in data.get("mock_responses", []):
+                self.save_mock_response(
+                    method=mock_response["method"],
+                    path=mock_response["path"],
+                    response=mock_response["response"],
+                    status_code=mock_response.get("status_code", 200)
+                )
+            
+            # Import settings
+            for key, value in data.get("settings", {}).items():
+                self.save_setting(key, value)
+            
+            storage_logger.info("Successfully imported mock data")
+            return True
+            
+        except Exception as e:
+            storage_logger.error(f"Error importing mock data: {e}")
+            return False
+
+# Create a singleton instance
+storage = MockDataStorage()
+
+# Endpoint handler to use mock responses
+def get_mock_response_handler(method: str, path: str, default_response: Optional[Dict[str, Any]] = None) -> tuple:
+    """
+    Get mock response for an endpoint, with optional default response
+    
+    Args:
+        method: HTTP method
+        path: API path
+        default_response: Default response if no mock is found
+        
+    Returns:
+        Tuple of (response_data, status_code)
+    """
+    mock_data = storage.get_mock_response(method, path)
+    
+    if mock_data:
+        return mock_data["response"], mock_data["status_code"]
+    
+    if default_response:
+        return default_response, 200
+    
+    return {"message": f"Default mock response for {method} {path}"}, 200

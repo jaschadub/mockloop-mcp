@@ -1,9 +1,14 @@
 {# Jinja2 template for a FastAPI route #}
 @app.{{ method | lower }}("{{ path }}", summary="{{ summary }}")
-async def mock_{{ method | lower }}_{{ path.strip('/').replace('/', '_').replace('{', '').replace('}', '').replace('-', '_') }}():
+async def mock_{{ method | lower }}_{{ path.strip('/').replace('/', '_').replace('{', '').replace('}', '').replace('-', '_') }}({% if path_params %}{{ path_params }}{% endif %}):
     """
     Mock endpoint for {{ method | upper }} {{ path }}
     Summary: {{ summary }}
     """
-    # TODO: Enhance to use actual schema examples if available in the spec
+    {% if example_response %}
+    # Response based on schema example
+    return {{ example_response }}
+    {% else %}
+    # No example available in schema
     return {"message": "mock response for {{ method | upper }} {{ path }}"}
+    {% endif %}

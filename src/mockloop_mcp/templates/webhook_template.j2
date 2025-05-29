@@ -1,0 +1,144 @@
+{# Jinja2 template for webhook and callback handling #}
+import asyncio
+import httpx
+from typing import Dict, Any, List, Optional
+import logging
+import json
+from fastapi import FastAPI, BackgroundTasks, HTTPException, Request
+
+# Configure webhook logger
+logging.basicConfig(level=logging.INFO)
+webhook_logger = logging.getLogger("webhook")
+
+# Store pending callbacks and webhooks
+pending_webhooks: List[Dict[str, Any]] = []
+webhook_history: List[Dict[str, Any]] = []
+
+async def send_webhook(url: str, payload: Dict[str, Any], headers: Dict[str, str]) -> Dict[str, Any]:
+    """
+    Send a webhook to the specified URL with the given payload.
+    
+    Args:
+        url: The URL to send the webhook to
+        payload: The payload to send
+        headers: The headers to include
+        
+    Returns:
+        Dictionary with status and response information
+    """
+    webhook_logger.info(f"Sending webhook to {url}")
+    webhook_logger.debug(f"Webhook payload: {payload}")
+    
+    result = {
+        "url": url,
+        "payload": payload,
+        "headers": headers,
+        "status": "pending",
+        "response": None,
+        "error": None
+    }
+    
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(url, json=payload, headers=headers)
+            result["status"] = "sent"
+            result["response"] = {
+                "status_code": response.status_code,
+                "headers": dict(response.headers),
+                "body": response.text[:1000]  # Limit size of stored response
+            }
+            webhook_logger.info(f"Webhook sent successfully to {url}, status: {response.status_code}")
+    except Exception as e:
+        result["status"] = "failed"
+        result["error"] = str(e)
+        webhook_logger.error(f"Failed to send webhook to {url}: {e}")
+    
+    # Add to history
+    webhook_history.append(result)
+    return result
+
+async def process_callback(request_body: Dict[str, Any], callback_url: str, callback_data: Dict[str, Any]) -> None:
+    """
+    Process a callback by merging request data with callback template and sending
+    
+    Args:
+        request_body: The original request body that triggered the callback
+        callback_url: The URL to send the callback to
+        callback_data: The callback data template from the OpenAPI spec
+    """
+    # Merge request data with callback template
+    # This is a simple implementation - in a real system, you'd use JSONPath or similar
+    payload = callback_data.copy()
+    
+    # Add original request data to the callback payload
+    payload["originalRequest"] = request_body
+    
+    # Add to pending webhooks list
+    webhook_info = {
+        "type": "callback",
+        "url": callback_url,
+        "payload": payload,
+        "headers": {"Content-Type": "application/json"},
+        "created_at": None  # Would be a timestamp in a real implementation
+    }
+    pending_webhooks.append(webhook_info)
+    
+    # Send the webhook
+    await send_webhook(callback_url, payload, {"Content-Type": "application/json"})
+
+# FastAPI endpoints for webhook management
+
+def register_webhook_endpoints(app: FastAPI) -> None:
+    """
+    Register webhook management endpoints with the FastAPI app
+    
+    Args:
+        app: The FastAPI application
+    """
+    @app.get("/webhooks/pending", tags=["webhooks"])
+    async def get_pending_webhooks():
+        """List all pending webhooks"""
+        return pending_webhooks
+    
+    @app.get("/webhooks/history", tags=["webhooks"])
+    async def get_webhook_history():
+        """Get webhook delivery history"""
+        return webhook_history
+    
+    @app.post("/webhooks/send", tags=["webhooks"])
+    async def trigger_webhook(background_tasks: BackgroundTasks, webhook_request: Dict[str, Any]):
+        """
+        Manually trigger a webhook
+        
+        Payload should include:
+        - url: The URL to send the webhook to
+        - payload: The payload to send
+        - headers: Optional headers to include
+        """
+        if "url" not in webhook_request or "payload" not in webhook_request:
+            raise HTTPException(status_code=400, detail="URL and payload are required")
+        
+        url = webhook_request["url"]
+        payload = webhook_request["payload"]
+        headers = webhook_request.get("headers", {"Content-Type": "application/json"})
+        
+        # Add to pending webhooks
+        webhook_info = {
+            "type": "manual",
+            "url": url,
+            "payload": payload,
+            "headers": headers,
+            "created_at": None  # Would be a timestamp in a real implementation
+        }
+        pending_webhooks.append(webhook_info)
+        
+        # Send webhook in background to avoid blocking
+        background_tasks.add_task(send_webhook, url, payload, headers)
+        
+        return {"status": "queued", "webhook_info": webhook_info}
+    
+    @app.delete("/webhooks/clear", tags=["webhooks"])
+    async def clear_webhook_history():
+        """Clear webhook history"""
+        webhook_history.clear()
+        return {"status": "success", "message": "Webhook history cleared"}

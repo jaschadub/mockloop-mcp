@@ -1,0 +1,682 @@
+{# Jinja2 template for a simple admin UI for managing mock servers #}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ api_title }} - Mock API Admin</title>
+    <style>
+        :root {
+            --primary: #3498db;
+            --secondary: #2c3e50;
+            --success: #2ecc71;
+            --danger: #e74c3c;
+            --warning: #f39c12;
+            --light: #ecf0f1;
+            --dark: #2c3e50;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background-color: var(--primary);
+            color: white;
+            padding: 1rem;
+            border-radius: 5px 5px 0 0;
+        }
+        
+        header h1 {
+            margin: 0;
+            font-size: 1.8rem;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        
+        .card-header {
+            background-color: var(--secondary);
+            color: white;
+            padding: 10px 15px;
+            font-weight: bold;
+        }
+        
+        .card-body {
+            padding: 15px;
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 15px;
+        }
+        
+        .tab {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+        
+        .tab.active {
+            border-bottom: 2px solid var(--primary);
+            color: var(--primary);
+            font-weight: bold;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+        }
+        
+        th {
+            background-color: var(--light);
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 8px 12px;
+            margin: 5px 0;
+            border: none;
+            border-radius: 4px;
+            background-color: var(--primary);
+            color: white;
+            text-decoration: none;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .btn:hover {
+            background-color: #2980b9;
+        }
+        
+        .btn-success {
+            background-color: var(--success);
+        }
+        
+        .btn-success:hover {
+            background-color: #27ae60;
+        }
+        
+        .btn-danger {
+            background-color: var(--danger);
+        }
+        
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        
+        textarea {
+            min-height: 100px;
+            font-family: monospace;
+        }
+        
+        .alert {
+            padding: 12px 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+        }
+        
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .alert-danger {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .response-preview {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 3px 7px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+        }
+        
+        .badge-get {
+            background-color: var(--primary);
+        }
+        
+        .badge-post {
+            background-color: var(--success);
+        }
+        
+        .badge-put, .badge-patch {
+            background-color: var(--warning);
+        }
+        
+        .badge-delete {
+            background-color: var(--danger);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>{{ api_title }} - Mock API Admin</h1>
+            <p>Version: {{ api_version }}</p>
+        </header>
+        
+        <div class="card">
+            <div class="tabs">
+                <div class="tab active" data-tab="endpoints">API Endpoints</div>
+                <div class="tab" data-tab="mocks">Mock Data</div>
+                <div class="tab" data-tab="webhooks">Webhooks</div>
+                <div class="tab" data-tab="settings">Settings</div>
+            </div>
+            
+            <div class="tab-content active" id="endpoints-tab">
+                <div class="card-body">
+                    <h2>API Endpoints</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Method</th>
+                                <th>Path</th>
+                                <th>Summary</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="endpoints-list">
+                            <!-- Endpoints will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="tab-content" id="mocks-tab">
+                <div class="card-body">
+                    <h2>Mock Data</h2>
+                    <p>Customize the responses returned by your mock API endpoints.</p>
+                    
+                    <div class="form-group">
+                        <label for="endpoint-select">Select Endpoint</label>
+                        <select id="endpoint-select">
+                            <option value="">-- Select an endpoint --</option>
+                            <!-- Endpoints will be loaded here -->
+                        </select>
+                    </div>
+                    
+                    <div id="mock-editor" style="display: none;">
+                        <div class="form-group">
+                            <label for="mock-response">Response Data (JSON)</label>
+                            <textarea id="mock-response"></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="status-code">Status Code</label>
+                            <select id="status-code">
+                                <option value="200">200 - OK</option>
+                                <option value="201">201 - Created</option>
+                                <option value="202">202 - Accepted</option>
+                                <option value="204">204 - No Content</option>
+                                <option value="400">400 - Bad Request</option>
+                                <option value="401">401 - Unauthorized</option>
+                                <option value="403">403 - Forbidden</option>
+                                <option value="404">404 - Not Found</option>
+                                <option value="500">500 - Server Error</option>
+                            </select>
+                        </div>
+                        
+                        <button class="btn btn-success" id="save-mock">Save Mock Response</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="tab-content" id="webhooks-tab">
+                <div class="card-body">
+                    <h2>Webhooks & Callbacks</h2>
+                    
+                    <div class="tabs">
+                        <div class="tab active" data-subtab="webhook-list">Webhook History</div>
+                        <div class="tab" data-subtab="send-webhook">Send Webhook</div>
+                    </div>
+                    
+                    <div class="tab-content active" id="webhook-list-tab">
+                        <h3>Webhook History</h3>
+                        <button class="btn" id="refresh-webhooks">Refresh</button>
+                        <button class="btn btn-danger" id="clear-webhooks">Clear History</button>
+                        
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>URL</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="webhook-history">
+                                <!-- Webhook history will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="tab-content" id="send-webhook-tab">
+                        <h3>Send Webhook</h3>
+                        
+                        <div class="form-group">
+                            <label for="webhook-url">Webhook URL</label>
+                            <input type="url" id="webhook-url" placeholder="https://example.com/webhook">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="webhook-payload">Payload (JSON)</label>
+                            <textarea id="webhook-payload">{
+  "event": "example",
+  "data": {
+    "id": 123,
+    "name": "Test Webhook"
+  }
+}</textarea>
+                        </div>
+                        
+                        <button class="btn btn-success" id="send-webhook-btn">Send Webhook</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="tab-content" id="settings-tab">
+                <div class="card-body">
+                    <h2>Settings</h2>
+                    
+                    <div class="form-group">
+                        <label for="delay-ms">Response Delay (ms)</label>
+                        <input type="number" id="delay-ms" min="0" max="10000" value="0">
+                        <small>Add artificial delay to API responses (0-10000ms)</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="log-level">Log Level</label>
+                        <select id="log-level">
+                            <option value="DEBUG">DEBUG</option>
+                            <option value="INFO" selected>INFO</option>
+                            <option value="WARNING">WARNING</option>
+                            <option value="ERROR">ERROR</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="simulate-errors">
+                            Randomly simulate errors (5% chance)
+                        </label>
+                    </div>
+                    
+                    <button class="btn btn-success" id="save-settings">Save Settings</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">API Information</div>
+            <div class="card-body">
+                <p><strong>Base URL:</strong> <span id="base-url">http://localhost:8000</span></p>
+                <p><strong>Health Check:</strong> <a href="/health" target="_blank">/health</a></p>
+                <p><strong>API Docs:</strong> <a href="/docs" target="_blank">/docs</a> (Swagger UI)</p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Tab switching logic
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const tabName = this.getAttribute('data-tab');
+                    if (tabName) {
+                        // Main tabs
+                        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                        this.classList.add('active');
+                        
+                        document.querySelectorAll('.tab-content').forEach(content => {
+                            content.classList.remove('active');
+                        });
+                        document.getElementById(tabName + '-tab').classList.add('active');
+                    } else {
+                        // Sub tabs
+                        const subtabName = this.getAttribute('data-subtab');
+                        const tabsContainer = this.closest('.tabs');
+                        
+                        tabsContainer.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                        this.classList.add('active');
+                        
+                        const tabContents = this.closest('.tab-content');
+                        tabContents.querySelectorAll('.tab-content').forEach(content => {
+                            content.classList.remove('active');
+                        });
+                        document.getElementById(subtabName + '-tab').classList.add('active');
+                    }
+                });
+            });
+            
+            // Load API endpoints
+            fetch('/openapi.json')
+                .then(response => response.json())
+                .then(spec => {
+                    const endpointsList = document.getElementById('endpoints-list');
+                    const endpointSelect = document.getElementById('endpoint-select');
+                    
+                    if (spec.paths) {
+                        Object.entries(spec.paths).forEach(([path, methods]) => {
+                            Object.entries(methods).forEach(([method, details]) => {
+                                // Add to endpoints table
+                                const row = document.createElement('tr');
+                                
+                                const methodCell = document.createElement('td');
+                                const methodBadge = document.createElement('span');
+                                methodBadge.classList.add('badge', `badge-${method.toLowerCase()}`);
+                                methodBadge.textContent = method.toUpperCase();
+                                methodCell.appendChild(methodBadge);
+                                
+                                const pathCell = document.createElement('td');
+                                pathCell.textContent = path;
+                                
+                                const summaryCell = document.createElement('td');
+                                summaryCell.textContent = details.summary || '';
+                                
+                                const actionsCell = document.createElement('td');
+                                const testBtn = document.createElement('button');
+                                testBtn.classList.add('btn');
+                                testBtn.textContent = 'Test';
+                                testBtn.addEventListener('click', () => {
+                                    // Implement endpoint testing
+                                    alert(`Test ${method.toUpperCase()} ${path}`);
+                                });
+                                actionsCell.appendChild(testBtn);
+                                
+                                row.appendChild(methodCell);
+                                row.appendChild(pathCell);
+                                row.appendChild(summaryCell);
+                                row.appendChild(actionsCell);
+                                
+                                endpointsList.appendChild(row);
+                                
+                                // Add to endpoint select dropdown
+                                const option = document.createElement('option');
+                                option.value = `${method}:${path}`;
+                                option.textContent = `${method.toUpperCase()} ${path}`;
+                                endpointSelect.appendChild(option);
+                            });
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading OpenAPI spec:', error);
+                    alert('Failed to load API endpoints. Make sure the server is running.');
+                });
+            
+            // Mock editor logic
+            document.getElementById('endpoint-select').addEventListener('change', function() {
+                const selected = this.value;
+                const mockEditor = document.getElementById('mock-editor');
+                
+                if (selected) {
+                    mockEditor.style.display = 'block';
+                    const [method, path] = selected.split(':');
+                    
+                    // Load current mock data for this endpoint
+                    fetch(`/admin/mocks?method=${method}&path=${path}`)
+                        .then(response => response.json())
+                        .then(mockData => {
+                            document.getElementById('mock-response').value = JSON.stringify(mockData.response, null, 2);
+                            document.getElementById('status-code').value = mockData.status_code || 200;
+                        })
+                        .catch(error => {
+                            console.error('Error loading mock data:', error);
+                            document.getElementById('mock-response').value = '{\n  "message": "Sample response"\n}';
+                        });
+                } else {
+                    mockEditor.style.display = 'none';
+                }
+            });
+            
+            // Save mock response
+            document.getElementById('save-mock').addEventListener('click', function() {
+                const selected = document.getElementById('endpoint-select').value;
+                if (!selected) return;
+                
+                const [method, path] = selected.split(':');
+                const mockResponse = document.getElementById('mock-response').value;
+                const statusCode = document.getElementById('status-code').value;
+                
+                try {
+                    const responseData = JSON.parse(mockResponse);
+                    
+                    fetch('/admin/mocks', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            method,
+                            path,
+                            response: responseData,
+                            status_code: parseInt(statusCode, 10)
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        alert('Mock response saved successfully!');
+                    })
+                    .catch(error => {
+                        console.error('Error saving mock data:', error);
+                        alert('Failed to save mock response.');
+                    });
+                } catch (e) {
+                    alert('Invalid JSON format. Please check your response data.');
+                }
+            });
+            
+            // Webhook functionality
+            function loadWebhookHistory() {
+                fetch('/webhooks/history')
+                    .then(response => response.json())
+                    .then(webhooks => {
+                        const webhookHistory = document.getElementById('webhook-history');
+                        webhookHistory.innerHTML = '';
+                        
+                        if (webhooks.length === 0) {
+                            const row = document.createElement('tr');
+                            const cell = document.createElement('td');
+                            cell.colSpan = 4;
+                            cell.textContent = 'No webhooks have been sent yet.';
+                            cell.style.textAlign = 'center';
+                            row.appendChild(cell);
+                            webhookHistory.appendChild(row);
+                            return;
+                        }
+                        
+                        webhooks.forEach(webhook => {
+                            const row = document.createElement('tr');
+                            
+                            const urlCell = document.createElement('td');
+                            urlCell.textContent = webhook.url;
+                            
+                            const typeCell = document.createElement('td');
+                            typeCell.textContent = webhook.type || 'webhook';
+                            
+                            const statusCell = document.createElement('td');
+                            statusCell.textContent = webhook.status;
+                            
+                            const actionsCell = document.createElement('td');
+                            const detailsBtn = document.createElement('button');
+                            detailsBtn.classList.add('btn');
+                            detailsBtn.textContent = 'Details';
+                            detailsBtn.addEventListener('click', () => {
+                                alert(JSON.stringify(webhook, null, 2));
+                            });
+                            actionsCell.appendChild(detailsBtn);
+                            
+                            row.appendChild(urlCell);
+                            row.appendChild(typeCell);
+                            row.appendChild(statusCell);
+                            row.appendChild(actionsCell);
+                            
+                            webhookHistory.appendChild(row);
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error loading webhook history:', error);
+                    });
+            }
+            
+            // Load webhook history on tab open
+            document.querySelector('[data-tab="webhooks"]').addEventListener('click', loadWebhookHistory);
+            
+            // Refresh webhook history
+            document.getElementById('refresh-webhooks').addEventListener('click', loadWebhookHistory);
+            
+            // Clear webhook history
+            document.getElementById('clear-webhooks').addEventListener('click', function() {
+                fetch('/webhooks/clear', { method: 'DELETE' })
+                    .then(response => response.json())
+                    .then(result => {
+                        loadWebhookHistory();
+                    })
+                    .catch(error => {
+                        console.error('Error clearing webhook history:', error);
+                    });
+            });
+            
+            // Send webhook
+            document.getElementById('send-webhook-btn').addEventListener('click', function() {
+                const url = document.getElementById('webhook-url').value;
+                const payloadStr = document.getElementById('webhook-payload').value;
+                
+                if (!url) {
+                    alert('Please enter a webhook URL');
+                    return;
+                }
+                
+                try {
+                    const payload = JSON.parse(payloadStr);
+                    
+                    fetch('/webhooks/send', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            url,
+                            payload
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        alert('Webhook queued for delivery!');
+                        loadWebhookHistory();
+                    })
+                    .catch(error => {
+                        console.error('Error sending webhook:', error);
+                        alert('Failed to send webhook.');
+                    });
+                } catch (e) {
+                    alert('Invalid JSON format. Please check your payload.');
+                }
+            });
+            
+            // Settings functionality
+            document.getElementById('save-settings').addEventListener('click', function() {
+                const delayMs = document.getElementById('delay-ms').value;
+                const logLevel = document.getElementById('log-level').value;
+                const simulateErrors = document.getElementById('simulate-errors').checked;
+                
+                fetch('/admin/settings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        delay_ms: parseInt(delayMs, 10),
+                        log_level: logLevel,
+                        simulate_errors: simulateErrors
+                    })
+                })
+                .then(response => response.json())
+                .then(result => {
+                    alert('Settings saved successfully!');
+                })
+                .catch(error => {
+                    console.error('Error saving settings:', error);
+                    alert('Failed to save settings.');
+                });
+            });
+            
+            // Set base URL
+            document.getElementById('base-url').textContent = window.location.origin;
+        });
+    </script>
+</body>
+</html>
