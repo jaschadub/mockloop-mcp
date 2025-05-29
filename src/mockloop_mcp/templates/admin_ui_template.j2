@@ -289,7 +289,7 @@
         <main class="content">
             <!-- Dashboard Tab -->
             <div id="dashboard" class="tab-content active">
-                <h2>Dashboard</h2>
+                <h2>Dashboard <span id="dashboard-refresh-indicator" style="font-size: 0.8em; color: #666; display: none;">🔄 Refreshing...</span></h2>
                 <div class="dashboard-grid">
                     <div class="card">
                         <h3 class="card-title">Total Requests</h3>
@@ -654,6 +654,12 @@
         // Function to load dashboard statistics from API endpoints
         async function loadDashboardStats() {
             try {
+                // Show refresh indicator if dashboard is active
+                const dashboardIndicator = document.getElementById('dashboard-refresh-indicator');
+                if (document.getElementById('dashboard').classList.contains('active')) {
+                    dashboardIndicator.style.display = 'inline';
+                }
+                
                 // Initialize stats to 0
                 document.getElementById('total-requests').textContent = '0';
                 
@@ -692,6 +698,9 @@
                         // Update recent requests table with only non-admin requests
                         if (nonAdminRequests.length > 0) {
                             updateRecentRequestsTable(nonAdminRequests.slice(-10)); // Show last 10 non-admin requests
+                        } else {
+                            // Clear the table if no requests
+                            updateRecentRequestsTable([]);
                         }
                     }
                 } catch (e) {
@@ -702,6 +711,12 @@
             } catch (error) {
                 console.error('Error loading dashboard stats:', error);
                 // Keep default values on error
+            } finally {
+                // Hide refresh indicator
+                const dashboardIndicator = document.getElementById('dashboard-refresh-indicator');
+                if (dashboardIndicator) {
+                    dashboardIndicator.style.display = 'none';
+                }
             }
         }
         
@@ -845,7 +860,7 @@
                         
                         // Also refresh dashboard if it's active
                         if (document.getElementById('dashboard').classList.contains('active')) {
-                            loadDashboardStats();
+                            await loadDashboardStats();
                             console.log('Auto-refreshed dashboard');
                         }
                     }, autoRefreshInterval * 1000);
