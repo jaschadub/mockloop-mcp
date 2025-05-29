@@ -213,6 +213,73 @@ def generate_mock_api(
         if admin_ui_enabled_bool: 
             admin_api_endpoints_str = """
 # --- Admin API Endpoints ---
+@app.get("/admin/api/export", tags=["_admin"])
+async def export_data():
+    import io
+    import zipfile
+    from fastapi.responses import StreamingResponse
+    
+    # Create a BytesIO object to store the zip file
+    zip_buffer = io.BytesIO()
+    
+    # Create a ZipFile object
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        # Add request logs from SQLite to the zip
+        try:
+            conn = sqlite3.connect(str(DB_PATH))
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            
+            # Get all request logs
+            cursor.execute("SELECT * FROM request_logs")
+            rows = cursor.fetchall()
+            
+            # Convert to list of dicts for JSON serialization
+            logs = []
+            for row in rows:
+                log_entry = dict(row)
+                if "headers" in log_entry and log_entry["headers"]:
+                    try:
+                        log_entry["headers"] = json.loads(log_entry["headers"])
+                    except:
+                        log_entry["headers"] = {}
+                logs.append(log_entry)
+            
+            # Add logs to the zip file
+            zipf.writestr('request_logs.json', json.dumps(logs, indent=2))
+            
+            # Add database schema information
+            cursor.execute("SELECT sql FROM sqlite_master WHERE type='table'")
+            schemas = cursor.fetchall()
+            schema_info = {row[0].split()[2]: row[0] for row in schemas if row[0] is not None}
+            zipf.writestr('database_schema.json', json.dumps(schema_info, indent=2))
+            
+            conn.close()
+        except Exception as e:
+            # If there's an error, add an error log to the zip
+            zipf.writestr('db_export_error.txt', f"Error exporting database: {str(e)}")
+    
+        # Add configuration information
+        config_info = {
+            "api_title": app.title,
+            "api_version": app.version,
+            "server_time": datetime.now().isoformat(),
+            "database_path": str(DB_PATH),
+        }
+        zipf.writestr('config.json', json.dumps(config_info, indent=2))
+    
+    # Reset the buffer position to the beginning
+    zip_buffer.seek(0)
+    
+    # Return the zip file as a streaming response
+    return StreamingResponse(
+        zip_buffer, 
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": "attachment; filename=mock-api-data.zip"
+        }
+    )
+
 @app.get("/admin/api/requests", tags=["_admin"])
 async def get_request_logs(limit: int = 100, offset: int = 0, method: str = None, path: str = None, include_admin: bool = False, id: int = None):
     try:
