@@ -1,7 +1,7 @@
 import argparse
 import sys
 from pathlib import Path
-from typing import Optional, TypedDict, Any # Added Any back
+from typing import Optional, TypedDict, Any, List, Dict, Union
 
 # Handle imports for different execution contexts
 # This allows the script to be run directly (e.g., by 'mcp dev')
@@ -11,10 +11,14 @@ if __package__ is None or __package__ == '':
     # Assumes 'src/mockloop_mcp/' is in sys.path.
     from parser import load_api_specification, APIParsingError
     from generator import generate_mock_api, APIGenerationError
+    from mock_server_manager import MockServerManager
+    from log_analyzer import LogAnalyzer
 else:
     # Imported as part of the 'src.mockloop_mcp' package.
     from .parser import load_api_specification, APIParsingError
     from .generator import generate_mock_api, APIGenerationError
+    from .mock_server_manager import MockServerManager
+    from .log_analyzer import LogAnalyzer
 
 # Import FastMCP and Context from the MCP SDK
 from mcp.server.fastmcp import FastMCP
@@ -32,6 +36,38 @@ class GenerateMockApiOutput(TypedDict):
     generated_mock_path: str
     message: str
     status: str # "success" or "error"
+
+# New TypedDict definitions for enhanced tools
+class QueryMockLogsInput(TypedDict):
+    server_url: str
+    limit: Optional[int]
+    offset: Optional[int]
+    method: Optional[str]
+    path_pattern: Optional[str]
+    time_from: Optional[str]
+    time_to: Optional[str]
+    include_admin: Optional[bool]
+    analyze: Optional[bool]
+
+class QueryMockLogsOutput(TypedDict):
+    status: str
+    logs: List[Dict[str, Any]]
+    total_count: int
+    analysis: Optional[Dict[str, Any]]
+    message: str
+
+class DiscoverMockServersInput(TypedDict):
+    ports: Optional[List[int]]
+    check_health: Optional[bool]
+    include_generated: Optional[bool]
+
+class DiscoverMockServersOutput(TypedDict):
+    status: str
+    discovered_servers: List[Dict[str, Any]]
+    generated_mocks: List[Dict[str, Any]]
+    total_running: int
+    total_generated: int
+    message: str
 
 # Create an MCP server instance
 # The name "MockLoop" will be visible in MCP clients like Claude Desktop.
@@ -153,6 +189,165 @@ async def generate_mock_api_tool(
             "generated_mock_path": "",
             "message": f"An unexpected error occurred: {e}",
             "status": "error"
+        }
+
+@server.tool(
+    name="query_mock_logs",
+    description="Query and analyze request logs from a running MockLoop server. "
+                "Supports filtering by method, path, time range, and provides optional analysis.",
+)
+async def query_mock_logs_tool(
+    server_url: str,
+    limit: int = 100,
+    offset: int = 0,
+    method: Optional[str] = None,
+    path_pattern: Optional[str] = None,
+    time_from: Optional[str] = None,
+    time_to: Optional[str] = None,
+    include_admin: bool = False,
+    analyze: bool = True
+) -> QueryMockLogsOutput:
+    """
+    Query request logs from a MockLoop server with optional analysis.
+    
+    Args:
+        server_url: URL of the mock server (e.g., "http://localhost:8000")
+        limit: Maximum number of logs to return (default: 100)
+        offset: Number of logs to skip for pagination (default: 0)
+        method: Filter by HTTP method (e.g., "GET", "POST")
+        path_pattern: Regex pattern to filter paths
+        time_from: Start time filter (ISO format)
+        time_to: End time filter (ISO format)
+        include_admin: Include admin requests in results
+        analyze: Perform analysis on the logs
+    """
+    try:
+        print(f"Tool: Querying logs from {server_url}")
+        
+        # Initialize the mock server manager
+        manager = MockServerManager()
+        
+        # Query logs from the server
+        log_result = await manager.query_server_logs(
+            server_url=server_url,
+            limit=limit,
+            offset=offset,
+            method=method,
+            path=path_pattern,
+            include_admin=include_admin
+        )
+        
+        if log_result.get("status") != "success":
+            return {
+                "status": "error",
+                "logs": [],
+                "total_count": 0,
+                "analysis": None,
+                "message": f"Failed to query logs: {log_result.get('error', 'Unknown error')}"
+            }
+        
+        logs = log_result.get("logs", [])
+        
+        # Apply additional filtering if needed
+        if time_from or time_to or path_pattern:
+            analyzer = LogAnalyzer()
+            logs = analyzer.filter_logs(
+                logs,
+                method=method,
+                path_pattern=path_pattern,
+                time_from=time_from,
+                time_to=time_to,
+                include_admin=include_admin
+            )
+        
+        analysis = None
+        if analyze and logs:
+            analyzer = LogAnalyzer()
+            analysis = analyzer.analyze_logs(logs)
+            print(f"Tool: Analyzed {len(logs)} log entries")
+        
+        return {
+            "status": "success",
+            "logs": logs,
+            "total_count": len(logs),
+            "analysis": analysis,
+            "message": f"Successfully retrieved {len(logs)} log entries from {server_url}"
+        }
+        
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"Tool Error: Failed to query logs: {error_details}")
+        return {
+            "status": "error",
+            "logs": [],
+            "total_count": 0,
+            "analysis": None,
+            "message": f"Error querying logs: {str(e)}"
+        }
+
+@server.tool(
+    name="discover_mock_servers",
+    description="Discover running MockLoop servers and generated mock configurations. "
+                "Scans common ports and matches with generated mocks.",
+)
+async def discover_mock_servers_tool(
+    ports: Optional[List[int]] = None,
+    check_health: bool = True,
+    include_generated: bool = True
+) -> DiscoverMockServersOutput:
+    """
+    Discover running mock servers and generated mock configurations.
+    
+    Args:
+        ports: List of ports to scan (default: common ports 8000-8005, 3000-3001, 5000-5001)
+        check_health: Perform health checks on discovered servers
+        include_generated: Include information about generated but not running mocks
+    """
+    try:
+        print("Tool: Discovering mock servers...")
+        
+        # Initialize the mock server manager
+        manager = MockServerManager()
+        
+        if include_generated:
+            # Perform comprehensive discovery
+            discovery_result = await manager.comprehensive_discovery()
+            
+            return {
+                "status": "success",
+                "discovered_servers": discovery_result.get("matched_servers", []) +
+                                   discovery_result.get("unmatched_running_servers", []),
+                "generated_mocks": discovery_result.get("not_running_mocks", []),
+                "total_running": discovery_result.get("total_running", 0),
+                "total_generated": discovery_result.get("total_generated", 0),
+                "message": f"Discovered {discovery_result.get('total_running', 0)} running servers "
+                          f"and {discovery_result.get('total_generated', 0)} generated mocks"
+            }
+        else:
+            # Just discover running servers
+            running_servers = await manager.discover_running_servers(ports, check_health)
+            
+            return {
+                "status": "success",
+                "discovered_servers": running_servers,
+                "generated_mocks": [],
+                "total_running": len(running_servers),
+                "total_generated": 0,
+                "message": f"Discovered {len(running_servers)} running servers"
+            }
+        
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"Tool Error: Failed to discover servers: {error_details}")
+        return {
+            "status": "error",
+            "discovered_servers": [],
+            "generated_mocks": [],
+            "total_running": 0,
+            "total_generated": 0,
+            "message": f"Error discovering servers: {str(e)}"
         }
 
 # --- CLI for local testing of the tool logic ---

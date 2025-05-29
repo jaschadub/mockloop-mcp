@@ -5,6 +5,10 @@ Jinja2
 PyYAML
 requests
 
+# Enhanced functionality dependencies
+aiohttp
+pyyaml
+
 # MCP SDK
 mcp[cli]
 
