@@ -1,44 +1,36 @@
+#!/usr/bin/env python3
 import sys
-import json
-import requests
 from pathlib import Path
+
+# Add the current directory to path to find the modules
+sys.path.append('.')
+
+# Import the necessary functions directly
+from src.mockloop_mcp.parser import load_api_specification
 from src.mockloop_mcp.generator import generate_mock_api
 
-# Function to load API spec from URL or file
-def load_api_specification(spec_url_or_path):
-    if spec_url_or_path.startswith(('http://', 'https://')):
-        print(f"Loading specification from URL: {spec_url_or_path}")
-        response = requests.get(spec_url_or_path)
-        response.raise_for_status()
-        return response.json()
-    else:
-        print(f"Loading specification from file: {spec_url_or_path}")
-        with open(spec_url_or_path, 'r') as f:
-            return json.load(f)
-
-# Main function
 def main():
-    spec_url = "https://petstore3.swagger.io/api/v3/openapi.json"
-    output_name = "petstore_new_test"
+    spec_url_or_path = "https://petstore3.swagger.io/api/v3/openapi.json"
+    output_dir_name = "petstore_fixed_final_v3"
     
-    try:
-        # Load the API specification
-        spec_data = load_api_specification(spec_url)
-        
-        # Generate the mock API
-        output_path = generate_mock_api(
-            spec_data=spec_data,
-            mock_server_name=output_name,
-            auth_enabled=True,
-            webhooks_enabled=True,
-            admin_ui_enabled=True,
-            storage_enabled=True
-        )
-        
-        print(f"Mock API generated successfully at: {output_path}")
-    except Exception as e:
-        print(f"Error: {e}")
-        sys.exit(1)
+    # Load the API specification
+    print(f"Loading API specification from: {spec_url_or_path}")
+    parsed_spec = load_api_specification(spec_url_or_path)
+    
+    # Generate the mock API
+    print(f"Generating mock API server with output name: {output_dir_name}")
+    generated_path = generate_mock_api(
+        spec_data=parsed_spec,
+        mock_server_name=output_dir_name,
+        auth_enabled=True,
+        webhooks_enabled=True,
+        admin_ui_enabled=True,
+        storage_enabled=True
+    )
+    
+    resolved_path = str(generated_path.resolve())
+    print(f"Mock API server generated successfully at: {resolved_path}")
+    print(f"Navigate to this directory and use 'docker-compose up --build' to run it.")
 
 if __name__ == "__main__":
     main()

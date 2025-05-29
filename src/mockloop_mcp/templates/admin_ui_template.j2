@@ -341,16 +341,28 @@
             <div id="requests" class="tab-content">
                 <h2>Request Logs</h2>
                 <div class="card">
-                    <div class="form-group">
-                        <label for="filter-method">Filter by Method</label>
-                        <select id="filter-method" class="form-control">
-                            <option value="">All Methods</option>
-                            <option value="GET">GET</option>
-                            <option value="POST">POST</option>
-                            <option value="PUT">PUT</option>
-                            <option value="DELETE">DELETE</option>
-                            <option value="PATCH">PATCH</option>
-                        </select>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                        <div class="form-group" style="flex: 1; margin-right: 1rem;">
+                            <label for="filter-method">Filter by Method</label>
+                            <select id="filter-method" class="form-control">
+                                <option value="">All Methods</option>
+                                <option value="GET">GET</option>
+                                <option value="POST">POST</option>
+                                <option value="PUT">PUT</option>
+                                <option value="DELETE">DELETE</option>
+                                <option value="PATCH">PATCH</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label for="show-admin-requests">Admin Requests</label>
+                            <div class="form-control" style="display: flex; align-items: center;">
+                                <label class="switch" style="position: relative; display: inline-block; width: 60px; height: 34px; margin-right: 10px;">
+                                    <input type="checkbox" id="show-admin-requests">
+                                    <span class="slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px;"></span>
+                                </label>
+                                <span id="admin-toggle-status">Hide Admin Requests</span>
+                            </div>
+                        </div>
                     </div>
                     
                     <table id="requests-table">
@@ -713,19 +725,21 @@
                 document.getElementById('storage-description').textContent = 'Storage feature not enabled';
                 {% endif %}
                 
-                // Try to load request logs
+                        // Try to load request logs
                 try {
                     const requestsResponse = await fetch('/admin/api/requests');
                     if (requestsResponse.ok) {
                         const requests = await requestsResponse.json();
-                        document.getElementById('total-requests').textContent = requests.length || '0';
                         
-                        // Update recent requests table
-                        if (requests.length > 0) {
-                            updateRecentRequestsTable(requests.slice(-10)); // Show last 10 requests
-                            
-                            // Also update the main requests table in the Requests tab
-                            updateRequestsTable(requests);
+                        // Filter out admin requests for the dashboard display
+                        const nonAdminRequests = filterAdminRequests(requests, false);
+                        
+                        // Show non-admin request count in the dashboard
+                        document.getElementById('total-requests').textContent = nonAdminRequests.length || '0';
+                        
+                        // Update recent requests table with only non-admin requests
+                        if (nonAdminRequests.length > 0) {
+                            updateRecentRequestsTable(nonAdminRequests.slice(-10)); // Show last 10 non-admin requests
                         }
                     }
                 } catch (e) {
@@ -808,34 +822,82 @@
             return 'badge-info';
         }
         
+        // Function to filter admin requests
+        function filterAdminRequests(requests, showAdmin = false) {
+            if (!showAdmin) {
+                return requests.filter(req => !req.path.startsWith('/admin'));
+            }
+            return requests;
+        }
+
         // Initialize the application when the DOM is fully loaded
         document.addEventListener('DOMContentLoaded', function() {
-            // Load request logs for the Requests tab
-            document.querySelector('.nav-link[data-tab="requests"]').addEventListener('click', async function() {
+            // Initialize admin toggle state
+            const showAdminToggle = document.getElementById('show-admin-requests');
+            const adminToggleStatus = document.getElementById('admin-toggle-status');
+            let showAdminRequests = false;
+
+            // Style the toggle switch
+            const sliderStyle = document.querySelector('.slider');
+            if (sliderStyle) {
+                sliderStyle.style.backgroundColor = '#ccc';
+            }
+            
+            // Toggle show/hide admin requests
+            showAdminToggle.addEventListener('change', async function() {
+                showAdminRequests = this.checked;
+                adminToggleStatus.textContent = showAdminRequests ? 'Hide Admin Requests' : 'Show Admin Requests';
+                
+                // Update the slider color
+                if (this.checked) {
+                    this.nextElementSibling.style.backgroundColor = '#2196F3';
+                } else {
+                    this.nextElementSibling.style.backgroundColor = '#ccc';
+                }
+                
+                // Refresh the request table with current filter settings
+                await loadRequestsWithFilters();
+            });
+            
+            // Function to load requests with current filters
+            async function loadRequestsWithFilters() {
+                const methodFilter = document.getElementById('filter-method').value;
                 try {
-                    const response = await fetch('/admin/api/requests');
+                    // Use the include_admin parameter directly in the API call
+                    let url = '/admin/api/requests';
+                    const params = new URLSearchParams();
+                    
+                    if (methodFilter) {
+                        params.append('method', methodFilter);
+                    }
+                    
+                    // Pass the showAdminRequests state to the backend
+                    params.append('include_admin', showAdminRequests);
+                    
+                    // Add parameters to URL
+                    if (params.toString()) {
+                        url += '?' + params.toString();
+                    }
+                    
+                    const response = await fetch(url);
                     if (response.ok) {
                         const requests = await response.json();
+                        // No need to filter here since the backend handles it now
                         updateRequestsTable(requests);
                     }
                 } catch (error) {
                     console.error('Error loading requests:', error);
                 }
+            }
+            
+            // Load request logs for the Requests tab
+            document.querySelector('.nav-link[data-tab="requests"]').addEventListener('click', async function() {
+                await loadRequestsWithFilters();
             });
             
             // Setup filter by method
             document.getElementById('filter-method').addEventListener('change', async function() {
-                const method = this.value;
-                try {
-                    const url = method ? `/admin/api/requests?method=${method}` : '/admin/api/requests';
-                    const response = await fetch(url);
-                    if (response.ok) {
-                        const requests = await response.json();
-                        updateRequestsTable(requests);
-                    }
-                } catch (error) {
-                    console.error('Error filtering requests:', error);
-                }
+                await loadRequestsWithFilters();
             });
         });
     </script>

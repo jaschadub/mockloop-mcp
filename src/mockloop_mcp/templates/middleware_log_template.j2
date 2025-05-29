@@ -162,16 +162,30 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         }
         logger.info(json.dumps(response_log_data))
         
+        # Check if this is an admin request
+        is_admin = request.url.path.startswith('/admin')
+        
         # Store request and response in SQLite database
         try:
             conn = sqlite3.connect(str(DB_PATH))
             cursor = conn.cursor()
+            
+            # First, check if we need to update the schema to add the is_admin column
+            cursor.execute("PRAGMA table_info(request_logs)")
+            columns = cursor.fetchall()
+            column_names = [col[1] for col in columns]
+            
+            if 'is_admin' not in column_names:
+                # Add the is_admin column to the table
+                cursor.execute('ALTER TABLE request_logs ADD COLUMN is_admin BOOLEAN DEFAULT 0')
+                conn.commit()
+            
             cursor.execute('''
                 INSERT INTO request_logs (
                     timestamp, type, method, path, status_code,
                     process_time_ms, client_host, client_port,
-                    headers, query_params, request_body, response_body
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    headers, query_params, request_body, response_body, is_admin
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 time.strftime('%Y-%m-%dT%H:%M:%S', time.gmtime()),
                 "request",
@@ -184,7 +198,8 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                 json.dumps(dict(request.headers)),
                 str(request.query_params),
                 request_body_str,
-                response_body_str
+                response_body_str,
+                1 if is_admin else 0
             ))
             conn.commit()
             conn.close()

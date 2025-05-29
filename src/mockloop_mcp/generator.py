@@ -214,7 +214,7 @@ def generate_mock_api(
             admin_api_endpoints_str = """
 # --- Admin API Endpoints ---
 @app.get("/admin/api/requests", tags=["_admin"])
-async def get_request_logs(limit: int = 100, offset: int = 0, method: str = None, path: str = None):
+async def get_request_logs(limit: int = 100, offset: int = 0, method: str = None, path: str = None, include_admin: bool = False):
     try:
         conn = sqlite3.connect(str(DB_PATH))
         conn.row_factory = sqlite3.Row
@@ -232,6 +232,10 @@ async def get_request_logs(limit: int = 100, offset: int = 0, method: str = None
         if path:
             where_clauses.append("path LIKE ?")
             params.append(f"%{path}%")
+        
+        # Filter out admin requests by default
+        if not include_admin:
+            where_clauses.append("(is_admin = 0 OR is_admin IS NULL)")
         
         if where_clauses:
             query += " WHERE " + " AND ".join(where_clauses)
