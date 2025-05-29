@@ -256,3 +256,163 @@ def get_webhook_history(
     filtered_history.sort(key=lambda x: x.get("timestamp", 0), reverse=True)
     
     return filtered_history[:limit]
+
+async def test_webhook(webhook_id: str) -> Dict[str, Any]:
+    """
+    Test a webhook by sending a sample payload.
+    
+    Args:
+        webhook_id: ID of the webhook to test
+        
+    Returns:
+        Test result with delivery status and response details
+    """
+    # Find the webhook by ID
+    webhook = None
+    for w in registered_webhooks:
+        if w["id"] == webhook_id:
+            webhook = w
+            break
+    
+    if not webhook:
+        return {
+            "error": "Webhook not found",
+            "webhook_id": webhook_id,
+            "status": "failed"
+        }
+    
+    # Detect webhook service type from URL to send appropriate payload
+    webhook_url = webhook["url"].lower()
+    
+    # Create base test data
+    base_data = {
+        "data.created": {
+            "id": "test_123",
+            "name": "Test Item",
+            "email": "test@example.com",
+            "created_at": time.time()
+        },
+        "data.updated": {
+            "id": "test_123",
+            "name": "Updated Test Item",
+            "email": "updated@example.com",
+            "updated_at": time.time()
+        },
+        "data.deleted": {
+            "id": "test_123",
+            "deleted_at": time.time()
+        },
+        "auth.login": {
+            "user_id": "test_user_123",
+            "username": "testuser",
+            "login_time": time.time(),
+            "ip_address": "192.168.1.100"
+        }
+    }
+    
+    base_test_data = base_data.get(webhook["event_type"], {
+        "test": True,
+        "message": f"Test webhook for {webhook['event_type']} event",
+        "timestamp": time.time()
+    })
+    
+    # Create service-specific payload
+    if "mattermost" in webhook_url or "mm." in webhook_url:
+        # Mattermost-specific format (very strict)
+        test_data = {
+            "text": f"🧪 **Webhook Test** - {webhook['event_type']} event from MockLoop\n\n**Event Details:**\n- Type: {webhook['event_type']}\n- Test Data: {json.dumps(base_test_data, indent=2)[:200]}...",
+            "username": "MockLoop",
+            "icon_emoji": ":test_tube:",
+            "channel": "#general"
+        }
+    elif "slack" in webhook_url:
+        # Slack-specific format
+        test_data = {
+            "text": f"🧪 Webhook Test - {webhook['event_type']} event from MockLoop",
+            "username": "MockLoop",
+            "icon_emoji": ":test_tube:",
+            "attachments": [{
+                "color": "good",
+                "title": "Webhook Test Details",
+                "fields": [
+                    {
+                        "title": "Event Type",
+                        "value": webhook['event_type'],
+                        "short": True
+                    },
+                    {
+                        "title": "Test Data",
+                        "value": f"```{json.dumps(base_test_data, indent=2)[:300]}```",
+                        "short": False
+                    }
+                ]
+            }]
+        }
+    elif "discord" in webhook_url:
+        # Discord-specific format
+        test_data = {
+            "content": f"🧪 Webhook Test: {webhook['event_type']} event from MockLoop",
+            "username": "MockLoop",
+            "embeds": [{
+                "title": "Webhook Test",
+                "description": f"Testing {webhook['event_type']} event",
+                "color": 3447003,
+                "fields": [
+                    {
+                        "name": "Event Type",
+                        "value": webhook['event_type'],
+                        "inline": True
+                    },
+                    {
+                        "name": "Test Data",
+                        "value": f"```json\n{json.dumps(base_test_data, indent=2)[:500]}\n```",
+                        "inline": False
+                    }
+                ],
+                "timestamp": time.strftime('%Y-%m-%dT%H:%M:%S.000Z', time.gmtime())
+            }]
+        }
+    elif "httpbin.org" in webhook_url:
+        # HTTPBin format (accepts anything, good for testing)
+        test_data = {
+            "event_type": webhook["event_type"],
+            "timestamp": time.time(),
+            "data": base_test_data,
+            "webhook_test": True,
+            "source": "MockLoop"
+        }
+    else:
+        # Generic webhook format for unknown services
+        test_data = {
+            "event_type": webhook["event_type"],
+            "timestamp": time.time(),
+            "data": base_test_data,
+            "text": f"🧪 Webhook Test - {webhook['event_type']} event from MockLoop",
+            "webhook_test": True,
+            "source": "MockLoop"
+        }
+    
+    # Send the test webhook
+    try:
+        result = await send_webhook(
+            url=webhook["url"],
+            payload=test_data,
+            headers=webhook.get("headers", {}),
+            max_retries=1  # Only try once for tests
+        )
+        
+        # Return the test result
+        return {
+            "webhook_id": webhook_id,
+            "test_payload": test_data,
+            "delivery_result": result,
+            "status": "success" if result["status"] == "success" else "failed"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error testing webhook {webhook_id}: {str(e)}")
+        return {
+            "webhook_id": webhook_id,
+            "error": str(e),
+            "status": "failed"
+        }
