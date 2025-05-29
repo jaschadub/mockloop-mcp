@@ -290,7 +290,10 @@ def generate_mock_api(
             admin_ui_template = jinja_env.get_template("admin_ui_template.j2")
             admin_ui_code = admin_ui_template.render(
                 api_title=spec_data.get("info", {}).get("title", "Mock API"),
-                api_version=spec_data.get("info", {}).get("version", "1.0.0")
+                api_version=spec_data.get("info", {}).get("version", "1.0.0"),
+                auth_enabled=auth_enabled,
+                webhooks_enabled=webhooks_enabled,
+                storage_enabled=storage_enabled
             )
             # Create a templates directory for the admin UI HTML
             (mock_server_dir / "templates").mkdir(exist_ok=True)
@@ -414,7 +417,11 @@ if __name__ == "__main__":
         # Let's assume it will be copied.
         dockerfile_content = dockerfile_template.render(
             python_version="3.9-slim", # Or make configurable
-            port=8000 # Or make configurable
+            port=8000, # Or make configurable
+            auth_enabled=auth_enabled,
+            webhooks_enabled=webhooks_enabled,
+            storage_enabled=storage_enabled,
+            admin_ui_enabled=admin_ui_enabled
         )
         with open(mock_server_dir / "Dockerfile", "w", encoding="utf-8") as f:
             f.write(dockerfile_content)

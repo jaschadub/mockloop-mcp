@@ -10,7 +10,22 @@ COPY ./requirements_mock.txt .
 RUN pip install --no-cache-dir -r requirements_mock.txt
 
 COPY ./main.py .
-COPY ./logging_middleware.py . 
+COPY ./logging_middleware.py .
+
+# Copy conditional feature files
+{%- if auth_enabled %}
+COPY ./auth_middleware.py .
+{%- endif %}
+{%- if webhooks_enabled %}
+COPY ./webhook_handler.py .
+{%- endif %}
+{%- if storage_enabled %}
+COPY ./storage.py .
+COPY ./mock_data ./mock_data
+{%- endif %}
+{%- if admin_ui_enabled %}
+COPY ./templates ./templates
+{%- endif %}
 
 EXPOSE ${APP_PORT}
 
