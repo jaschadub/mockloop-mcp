@@ -110,7 +110,10 @@ def generate_mock_api(
     spec_data: Dict[str, Any],
     output_base_dir: Union[str, Path] = "generated_mocks",
     mock_server_name: Optional[str] = None,
-    auth_enabled: bool = False
+    auth_enabled: bool = False,
+    webhooks_enabled: bool = False,
+    admin_ui_enabled: bool = False,
+    storage_enabled: bool = False
 ) -> Path:
     """
     Generates a FastAPI mock server from a parsed API specification.
@@ -242,9 +245,11 @@ def generate_mock_api(
         with open(mock_server_dir / "logging_middleware.py", "w", encoding="utf-8") as f:
             f.write(logging_middleware_code)
             
+        # Generate random suffix for secret keys, API keys, etc.
+        random_suffix = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(8))
+        
         # Generate authentication middleware if enabled
         if auth_enabled:
-            random_suffix = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(8))
             auth_middleware_template = jinja_env.get_template("auth_middleware_template.j2")
             auth_middleware_code = auth_middleware_template.render(random_suffix=random_suffix)
             with open(mock_server_dir / "auth_middleware.py", "w", encoding="utf-8") as f:
@@ -253,6 +258,43 @@ def generate_mock_api(
             # Update requirements to include PyJWT for auth
             with open(mock_server_dir / "requirements_mock.txt", "a", encoding="utf-8") as f:
                 f.write("pyjwt\n")
+        
+        # Generate webhook functionality if enabled
+        if webhooks_enabled:
+            webhook_template = jinja_env.get_template("webhook_template.j2")
+            webhook_code = webhook_template.render()
+            with open(mock_server_dir / "webhook_handler.py", "w", encoding="utf-8") as f:
+                f.write(webhook_code)
+                
+            # Update requirements for webhooks
+            with open(mock_server_dir / "requirements_mock.txt", "a", encoding="utf-8") as f:
+                f.write("httpx\n")
+        
+        # Generate storage module if enabled
+        if storage_enabled:
+            storage_template = jinja_env.get_template("storage_template.j2")
+            storage_code = storage_template.render()
+            with open(mock_server_dir / "storage.py", "w", encoding="utf-8") as f:
+                f.write(storage_code)
+                
+            # Create directory for storing data
+            (mock_server_dir / "mock_data").mkdir(exist_ok=True)
+        
+        # Generate admin UI if enabled
+        if admin_ui_enabled:
+            admin_ui_template = jinja_env.get_template("admin_ui_template.j2")
+            admin_ui_code = admin_ui_template.render(
+                api_title=spec_data.get("info", {}).get("title", "Mock API"),
+                api_version=spec_data.get("info", {}).get("version", "1.0.0")
+            )
+            # Create a templates directory for the admin UI HTML
+            (mock_server_dir / "templates").mkdir(exist_ok=True)
+            with open(mock_server_dir / "templates" / "admin.html", "w", encoding="utf-8") as f:
+                f.write(admin_ui_code)
+                
+            # Update requirements for admin UI
+            with open(mock_server_dir / "requirements_mock.txt", "a", encoding="utf-8") as f:
+                f.write("jinja2\n")
 
         # Generate main FastAPI app file with or without auth
         if auth_enabled:

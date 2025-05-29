@@ -3,9 +3,15 @@ import sys
 from pathlib import Path
 from typing import Optional, TypedDict # Removed Dict, Any as they are not directly used for type hints here
 
-# Assuming parser and generator are in the same package
-from .parser import load_api_specification, APIParsingError
-from .generator import generate_mock_api, APIGenerationError
+# Use absolute imports for MCP server execution
+try:
+    # Try relative imports first (when used as a package)
+    from .parser import load_api_specification, APIParsingError
+    from .generator import generate_mock_api, APIGenerationError
+except ImportError:
+    # Fall back to absolute imports (when run directly)
+    from src.mockloop_mcp.parser import load_api_specification, APIParsingError
+    from src.mockloop_mcp.generator import generate_mock_api, APIGenerationError
 
 # Import FastMCP and Context from the MCP SDK
 from mcp.server.fastmcp import FastMCP
@@ -42,6 +48,10 @@ mcp_server = FastMCP(
 async def generate_mock_api_tool(
     spec_url_or_path: str, 
     output_dir_name: Optional[str] = None,
+    auth_enabled: bool = False,
+    webhooks_enabled: bool = False,
+    admin_ui_enabled: bool = False,
+    storage_enabled: bool = False,
     # ctx: Context # MCP Context, can be added if tool needs to report progress, etc.
 ) -> GenerateMockApiOutput:
     """
@@ -68,7 +78,11 @@ async def generate_mock_api_tool(
         
         generated_path = generate_mock_api(
             spec_data=parsed_spec,
-            mock_server_name=output_dir_name
+            mock_server_name=output_dir_name,
+            auth_enabled=auth_enabled,
+            webhooks_enabled=webhooks_enabled,
+            admin_ui_enabled=admin_ui_enabled,
+            storage_enabled=storage_enabled
             # output_base_dir can be configured if needed, defaults to "generated_mocks"
         )
         

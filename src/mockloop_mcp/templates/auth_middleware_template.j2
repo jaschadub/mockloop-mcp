@@ -1,127 +1,275 @@
-{# Jinja2 template for FastAPI authentication middleware #}
+{# Jinja2 template for authentication middleware #}
+import os
+import time
 import jwt
-from fastapi import Security, HTTPException, Depends, status
-from fastapi.security import APIKeyHeader, APIKeyQuery, OAuth2PasswordBearer
-from typing import Dict, List, Optional, Set, Any, Union
+from typing import Dict, List, Optional, Any, Union
+from fastapi import Depends, HTTPException, status, Request
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security.api_key import APIKeyHeader
+from pydantic import BaseModel
 
-# Configure authentication types
+# Configuration
+# In a real app, these would be in environment variables or a secure config
 API_KEY_NAME = "X-API-Key"
-API_KEY_QUERY = "api_key"
-MOCK_API_KEY = "mock_api_key_{{ random_suffix }}"
-
-# Configure JWT
-JWT_SECRET = "mock_jwt_secret_{{ random_suffix }}"
+API_KEY = "mock-api-key-{{ random_suffix }}"  # For testing purposes
+JWT_SECRET_KEY = "mock-jwt-secret-{{ random_suffix }}"  # For testing only
 JWT_ALGORITHM = "HS256"
+JWT_EXPIRATION_SECONDS = 3600  # 1 hour
 
-# Define security schemes
+# Security schemes
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
-api_key_query = APIKeyQuery(name=API_KEY_QUERY, auto_error=False)
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token", auto_error=False)
+token_auth_scheme = HTTPBearer(auto_error=False)
 
-# Pre-defined mock users for token generation
-MOCK_USERS = {
+# Mock user database
+# In a real application, this would be in a database
+mock_users_db = {
     "admin": {
         "username": "admin",
-        "email": "admin@example.com",
         "full_name": "Admin User",
-        "roles": ["admin"],
-        "permissions": ["read", "write", "delete"]
+        "email": "admin@example.com",
+        "disabled": False,
+        "roles": ["admin"]
     },
     "user": {
         "username": "user",
-        "email": "user@example.com",
         "full_name": "Regular User",
-        "roles": ["user"],
-        "permissions": ["read", "write"]
+        "email": "user@example.com",
+        "disabled": False,
+        "roles": ["user"]
     },
     "guest": {
         "username": "guest",
-        "email": "guest@example.com",
         "full_name": "Guest User",
-        "roles": ["guest"],
-        "permissions": ["read"]
+        "email": "guest@example.com",
+        "disabled": False,
+        "roles": ["guest"]
     }
 }
 
-def verify_api_key(
-    api_key_header: str = Security(api_key_header),
-    api_key_query: str = Security(api_key_query),
-) -> Dict[str, Any]:
-    """
-    Verify API key from header or query parameter.
-    
-    This function doesn't actually enforce authentication in the mock server,
-    but simulates the API key verification process and returns mock user data.
-    """
-    if api_key_header == MOCK_API_KEY or api_key_query == MOCK_API_KEY:
-        # For a mock server, we'll return admin user for successful auth
-        return MOCK_USERS["admin"]
-    
-    # For mock purposes, we'll accept any key and return guest permissions
-    if api_key_header or api_key_query:
-        return MOCK_USERS["guest"]
-    
-    # No API key provided, but this is a mock server so we won't block access
-    # In a real API, we'd raise HTTPException here
-    return {"guest": True, "permissions": ["read"]}
+# Models
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+    expires_at: int
+    user_info: Dict[str, Any]
 
-def verify_jwt_token(token: str = Depends(oauth2_scheme)) -> Dict[str, Any]:
-    """
-    Verify JWT token and return user information.
-    
-    This function simulates JWT verification for the mock server.
-    """
-    if not token:
-        # No token, but this is a mock server so we won't block access
-        return {"guest": True, "permissions": ["read"]}
-    
-    try:
-        # Try to decode the token
-        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-        username = payload.get("sub")
-        if username in MOCK_USERS:
-            return MOCK_USERS[username]
-        return MOCK_USERS["guest"]
-    except jwt.PyJWTError:
-        # Token is invalid, but this is a mock server so we'll still return guest access
-        # In a real API, we'd raise HTTPException here
-        return {"guest": True, "permissions": ["read"]}
+class TokenData(BaseModel):
+    username: Optional[str] = None
+    roles: List[str] = []
 
-def get_token_for_user(username: str) -> str:
+class User(BaseModel):
+    username: str
+    email: Optional[str] = None
+    full_name: Optional[str] = None
+    disabled: Optional[bool] = None
+    roles: List[str] = []
+
+def verify_api_key(api_key: str = Depends(api_key_header)) -> bool:
     """
-    Generate a mock JWT token for a user.
-    """
-    if username in MOCK_USERS:
-        user = MOCK_USERS[username]
-    else:
-        user = MOCK_USERS["guest"]
+    Verify API key for authentication.
+    
+    Args:
+        api_key: API key from X-API-Key header
         
-    payload = {
-        "sub": user["username"],
-        "email": user["email"],
-        "roles": user["roles"],
-        "permissions": user["permissions"]
+    Returns:
+        True if API key is valid
+        
+    Raises:
+        HTTPException: If API key is invalid
+    """
+    if api_key == API_KEY:
+        return True
+        
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid API key",
+        headers={"WWW-Authenticate": "ApiKey"},
+    )
+
+def get_user(username: str) -> User:
+    """
+    Get user from mock database.
+    
+    Args:
+        username: Username to lookup
+        
+    Returns:
+        User object if found
+        
+    Raises:
+        HTTPException: If user not found or disabled
+    """
+    if username in mock_users_db:
+        user_dict = mock_users_db[username]
+        user = User(**user_dict)
+        return user
+        
+    # For mock server, if username not in db but has format test_user_*,
+    # create a test user on the fly
+    if username.startswith("test_user_"):
+        return User(
+            username=username,
+            email=f"{username}@example.com",
+            full_name=f"Test User {username.split('_')[-1]}",
+            disabled=False,
+            roles=["test_user"]
+        )
+        
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"User {username} not found",
+    )
+
+def decode_token(token: str) -> TokenData:
+    """
+    Decode JWT token and extract user data.
+    
+    Args:
+        token: JWT token string
+        
+    Returns:
+        TokenData containing username and roles
+        
+    Raises:
+        HTTPException: If token is invalid or expired
+    """
+    try:
+        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token credentials",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+            
+        # Get roles from token payload
+        roles = payload.get("roles", [])
+        
+        return TokenData(username=username, roles=roles)
+    except jwt.PyJWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+async def verify_jwt_token(token: HTTPAuthorizationCredentials = Depends(token_auth_scheme)) -> User:
+    """
+    Verify JWT token and return associated user.
+    
+    Args:
+        token: Bearer token from Authorization header
+        
+    Returns:
+        User associated with the token
+        
+    Raises:
+        HTTPException: If token is invalid or user is disabled
+    """
+    if token is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Bearer authentication required",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+        
+    token_data = decode_token(token.credentials)
+    user = get_user(token_data.username)
+    
+    if user.disabled:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Inactive user",
+        )
+        
+    return user
+
+def create_access_token(data: Dict[str, Any], expires_delta: Optional[int] = None) -> str:
+    """
+    Create JWT access token.
+    
+    Args:
+        data: Data to encode in token
+        expires_delta: Optional expiration time in seconds
+        
+    Returns:
+        Encoded JWT token
+    """
+    to_encode = data.copy()
+    
+    expire = time.time() + (expires_delta or JWT_EXPIRATION_SECONDS)
+    to_encode.update({"exp": expire})
+    
+    encoded_jwt = jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
+    return encoded_jwt
+
+def generate_token_response(username: str, password: str) -> Token:
+    """
+    Generate token response for OAuth2 compatible token endpoint.
+    
+    Args:
+        username: Username for authentication
+        password: Password for authentication (ignored in mock)
+        
+    Returns:
+        Token response with access token
+        
+    Raises:
+        HTTPException: If username is invalid
+    """
+    # For mock API, any valid username works with any password
+    # In a real app, you would verify the password here
+    user = get_user(username)
+    
+    # Create token payload
+    token_data = {
+        "sub": user.username,
+        "roles": user.roles
     }
     
-    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    # Create token
+    expires = JWT_EXPIRATION_SECONDS
+    access_token = create_access_token(token_data, expires_delta=expires)
+    
+    # Create token response
+    token_response = Token(
+        access_token=access_token,
+        token_type="bearer",
+        expires_at=int(time.time() + expires),
+        user_info={
+            "username": user.username,
+            "full_name": user.full_name,
+            "email": user.email,
+            "roles": user.roles
+        }
+    )
+    
+    return token_response
 
-def generate_token_response(username: str, password: str) -> Dict[str, str]:
+def has_role(required_roles: List[str]):
     """
-    Generate a token response for OAuth2 password flow.
-    For mock purposes, any password is accepted.
+    Dependency to check if user has required role.
+    
+    Args:
+        required_roles: List of roles, any of which grants access
+        
+    Returns:
+        Dependency function checking user roles
     """
-    # In a real API, we'd verify the password here
-    # For mock purposes, we'll accept any password for predefined users
-    if username in MOCK_USERS:
-        token = get_token_for_user(username)
-        return {
-            "access_token": token,
-            "token_type": "bearer"
-        }
-    else:
-        # For mock purposes, we'll return a guest token
-        token = get_token_for_user("guest")
-        return {
-            "access_token": token,
-            "token_type": "bearer"
-        }
+    async def role_checker(user: User = Depends(verify_jwt_token)):
+        # Admin role has access to everything
+        if "admin" in user.roles:
+            return user
+            
+        # Check if user has any of the required roles
+        for role in required_roles:
+            if role in user.roles:
+                return user
+                
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Insufficient permissions. Required roles: {required_roles}"
+        )
+        
+    return role_checker

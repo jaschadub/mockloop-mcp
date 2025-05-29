@@ -1,512 +1,242 @@
-{# Jinja2 template for mock data storage module #}
+{# Jinja2 template for storage/persistence functionality #}
 import json
 import os
-from typing import Dict, List, Any, Optional, Union
-import logging
-from datetime import datetime
-import sqlite3
+import time
+import threading
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Set, Union
 
-# Configure logger
-logging.basicConfig(level=logging.INFO)
-storage_logger = logging.getLogger("storage")
+# Configure path for persistent storage
+STORAGE_DIR = Path("mock_data")
 
-# Define storage path
-STORAGE_DIR = Path("./mock_data")
+# Ensure the storage directory exists
 STORAGE_DIR.mkdir(exist_ok=True)
 
-# SQLite database
-DB_PATH = STORAGE_DIR / "mock_data.db"
+# Mutex for thread-safe file operations
+file_mutex = threading.Lock()
 
-class MockDataStorage:
+class MockStorage:
     """
-    Storage handler for mock API data, using SQLite for persistence.
-    Provides methods for storing and retrieving mock responses, webhooks, and settings.
+    A simple storage utility class that provides persistence for mock API data.
+    This allows mock APIs to maintain state between requests, simulating a database.
+    Data is stored in JSON files in the mock_data directory.
     """
     
-    def __init__(self):
-        self._init_db()
-    
-    def _init_db(self):
-        """Initialize the database with required tables if they don't exist"""
-        conn = sqlite3.connect(str(DB_PATH))
-        cursor = conn.cursor()
-        
-        # Create mock responses table
-        cursor.execute('''
-        CREATE TABLE IF NOT EXISTS mock_responses (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            method TEXT NOT NULL,
-            path TEXT NOT NULL,
-            status_code INTEGER DEFAULT 200,
-            response_data TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(method, path)
-        )
-        ''')
-        
-        # Create webhooks table
-        cursor.execute('''
-        CREATE TABLE IF NOT EXISTS webhooks (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            url TEXT NOT NULL,
-            payload TEXT NOT NULL,
-            headers TEXT NOT NULL,
-            status TEXT NOT NULL,
-            type TEXT DEFAULT 'webhook',
-            response TEXT,
-            error TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-        ''')
-        
-        # Create settings table
-        cursor.execute('''
-        CREATE TABLE IF NOT EXISTS settings (
-            key TEXT PRIMARY KEY,
-            value TEXT NOT NULL,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-        ''')
-        
-        # Initialize default settings if they don't exist
-        default_settings = {
-            "delay_ms": "0",
-            "log_level": "INFO",
-            "simulate_errors": "false"
-        }
-        
-        for key, value in default_settings.items():
-            cursor.execute(
-                "INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)",
-                (key, value)
-            )
-        
-        conn.commit()
-        conn.close()
-    
-    def get_mock_response(self, method: str, path: str) -> Optional[Dict[str, Any]]:
+    def __init__(self, collection: str):
         """
-        Get a stored mock response for a specific endpoint
+        Initialize the storage for a specific collection.
         
         Args:
-            method: HTTP method (GET, POST, etc.)
-            path: API path
-            
-        Returns:
-            Mock response data or None if not found
+            collection: The name of the collection/entity type (e.g., "users", "products")
         """
-        conn = sqlite3.connect(str(DB_PATH))
-        cursor = conn.cursor()
+        self.collection = collection
+        self.file_path = STORAGE_DIR / f"{collection}.json"
+        self._ensure_collection_exists()
+    
+    def _ensure_collection_exists(self) -> None:
+        """Ensure the collection file exists with valid JSON structure."""
+        if not self.file_path.exists():
+            with file_mutex:
+                with open(self.file_path, "w") as f:
+                    json.dump({"items": [], "last_updated": time.time()}, f)
+    
+    def _read_collection(self) -> Dict[str, Any]:
+        """Read the entire collection from disk."""
+        with file_mutex:
+            try:
+                with open(self.file_path, "r") as f:
+                    return json.load(f)
+            except (json.JSONDecodeError, FileNotFoundError):
+                # If file is corrupted or missing, initialize it
+                data = {"items": [], "last_updated": time.time()}
+                with open(self.file_path, "w") as f:
+                    json.dump(data, f)
+                return data
+    
+    def _write_collection(self, data: Dict[str, Any]) -> None:
+        """Write the entire collection to disk."""
+        with file_mutex:
+            # Update the last_updated timestamp
+            data["last_updated"] = time.time()
+            with open(self.file_path, "w") as f:
+                json.dump(data, f, indent=2)
+    
+    def get_all(self) -> List[Dict[str, Any]]:
+        """
+        Get all items in the collection.
         
-        cursor.execute(
-            "SELECT status_code, response_data FROM mock_responses WHERE method = ? AND path = ?",
-            (method.upper(), path)
-        )
+        Returns:
+            List of all items
+        """
+        data = self._read_collection()
+        return data["items"]
+    
+    def get_by_id(self, item_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Get an item by its ID.
         
-        result = cursor.fetchone()
-        conn.close()
+        Args:
+            item_id: The ID of the item to retrieve
         
-        if result:
-            status_code, response_data = result
-            return {
-                "method": method.upper(),
-                "path": path,
-                "status_code": status_code,
-                "response": json.loads(response_data)
-            }
+        Returns:
+            The item if found, None otherwise
+        """
+        items = self.get_all()
+        for item in items:
+            if item.get("id") == item_id:
+                return item
+        return None
+    
+    def query(self, filters: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """
+        Query items with simple filters.
+        
+        Args:
+            filters: Dictionary of field-value pairs to match
+        
+        Returns:
+            List of items matching all filters
+        """
+        items = self.get_all()
+        results = []
+        
+        for item in items:
+            matches = True
+            for key, value in filters.items():
+                if key not in item or item[key] != value:
+                    matches = False
+                    break
+            
+            if matches:
+                results.append(item)
+        
+        return results
+    
+    def create(self, item: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Create a new item in the collection.
+        
+        Args:
+            item: The item to create
+        
+        Returns:
+            The created item with assigned ID
+        """
+        data = self._read_collection()
+        
+        # Generate an ID if none is provided
+        if "id" not in item:
+            # Simple ID generation - timestamp + count
+            item["id"] = f"{int(time.time())}_{len(data['items']) + 1}"
+        
+        # Add created_at timestamp if not present
+        if "created_at" not in item:
+            item["created_at"] = time.time()
+        
+        # Add the item to the collection
+        data["items"].append(item)
+        self._write_collection(data)
+        
+        return item
+    
+    def update(self, item_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """
+        Update an existing item by ID.
+        
+        Args:
+            item_id: ID of the item to update
+            updates: Dictionary of fields to update
+        
+        Returns:
+            The updated item if found, None otherwise
+        """
+        data = self._read_collection()
+        
+        for i, item in enumerate(data["items"]):
+            if item.get("id") == item_id:
+                # Update the item
+                data["items"][i] = {**item, **updates, "updated_at": time.time()}
+                self._write_collection(data)
+                return data["items"][i]
         
         return None
     
-    def save_mock_response(self, method: str, path: str, response: Dict[str, Any], status_code: int = 200) -> bool:
+    def delete(self, item_id: str) -> bool:
         """
-        Save or update a mock response for a specific endpoint
+        Delete an item by ID.
         
         Args:
-            method: HTTP method (GET, POST, etc.)
-            path: API path
-            response: Response data to return
-            status_code: HTTP status code to return
-            
+            item_id: ID of the item to delete
+        
         Returns:
-            True if successful, False otherwise
+            True if the item was deleted, False if not found
         """
-        try:
-            conn = sqlite3.connect(str(DB_PATH))
-            cursor = conn.cursor()
-            
-            # Convert response to JSON string
-            response_json = json.dumps(response)
-            
-            # Insert or replace response
-            cursor.execute(
-                """
-                INSERT OR REPLACE INTO mock_responses 
-                (method, path, status_code, response_data, updated_at) 
-                VALUES (?, ?, ?, ?, datetime('now'))
-                """,
-                (method.upper(), path, status_code, response_json)
-            )
-            
-            conn.commit()
-            conn.close()
-            
-            storage_logger.info(f"Saved mock response for {method.upper()} {path}")
+        data = self._read_collection()
+        
+        initial_count = len(data["items"])
+        data["items"] = [item for item in data["items"] if item.get("id") != item_id]
+        
+        if len(data["items"]) < initial_count:
+            self._write_collection(data)
             return True
-            
-        except Exception as e:
-            storage_logger.error(f"Error saving mock response: {e}")
-            return False
+        
+        return False
     
-    def get_all_mock_responses(self) -> List[Dict[str, Any]]:
+    def delete_all(self) -> int:
         """
-        Get all stored mock responses
+        Delete all items in the collection.
         
         Returns:
-            List of all mock responses
+            Number of items deleted
         """
-        conn = sqlite3.connect(str(DB_PATH))
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-        
-        cursor.execute(
-            "SELECT method, path, status_code, response_data FROM mock_responses ORDER BY path, method"
-        )
-        
-        results = []
-        for row in cursor.fetchall():
-            results.append({
-                "method": row["method"],
-                "path": row["path"],
-                "status_code": row["status_code"],
-                "response": json.loads(row["response_data"])
-            })
-        
-        conn.close()
-        return results
+        data = self._read_collection()
+        count = len(data["items"])
+        data["items"] = []
+        self._write_collection(data)
+        return count
     
-    def delete_mock_response(self, method: str, path: str) -> bool:
+    def count(self) -> int:
         """
-        Delete a stored mock response
+        Count items in the collection.
+        
+        Returns:
+            Number of items in the collection
+        """
+        data = self._read_collection()
+        return len(data["items"])
+    
+    def exists(self, item_id: str) -> bool:
+        """
+        Check if an item exists by ID.
         
         Args:
-            method: HTTP method
-            path: API path
-            
+            item_id: ID to check
+        
         Returns:
-            True if successful, False otherwise
+            True if the item exists, False otherwise
         """
-        try:
-            conn = sqlite3.connect(str(DB_PATH))
-            cursor = conn.cursor()
-            
-            cursor.execute(
-                "DELETE FROM mock_responses WHERE method = ? AND path = ?",
-                (method.upper(), path)
-            )
-            
-            conn.commit()
-            conn.close()
-            
-            storage_logger.info(f"Deleted mock response for {method.upper()} {path}")
-            return True
-            
-        except Exception as e:
-            storage_logger.error(f"Error deleting mock response: {e}")
-            return False
+        return self.get_by_id(item_id) is not None
     
-    def log_webhook(self, webhook_data: Dict[str, Any]) -> int:
+    def get_last_updated(self) -> float:
         """
-        Log a webhook to the database
-        
-        Args:
-            webhook_data: Webhook data including url, payload, headers, status, etc.
-            
-        Returns:
-            ID of the inserted webhook record
-        """
-        try:
-            conn = sqlite3.connect(str(DB_PATH))
-            cursor = conn.cursor()
-            
-            url = webhook_data.get("url", "")
-            payload = json.dumps(webhook_data.get("payload", {}))
-            headers = json.dumps(webhook_data.get("headers", {}))
-            status = webhook_data.get("status", "pending")
-            webhook_type = webhook_data.get("type", "webhook")
-            
-            response = None
-            if "response" in webhook_data and webhook_data["response"]:
-                response = json.dumps(webhook_data["response"])
-                
-            error = webhook_data.get("error")
-            
-            cursor.execute(
-                """
-                INSERT INTO webhooks 
-                (url, payload, headers, status, type, response, error) 
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-                """,
-                (url, payload, headers, status, webhook_type, response, error)
-            )
-            
-            webhook_id = cursor.lastrowid
-            conn.commit()
-            conn.close()
-            
-            return webhook_id
-            
-        except Exception as e:
-            storage_logger.error(f"Error logging webhook: {e}")
-            return -1
-    
-    def get_webhook_history(self, limit: int = 100) -> List[Dict[str, Any]]:
-        """
-        Get webhook history
-        
-        Args:
-            limit: Maximum number of records to return
-            
-        Returns:
-            List of webhook records
-        """
-        conn = sqlite3.connect(str(DB_PATH))
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-        
-        cursor.execute(
-            """
-            SELECT id, url, payload, headers, status, type, response, error, created_at
-            FROM webhooks
-            ORDER BY created_at DESC
-            LIMIT ?
-            """,
-            (limit,)
-        )
-        
-        results = []
-        for row in cursor.fetchall():
-            webhook = {
-                "id": row["id"],
-                "url": row["url"],
-                "payload": json.loads(row["payload"]),
-                "headers": json.loads(row["headers"]),
-                "status": row["status"],
-                "type": row["type"],
-                "created_at": row["created_at"]
-            }
-            
-            if row["response"]:
-                webhook["response"] = json.loads(row["response"])
-                
-            if row["error"]:
-                webhook["error"] = row["error"]
-                
-            results.append(webhook)
-        
-        conn.close()
-        return results
-    
-    def clear_webhook_history(self) -> bool:
-        """
-        Clear all webhook history
+        Get the timestamp of the last update to the collection.
         
         Returns:
-            True if successful, False otherwise
+            Unix timestamp of the last update
         """
-        try:
-            conn = sqlite3.connect(str(DB_PATH))
-            cursor = conn.cursor()
-            
-            cursor.execute("DELETE FROM webhooks")
-            
-            conn.commit()
-            conn.close()
-            
-            storage_logger.info("Cleared webhook history")
-            return True
-            
-        except Exception as e:
-            storage_logger.error(f"Error clearing webhook history: {e}")
-            return False
-    
-    def get_setting(self, key: str, default: Any = None) -> Any:
-        """
-        Get a setting value
-        
-        Args:
-            key: Setting key
-            default: Default value if setting doesn't exist
-            
-        Returns:
-            Setting value or default
-        """
-        conn = sqlite3.connect(str(DB_PATH))
-        cursor = conn.cursor()
-        
-        cursor.execute("SELECT value FROM settings WHERE key = ?", (key,))
-        result = cursor.fetchone()
-        conn.close()
-        
-        if result:
-            value = result[0]
-            
-            # Convert string values to appropriate types
-            if value.lower() == "true":
-                return True
-            elif value.lower() == "false":
-                return False
-            elif value.isdigit():
-                return int(value)
-            else:
-                try:
-                    return float(value)
-                except ValueError:
-                    return value
-        
-        return default
-    
-    def save_setting(self, key: str, value: Any) -> bool:
-        """
-        Save a setting
-        
-        Args:
-            key: Setting key
-            value: Setting value
-            
-        Returns:
-            True if successful, False otherwise
-        """
-        try:
-            conn = sqlite3.connect(str(DB_PATH))
-            cursor = conn.cursor()
-            
-            # Convert value to string
-            if isinstance(value, bool):
-                value_str = "true" if value else "false"
-            else:
-                value_str = str(value)
-            
-            cursor.execute(
-                """
-                INSERT OR REPLACE INTO settings 
-                (key, value, updated_at) 
-                VALUES (?, ?, datetime('now'))
-                """,
-                (key, value_str)
-            )
-            
-            conn.commit()
-            conn.close()
-            
-            storage_logger.info(f"Saved setting {key} = {value}")
-            return True
-            
-        except Exception as e:
-            storage_logger.error(f"Error saving setting: {e}")
-            return False
-    
-    def get_all_settings(self) -> Dict[str, Any]:
-        """
-        Get all settings
-        
-        Returns:
-            Dictionary of all settings
-        """
-        conn = sqlite3.connect(str(DB_PATH))
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-        
-        cursor.execute("SELECT key, value FROM settings")
-        
-        settings = {}
-        for row in cursor.fetchall():
-            key = row["key"]
-            value = row["value"]
-            
-            # Convert string values to appropriate types
-            if value.lower() == "true":
-                settings[key] = True
-            elif value.lower() == "false":
-                settings[key] = False
-            elif value.isdigit():
-                settings[key] = int(value)
-            else:
-                try:
-                    settings[key] = float(value)
-                except ValueError:
-                    settings[key] = value
-        
-        conn.close()
-        return settings
-    
-    def export_data(self) -> Dict[str, Any]:
-        """
-        Export all data (responses, settings) as a dictionary
-        
-        Returns:
-            Dictionary containing all mock data
-        """
-        return {
-            "mock_responses": self.get_all_mock_responses(),
-            "settings": self.get_all_settings(),
-            "exported_at": datetime.now().isoformat()
-        }
-    
-    def import_data(self, data: Dict[str, Any]) -> bool:
-        """
-        Import data from dictionary
-        
-        Args:
-            data: Dictionary containing mock data
-            
-        Returns:
-            True if successful, False otherwise
-        """
-        try:
-            # Import mock responses
-            for mock_response in data.get("mock_responses", []):
-                self.save_mock_response(
-                    method=mock_response["method"],
-                    path=mock_response["path"],
-                    response=mock_response["response"],
-                    status_code=mock_response.get("status_code", 200)
-                )
-            
-            # Import settings
-            for key, value in data.get("settings", {}).items():
-                self.save_setting(key, value)
-            
-            storage_logger.info("Successfully imported mock data")
-            return True
-            
-        except Exception as e:
-            storage_logger.error(f"Error importing mock data: {e}")
-            return False
+        data = self._read_collection()
+        return data.get("last_updated", 0)
 
-# Create a singleton instance
-storage = MockDataStorage()
 
-# Endpoint handler to use mock responses
-def get_mock_response_handler(method: str, path: str, default_response: Optional[Dict[str, Any]] = None) -> tuple:
+# Helper function to get a storage instance for a collection
+def get_storage(collection: str) -> MockStorage:
     """
-    Get mock response for an endpoint, with optional default response
+    Get a storage instance for the specified collection.
     
     Args:
-        method: HTTP method
-        path: API path
-        default_response: Default response if no mock is found
-        
+        collection: Name of the collection
+    
     Returns:
-        Tuple of (response_data, status_code)
+        MockStorage instance for the collection
     """
-    mock_data = storage.get_mock_response(method, path)
-    
-    if mock_data:
-        return mock_data["response"], mock_data["status_code"]
-    
-    if default_response:
-        return default_response, 200
-    
-    return {"message": f"Default mock response for {method} {path}"}, 200
+    return MockStorage(collection)
