@@ -1,8 +1,10 @@
 import os
+import sys
 import time
 import json
 import random
 import string
+import sqlite3
 from pathlib import Path
 from typing import Any, Dict, List, Union, Optional
 from jinja2 import Environment, FileSystemLoader
@@ -199,12 +201,12 @@ def generate_mock_api(
         logging_middleware_code = middleware_template.render()
         with open(mock_server_dir / "logging_middleware.py", "w", encoding="utf-8") as f: f.write(logging_middleware_code)
         
-        common_imports = "from fastapi import FastAPI, Request, Depends, HTTPException, status, Form, Body, Query, Path\nfrom fastapi.responses import HTMLResponse, JSONResponse\nfrom fastapi.templating import Jinja2Templates\nfrom fastapi.staticfiles import StaticFiles\nfrom fastapi.middleware.cors import CORSMiddleware\nfrom typing import List, Dict, Any, Optional\nimport json\nimport os\nimport time\nfrom datetime import datetime\nfrom pathlib import Path\nfrom logging_middleware import LoggingMiddleware\n"
+        common_imports = "from fastapi import FastAPI, Request, Depends, HTTPException, status, Form, Body, Query, Path\nfrom fastapi.responses import HTMLResponse, JSONResponse\nfrom fastapi.templating import Jinja2Templates\nfrom fastapi.staticfiles import StaticFiles\nfrom fastapi.middleware.cors import CORSMiddleware\nfrom typing import List, Dict, Any, Optional\nimport json\nimport os\nimport time\nimport sqlite3\nfrom datetime import datetime\nfrom pathlib import Path\nfrom logging_middleware import LoggingMiddleware\n"
         auth_imports = "from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer\nfrom auth_middleware import verify_api_key, verify_jwt_token, generate_token_response\n" if auth_enabled_bool else ""
         webhook_imports = "from webhook_handler import register_webhook, get_webhooks, delete_webhook, get_webhook_history\n" if webhooks_enabled_bool else ""
         storage_imports = "from storage import StorageManager, get_storage_stats, get_collections\n" if storage_enabled_bool else ""
         imports_section = common_imports + auth_imports + webhook_imports + storage_imports
-        app_setup = "app = FastAPI(title=\"{{ api_title }}\", version=\"{{ api_version }}\")\ntemplates = Jinja2Templates(directory=\"templates\")\napp.add_middleware(LoggingMiddleware)\napp.add_middleware(CORSMiddleware, allow_origins=[\"*\"], allow_credentials=True, allow_methods=[\"*\"], allow_headers=[\"*\"])\n"
+        app_setup = "app = FastAPI(title=\"{{ api_title }}\", version=\"{{ api_version }}\")\ntemplates = Jinja2Templates(directory=\"templates\")\napp.add_middleware(LoggingMiddleware)\napp.add_middleware(CORSMiddleware, allow_origins=[\"*\"], allow_credentials=True, allow_methods=[\"*\"], allow_headers=[\"*\"])\n\n# Setup database path for logs (same as in middleware)\ndb_dir = Path(\"db\")\ndb_dir.mkdir(exist_ok=True)\nDB_PATH = db_dir / \"request_logs.db\"\n"
         auth_endpoints_str = "@app.post(\"/token\", summary=\"Get access token\", tags=[\"authentication\"])\nasync def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):\n    return generate_token_response(form_data.username, form_data.password)\n" if auth_enabled_bool else ""
         
         admin_api_endpoints_str = ""
@@ -212,25 +214,122 @@ def generate_mock_api(
             admin_api_endpoints_str = """
 # --- Admin API Endpoints ---
 @app.get("/admin/api/requests", tags=["_admin"])
-async def get_request_logs():
-    log_dir = Path("logs")
-    if not log_dir.exists(): return []
-    logs = []
+async def get_request_logs(limit: int = 100, offset: int = 0, method: str = None, path: str = None):
     try:
-        log_files = sorted(log_dir.glob("*.log"), key=lambda p: p.stat().st_mtime, reverse=True)
-        if not log_files: return []
-        latest_log = log_files[0]
-        with open(latest_log, "r") as f:
-            for line in f:
+        conn = sqlite3.connect(str(DB_PATH))
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        # Build query with filters
+        query = "SELECT * FROM request_logs"
+        params = []
+        where_clauses = []
+        
+        if method:
+            where_clauses.append("method = ?")
+            params.append(method)
+        
+        if path:
+            where_clauses.append("path LIKE ?")
+            params.append(f"%{path}%")
+        
+        if where_clauses:
+            query += " WHERE " + " AND ".join(where_clauses)
+        
+        query += " ORDER BY id DESC LIMIT ? OFFSET ?"
+        params.extend([limit, offset])
+        
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+        
+        logs = []
+        for row in rows:
+            log_entry = dict(row)
+            if "headers" in log_entry and log_entry["headers"]:
                 try:
-                    log_entry = json.loads(line.strip())
-                    if log_entry.get("type") == "request":
-                        response = next((json.loads(r) for r in f if "response" in r), None)
-                        if response: log_entry["response"] = response
-                        logs.append(log_entry)
-                except json.JSONDecodeError: continue
-    except Exception: pass 
-    return logs
+                    log_entry["headers"] = json.loads(log_entry["headers"])
+                except:
+                    log_entry["headers"] = {}
+            logs.append(log_entry)
+        
+        conn.close()
+        return logs
+    except Exception as e:
+        print(f"Error getting request logs: {e}")
+        return []
+
+@app.get("/admin/api/debug", tags=["_admin"])
+async def get_debug_info():
+    debug_info = {
+        "db_path_exists": os.path.exists(str(DB_PATH)),
+        "db_directory_exists": os.path.exists(str(db_dir)),
+        "db_path": str(DB_PATH),
+        "working_directory": os.getcwd(),
+        "db_dir_listing": os.listdir(str(db_dir)) if os.path.exists(str(db_dir)) else None,
+        "sqlite_version": sqlite3.version
+    }
+    
+    # Try to check the database tables
+    try:
+        conn = sqlite3.connect(str(DB_PATH))
+        cursor = conn.cursor()
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+        tables = cursor.fetchall()
+        debug_info["tables"] = [table[0] for table in tables]
+        
+        # Check if request_logs table exists and get count
+        if tables and any("request_logs" in table[0] for table in tables):
+            cursor.execute("SELECT COUNT(*) FROM request_logs")
+            debug_info["request_logs_count"] = cursor.fetchone()[0]
+            
+            # Get sample data if available
+            cursor.execute("SELECT * FROM request_logs LIMIT 1")
+            if cursor.description:
+                columns = [column[0] for column in cursor.description]
+                rows = cursor.fetchall()
+                if rows:
+                    debug_info["sample_log"] = dict(zip(columns, rows[0]))
+                else:
+                    debug_info["sample_log"] = None
+        
+        conn.close()
+    except Exception as e:
+        debug_info["db_error"] = str(e)
+    
+    return debug_info
+
+@app.get("/admin/api/requests/stats", tags=["_admin"])
+async def get_request_stats():
+    try:
+        conn = sqlite3.connect(str(DB_PATH))
+        cursor = conn.cursor()
+        
+        stats = {"total_requests": 0}
+        
+        # Total count
+        cursor.execute("SELECT COUNT(*) FROM request_logs")
+        result = cursor.fetchone()
+        if result:
+            stats["total_requests"] = result[0]
+        
+        # Count by method
+        cursor.execute("SELECT method, COUNT(*) FROM request_logs GROUP BY method")
+        stats["methods"] = {row[0]: row[1] for row in cursor.fetchall()}
+        
+        # Count by status code
+        cursor.execute("SELECT status_code, COUNT(*) FROM request_logs GROUP BY status_code")
+        stats["status_codes"] = {str(row[0]): row[1] for row in cursor.fetchall()}
+        
+        # Average response time
+        cursor.execute("SELECT AVG(process_time_ms) FROM request_logs")
+        avg_time = cursor.fetchone()
+        stats["avg_response_time"] = avg_time[0] if avg_time and avg_time[0] is not None else 0
+        
+        conn.close()
+        return stats
+    except Exception as e:
+        print(f"Error getting request stats: {e}")
+        return {"error": str(e), "total_requests": 0}
 """
         webhook_api_endpoints_str = ""
         if webhooks_enabled_bool and admin_ui_enabled_bool: 

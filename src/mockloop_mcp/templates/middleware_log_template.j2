@@ -2,6 +2,7 @@
 import logging
 import time
 import json
+import sqlite3
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.types import Message
@@ -11,6 +12,38 @@ import os
 from pathlib import Path
 logs_dir = Path("logs")
 logs_dir.mkdir(exist_ok=True)
+
+# Setup SQLite database for request logs
+db_dir = Path("db")
+db_dir.mkdir(exist_ok=True)
+DB_PATH = db_dir / "request_logs.db"
+
+def init_db():
+    conn = sqlite3.connect(str(DB_PATH))
+    cursor = conn.cursor()
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS request_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp TEXT,
+        type TEXT,
+        method TEXT,
+        path TEXT,
+        status_code INTEGER,
+        process_time_ms INTEGER,
+        client_host TEXT,
+        client_port TEXT,
+        headers TEXT,
+        query_params TEXT,
+        request_body TEXT,
+        response_body TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    ''')
+    conn.commit()
+    conn.close()
+
+# Initialize database
+init_db()
 
 # Configure logging to both file and console
 logger = logging.getLogger("mock_api_logger")
@@ -128,6 +161,35 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             "body": response_body_str, # Consider truncating
         }
         logger.info(json.dumps(response_log_data))
+        
+        # Store request and response in SQLite database
+        try:
+            conn = sqlite3.connect(str(DB_PATH))
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT INTO request_logs (
+                    timestamp, type, method, path, status_code,
+                    process_time_ms, client_host, client_port,
+                    headers, query_params, request_body, response_body
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                time.strftime('%Y-%m-%dT%H:%M:%S', time.gmtime()),
+                "request",
+                request.method,
+                request.url.path,
+                response.status_code,
+                process_time_ms,
+                request.client.host if request.client else "N/A",
+                str(request.client.port) if request.client else "N/A",
+                json.dumps(dict(request.headers)),
+                str(request.query_params),
+                request_body_str,
+                response_body_str
+            ))
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            logger.error(f"Failed to store request log in database: {e}")
         
         # Return a new response with the consumed body, as body_iterator consumes it
         return Response(

@@ -739,18 +739,20 @@
         // Function to update recent requests table
         function updateRecentRequestsTable(requests) {
             const tbody = document.querySelector('#recent-requests-table tbody');
-            if (requests.length === 0) {
+            if (!requests || requests.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="5">No request logs available</td></tr>';
                 return;
             }
             
+            console.log('Request logs data:', requests); // Debug log
+            
             tbody.innerHTML = requests.map(req => `
                 <tr>
-                    <td>${new Date(req.timestamp).toLocaleString()}</td>
-                    <td><span class="badge badge-info">${req.method}</span></td>
-                    <td>${req.path}</td>
-                    <td><span class="badge ${getStatusBadgeClass(req.status_code)}">${req.status_code}</span></td>
-                    <td>${req.process_time_ms}ms</td>
+                    <td>${req.timestamp ? new Date(req.timestamp).toLocaleString() : 'N/A'}</td>
+                    <td><span class="badge badge-info">${req.method || 'N/A'}</span></td>
+                    <td>${req.path || 'N/A'}</td>
+                    <td><span class="badge ${getStatusBadgeClass(req.status_code)}">${req.status_code || 'N/A'}</span></td>
+                    <td>${(req.process_time_ms !== undefined && req.process_time_ms !== null) ? req.process_time_ms + 'ms' : 'N/A'}</td>
                 </tr>
             `).join('');
         }
