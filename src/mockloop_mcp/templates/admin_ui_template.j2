@@ -603,6 +603,17 @@
                         <button type="submit" class="btn btn-success">Save Settings</button>
                     </form>
                 </div>
+                
+                <div class="card">
+                    <h3 class="card-title">Data Export</h3>
+                    <p>Export all mock server data including request logs, database schema, and configuration.</p>
+                    <div class="form-group">
+                        <button type="button" class="btn btn-warning" onclick="exportData()">
+                            <span id="export-status">Export Data</span>
+                        </button>
+                        <small>Downloads a ZIP file containing all server data and logs</small>
+                    </div>
+                </div>
             </div>
         </main>
     </div>
@@ -880,13 +891,7 @@
             // Toggle show/hide admin requests
             showAdminToggle.addEventListener('change', async function() {
                 showAdminRequests = this.checked;
-                adminToggleStatus.textContent = showAdminRequests ? 'Hide Admin Requests' : 'Show Admin Requests';
-                
-                // DEBUG: Log the toggle state change
-                console.log('DEBUG: Admin toggle changed');
-                console.log('DEBUG: Toggle checked:', this.checked);
-                console.log('DEBUG: showAdminRequests state:', showAdminRequests);
-                console.log('DEBUG: Status text:', adminToggleStatus.textContent);
+                adminToggleStatus.textContent = showAdminRequests ? 'Show Admin Requests' : 'Hide Admin Requests';
                 
                 // Update the slider color
                 if (this.checked) {
@@ -919,21 +924,13 @@
                         url += '?' + params.toString();
                     }
                     
-                    // DEBUG: Log the request details
-                    console.log('DEBUG: Loading requests with filters');
-                    console.log('DEBUG: showAdminRequests state:', showAdminRequests);
-                    console.log('DEBUG: methodFilter:', methodFilter);
-                    console.log('DEBUG: Final URL:', url);
-                    
                     const response = await fetch(url);
                     if (response.ok) {
                         const requests = await response.json();
-                        console.log('DEBUG: Received', requests.length, 'requests from API');
-                        console.log('DEBUG: First few requests:', requests.slice(0, 3));
                         // No need to filter here since the backend handles it now
                         updateRequestsTable(requests);
                     } else {
-                        console.error('DEBUG: API response error:', response.status, response.statusText);
+                        console.error('API response error:', response.status, response.statusText);
                     }
                 } catch (error) {
                     console.error('Error loading requests:', error);
@@ -950,6 +947,60 @@
                 await loadRequestsWithFilters();
             });
         });
+        
+        // Export data functionality
+        async function exportData() {
+            const exportButton = document.getElementById('export-status');
+            const originalText = exportButton.textContent;
+            
+            try {
+                // Update button to show loading state
+                exportButton.textContent = 'Exporting...';
+                exportButton.parentElement.disabled = true;
+                
+                // Make request to export endpoint
+                const response = await fetch('/admin/api/export');
+                
+                if (response.ok) {
+                    // Create a blob from the response
+                    const blob = await response.blob();
+                    
+                    // Create a temporary URL for the blob
+                    const url = window.URL.createObjectURL(blob);
+                    
+                    // Create a temporary anchor element and trigger download
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = 'mock-api-data.zip';
+                    document.body.appendChild(a);
+                    a.click();
+                    
+                    // Clean up
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    
+                    // Show success message
+                    exportButton.textContent = 'Export Complete!';
+                    setTimeout(() => {
+                        exportButton.textContent = originalText;
+                        exportButton.parentElement.disabled = false;
+                    }, 2000);
+                } else {
+                    throw new Error(`Export failed: ${response.status} ${response.statusText}`);
+                }
+            } catch (error) {
+                console.error('Export error:', error);
+                exportButton.textContent = 'Export Failed';
+                setTimeout(() => {
+                    exportButton.textContent = originalText;
+                    exportButton.parentElement.disabled = false;
+                }, 3000);
+                
+                // Show error alert
+                alert('Failed to export data. Please check the console for details.');
+            }
+        }
     </script>
 </body>
 </html>
