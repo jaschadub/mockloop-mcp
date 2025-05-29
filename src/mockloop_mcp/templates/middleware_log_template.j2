@@ -6,13 +6,34 @@ from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.types import Message
 
-# Configure basic logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[logging.StreamHandler()] # Ensure logs go to stdout
-)
+# Create logs directory if it doesn't exist
+import os
+from pathlib import Path
+logs_dir = Path("logs")
+logs_dir.mkdir(exist_ok=True)
+
+# Configure logging to both file and console
 logger = logging.getLogger("mock_api_logger")
+logger.setLevel(logging.INFO)
+
+# Add console handler
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+console_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+console_handler.setFormatter(console_formatter)
+logger.addHandler(console_handler)
+
+# Add file handler with daily rotation
+from datetime import datetime
+log_file = logs_dir / f"requests_{datetime.now().strftime('%Y-%m-%d')}.log"
+file_handler = logging.FileHandler(log_file)
+file_handler.setLevel(logging.INFO)
+file_formatter = logging.Formatter('%(message)s')  # Just the message for cleaner JSON parsing
+file_handler.setFormatter(file_formatter)
+logger.addHandler(file_handler)
+
+# Prevent duplicate logging
+logger.propagate = False
 
 class LoggingMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint):

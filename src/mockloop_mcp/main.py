@@ -51,10 +51,10 @@ server = FastMCP(
 async def generate_mock_api_tool(
     spec_url_or_path: str, 
     output_dir_name: Optional[str] = None,
-    auth_enabled: bool = False,
-    webhooks_enabled: bool = False,
-    admin_ui_enabled: bool = False,
-    storage_enabled: bool = False,
+    auth_enabled: bool = True,
+    webhooks_enabled: bool = True,
+    admin_ui_enabled: bool = True,
+    storage_enabled: bool = True,
     # ctx: Context # MCP Context, can be added if tool needs to report progress, etc.
 ) -> GenerateMockApiOutput:
     """
@@ -70,6 +70,12 @@ async def generate_mock_api_tool(
         # If using ctx for logging to MCP client:
         # await ctx.info(f"Loading API specification from: {spec_url_or_path}")
         print(f"Tool: Loading API specification from: {spec_url_or_path}") # Server-side log
+        
+        # Print received boolean flags for debugging
+        print(f"Tool: Received auth_enabled: {auth_enabled} (type: {type(auth_enabled)})")
+        print(f"Tool: Received webhooks_enabled: {webhooks_enabled} (type: {type(webhooks_enabled)})")
+        print(f"Tool: Received admin_ui_enabled: {admin_ui_enabled} (type: {type(admin_ui_enabled)})")
+        print(f"Tool: Received storage_enabled: {storage_enabled} (type: {type(storage_enabled)})")
         
         parsed_spec = load_api_specification(spec_url_or_path)
         

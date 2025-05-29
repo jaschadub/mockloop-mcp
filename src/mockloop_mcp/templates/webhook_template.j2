@@ -195,6 +195,39 @@ async def trigger_webhooks(
     
     return triggered_ids
 
+def get_webhooks() -> List[Dict[str, Any]]:
+    """
+    Get all registered webhooks.
+    
+    Returns:
+        List of registered webhook configurations
+    """
+    return registered_webhooks
+
+def delete_webhook(webhook_id: str) -> Dict[str, Any]:
+    """
+    Delete a registered webhook by ID.
+    
+    Args:
+        webhook_id: ID of the webhook to delete
+        
+    Returns:
+        A status message
+    """
+    global registered_webhooks
+    
+    # Find the webhook by ID
+    for i, webhook in enumerate(registered_webhooks):
+        if webhook["id"] == webhook_id:
+            # Remove from the list
+            removed = registered_webhooks.pop(i)
+            logger.info(f"Deleted webhook {webhook_id}")
+            return {"message": f"Webhook {webhook_id} deleted successfully"}
+    
+    # If we get here, no webhook was found
+    logger.warning(f"Webhook {webhook_id} not found for deletion")
+    return {"message": f"Webhook {webhook_id} not found"}
+
 def get_webhook_history(
     limit: int = 50,
     webhook_id: Optional[str] = None,

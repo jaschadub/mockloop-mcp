@@ -110,10 +110,10 @@ def generate_mock_api(
     spec_data: Dict[str, Any],
     output_base_dir: Union[str, Path] = None,
     mock_server_name: Optional[str] = None,
-    auth_enabled: bool = False,
-    webhooks_enabled: bool = False,
-    admin_ui_enabled: bool = False,
-    storage_enabled: bool = False
+    auth_enabled: bool = True,
+    webhooks_enabled: bool = True,
+    admin_ui_enabled: bool = True,
+    storage_enabled: bool = True
 ) -> Path:
     """
     Generates a FastAPI mock server from a parsed API specification.
@@ -305,21 +305,73 @@ def generate_mock_api(
                 f.write("jinja2\n")
 
         # Generate main FastAPI app file with or without auth
-        if auth_enabled:
-            main_app_template_str = '''
-from fastapi import FastAPI, Depends, HTTPException, status, Form, Request
-from fastapi.responses import HTMLResponse
+        # Common imports for all configurations
+        common_imports = '''
+from fastapi import FastAPI, Request, Depends, HTTPException, status, Form, Body, Query, Path
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
-from fastapi.security import OAuth2PasswordRequestForm
-from logging_middleware import LoggingMiddleware # Import from the generated file
-from auth_middleware import verify_api_key, verify_jwt_token, generate_token_response
+from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
+from typing import List, Dict, Any, Optional
+import json
+import os
+import time
+from datetime import datetime
+from pathlib import Path
+from logging_middleware import LoggingMiddleware  # Import from the generated file
+'''
 
+        if auth_enabled:
+            auth_imports = '''
+from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
+from auth_middleware import verify_api_key, verify_jwt_token, generate_token_response
+'''
+        else:
+            auth_imports = ''
+
+        if webhooks_enabled:
+            webhook_imports = '''
+from webhook_handler import register_webhook, get_webhooks, delete_webhook, get_webhook_history
+'''
+        else:
+            webhook_imports = ''
+
+        if storage_enabled:
+            storage_imports = '''
+from storage import StorageManager, get_storage_stats, get_collections
+'''
+        else:
+            storage_imports = ''
+
+        # Build the imports section based on enabled features
+        imports_section = common_imports
+        if auth_enabled:
+            imports_section += auth_imports
+        if webhooks_enabled:
+            imports_section += webhook_imports
+        if storage_enabled:
+            imports_section += storage_imports
+
+        # Create the app setup section
+        app_setup = '''
 app = FastAPI(title="{{ api_title }}", version="{{ api_version }}")
 templates = Jinja2Templates(directory="templates")
 
-# Add middleware
+# Add middleware for logging
 app.add_middleware(LoggingMiddleware)
 
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+'''
+
+        # Auth endpoints section
+        auth_endpoints = '''
 # Authentication endpoints
 @app.post("/token", summary="Get access token", tags=["authentication"])
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
@@ -328,75 +380,205 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     For mock API testing, any username from ['admin', 'user', 'guest'] with any password will work.
     """
     return generate_token_response(form_data.username, form_data.password)
+''' if auth_enabled else ''
 
-# --- Generated Routes ---
-{{ routes_code }}
-# --- End Generated Routes ---
-
-{% if admin_ui_enabled %}
-@app.get("/admin", response_class=HTMLResponse, summary="Admin UI", tags=["_system"])
-async def read_admin_ui(request: Request):
-    return templates.TemplateResponse("admin.html", {
-        "request": request,
-        "api_title": "{{ api_title }}",
-        "api_version": "{{ api_version }}"
-    })
-{% endif %}
-
-# Optional: Add a health check endpoint
-@app.get("/health", summary="Health check endpoint", tags=["_system"])
-async def health_check():
-    return {"status": "healthy"}
-
-if __name__ == "__main__":
-    import uvicorn
-    # This is for direct execution, Docker will use CMD in Dockerfile
-    uvicorn.run(app, host="0.0.0.0", port={{ default_port }})
+        # Admin API endpoints for the admin UI
+        admin_api_endpoints = '''
+# --- Admin API Endpoints ---
+@app.get("/admin/api/requests", tags=["_admin"])
+async def get_request_logs():
+    """Get the request logs for display in the admin UI."""
+    log_dir = Path("logs")
+    if not log_dir.exists():
+        return []
+    
+    logs = []
+    try:
+        log_files = sorted(log_dir.glob("*.log"), key=lambda p: p.stat().st_mtime, reverse=True)
+        if not log_files:
+            return []
+            
+        # Read the most recent log file
+        latest_log = log_files[0]
+        with open(latest_log, "r") as f:
+            for line in f:
+                try:
+                    log_entry = json.loads(line.strip())
+                    if log_entry.get("type") == "request":
+                        # Find matching response if any
+                        response = next((json.loads(r) for r in f if "response" in r), None)
+                        if response:
+                            log_entry["response"] = response
+                        logs.append(log_entry)
+                except json.JSONDecodeError:
+                    continue
+                except Exception as e:
+                    print(f"Error parsing log: {e}")
+    except Exception as e:
+        print(f"Error reading logs: {e}")
+        
+    return logs
 '''
+
+        # Webhook API endpoints
+        webhook_api_endpoints = '''
+@app.get("/admin/api/webhooks", tags=["_admin"])
+async def admin_get_webhooks():
+    """Get all registered webhooks for the admin UI."""
+    return get_webhooks()
+
+@app.post("/admin/api/webhooks", tags=["_admin"])
+async def admin_register_webhook(
+    event_type: str = Body(..., embed=True),
+    url: str = Body(..., embed=True),
+    description: str = Body(None, embed=True)
+):
+    """Register a new webhook endpoint."""
+    return register_webhook(event_type, url, description)
+
+@app.delete("/admin/api/webhooks/{webhook_id}", tags=["_admin"])
+async def admin_delete_webhook(webhook_id: str):
+    """Delete a registered webhook."""
+    return delete_webhook(webhook_id)
+
+@app.get("/admin/api/webhooks/history", tags=["_admin"])
+async def admin_get_webhook_history():
+    """Get webhook delivery history."""
+    return get_webhook_history()
+''' if webhooks_enabled else ''
+
+        # Storage API endpoints
+        storage_api_endpoints = '''
+@app.get("/admin/api/storage/stats", tags=["_admin"])
+async def admin_get_storage_stats():
+    """Get storage statistics for the admin UI."""
+    return get_storage_stats()
+
+@app.get("/admin/api/storage/collections", tags=["_admin"])
+async def admin_get_collections():
+    """Get list of storage collections."""
+    return get_collections()
+
+@app.get("/admin/api/storage/collections/{collection_name}", tags=["_admin"])
+async def admin_get_collection_data(collection_name: str):
+    """Get data for a specific collection."""
+    storage = StorageManager()
+    try:
+        data = storage.get_all(collection_name)
+        return data
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=f"Collection not found: {e}")
+
+@app.post("/admin/api/storage/collections/{collection_name}", tags=["_admin"])
+async def admin_add_record(collection_name: str, data: Dict[str, Any] = Body(...)):
+    """Add a new record to a collection."""
+    storage = StorageManager()
+    try:
+        record_id = storage.insert(collection_name, data)
+        return {"id": record_id, "message": "Record created successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create record: {e}")
+
+@app.put("/admin/api/storage/collections/{collection_name}/{record_id}", tags=["_admin"])
+async def admin_update_record(collection_name: str, record_id: str, data: Dict[str, Any] = Body(...)):
+    """Update a record in a collection."""
+    storage = StorageManager()
+    try:
+        success = storage.update(collection_name, record_id, data)
+        if success:
+            return {"message": "Record updated successfully"}
         else:
-            main_app_template_str = '''
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
-from logging_middleware import LoggingMiddleware # Import from the generated file
+            raise HTTPException(status_code=404, detail="Record not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update record: {e}")
 
-app = FastAPI(title="{{ api_title }}", version="{{ api_version }}")
-templates = Jinja2Templates(directory="templates")
+@app.delete("/admin/api/storage/collections/{collection_name}/{record_id}", tags=["_admin"])
+async def admin_delete_record(collection_name: str, record_id: str):
+    """Delete a record from a collection."""
+    storage = StorageManager()
+    try:
+        success = storage.delete(collection_name, record_id)
+        if success:
+            return {"message": "Record deleted successfully"}
+        else:
+            raise HTTPException(status_code=404, detail="Record not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to delete record: {e}")
 
-# Add middleware
-app.add_middleware(LoggingMiddleware)
+@app.delete("/admin/api/storage/collections/{collection_name}", tags=["_admin"])
+async def admin_clear_collection(collection_name: str):
+    """Clear all records from a collection."""
+    storage = StorageManager()
+    try:
+        storage.clear_collection(collection_name)
+        return {"message": f"Collection '{collection_name}' cleared successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to clear collection: {e}")
 
-# --- Generated Routes ---
-{{ routes_code }}
-# --- End Generated Routes ---
+@app.post("/admin/api/storage/collections", tags=["_admin"])
+async def admin_create_collection(name: str = Body(..., embed=True)):
+    """Create a new collection."""
+    storage = StorageManager()
+    try:
+        storage.create_collection(name)
+        return {"message": f"Collection '{name}' created successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create collection: {e}")
+''' if storage_enabled else ''
 
-{% if admin_ui_enabled %}
+        # Admin UI endpoint - pass all variables directly
+        admin_ui_endpoint = f'''
 @app.get("/admin", response_class=HTMLResponse, summary="Admin UI", tags=["_system"])
 async def read_admin_ui(request: Request):
-    return templates.TemplateResponse("admin.html", {
+    return templates.TemplateResponse("admin.html", {{
         "request": request,
-        "api_title": "{{ api_title }}",
-        "api_version": "{{ api_version }}"
-    })
-{% endif %}
+        "api_title": "{spec_data.get("info", {}).get("title", "Mock API")}",
+        "api_version": "{spec_data.get("info", {}).get("version", "1.0.0")}",
+        "auth_enabled": {auth_enabled},
+        "webhooks_enabled": {webhooks_enabled},
+        "storage_enabled": {storage_enabled}
+    }})
+'''
 
+        # Health check endpoint
+        health_endpoint = '''
 # Optional: Add a health check endpoint
 @app.get("/health", summary="Health check endpoint", tags=["_system"])
 async def health_check():
     return {"status": "healthy"}
+'''
 
+        # Main section
+        main_section = '''
 if __name__ == "__main__":
     import uvicorn
     # This is for direct execution, Docker will use CMD in Dockerfile
     uvicorn.run(app, host="0.0.0.0", port={{ default_port }})
 '''
+
+        # Build the complete template string
+        main_app_template_str = (
+            imports_section +
+            app_setup +
+            auth_endpoints +
+            "\n# --- Generated Routes ---\n{{ routes_code }}\n# --- End Generated Routes ---\n" +
+            admin_api_endpoints +
+            webhook_api_endpoints +
+            storage_api_endpoints +
+            admin_ui_endpoint +
+            health_endpoint +
+            main_section
+        )
         main_app_jinja_template = jinja_env.from_string(main_app_template_str)
         main_py_content = main_app_jinja_template.render(
             api_title=spec_data.get("info", {}).get("title", "Mock API"),
             api_version=spec_data.get("info", {}).get("version", "1.0.0"),
             routes_code=all_routes_code,
             default_port=8000,
-            admin_ui_enabled=admin_ui_enabled  # Pass this to the template context
+            admin_ui_enabled=admin_ui_enabled,  # Pass this to the template context
+            auth_enabled=auth_enabled,
+            webhooks_enabled=webhooks_enabled,
+            storage_enabled=storage_enabled
         )
         with open(mock_server_dir / "main.py", "w", encoding="utf-8") as f:
             f.write(main_py_content)
@@ -418,10 +600,10 @@ if __name__ == "__main__":
         dockerfile_content = dockerfile_template.render(
             python_version="3.9-slim", # Or make configurable
             port=8000, # Or make configurable
-            auth_enabled=auth_enabled,
-            webhooks_enabled=webhooks_enabled,
-            storage_enabled=storage_enabled,
-            admin_ui_enabled=admin_ui_enabled
+            auth_enabled=bool(auth_enabled),
+            webhooks_enabled=bool(webhooks_enabled),
+            storage_enabled=bool(storage_enabled),
+            admin_ui_enabled=bool(admin_ui_enabled)
         )
         with open(mock_server_dir / "Dockerfile", "w", encoding="utf-8") as f:
             f.write(dockerfile_content)

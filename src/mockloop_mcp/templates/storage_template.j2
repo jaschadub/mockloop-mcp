@@ -228,6 +228,232 @@ class MockStorage:
         return data.get("last_updated", 0)
 
 
+class StorageManager:
+    """
+    A manager class for working with multiple collections.
+    """
+    
+    def __init__(self):
+        """Initialize the storage manager."""
+        self.storage_dir = STORAGE_DIR
+    
+    def get_collection_names(self) -> List[str]:
+        """
+        Get the names of all collections.
+        
+        Returns:
+            List of collection names
+        """
+        return [f.stem for f in self.storage_dir.glob("*.json")]
+    
+    def create_collection(self, name: str) -> bool:
+        """
+        Create a new collection.
+        
+        Args:
+            name: Name of the collection to create
+            
+        Returns:
+            True if collection was created, False if it already exists
+        """
+        file_path = self.storage_dir / f"{name}.json"
+        if file_path.exists():
+            return False
+            
+        with file_mutex:
+            with open(file_path, "w") as f:
+                json.dump({"items": [], "last_updated": time.time()}, f)
+        return True
+    
+    def delete_collection(self, name: str) -> bool:
+        """
+        Delete a collection.
+        
+        Args:
+            name: Name of the collection to delete
+            
+        Returns:
+            True if collection was deleted, False if not found
+        """
+        file_path = self.storage_dir / f"{name}.json"
+        if not file_path.exists():
+            return False
+            
+        with file_mutex:
+            file_path.unlink()
+        return True
+    
+    def collection_exists(self, name: str) -> bool:
+        """
+        Check if a collection exists.
+        
+        Args:
+            name: Name of the collection to check
+            
+        Returns:
+            True if collection exists, False otherwise
+        """
+        file_path = self.storage_dir / f"{name}.json"
+        return file_path.exists()
+    
+    def get_collection_stats(self, name: str) -> Dict[str, Any]:
+        """
+        Get statistics for a collection.
+        
+        Args:
+            name: Name of the collection
+            
+        Returns:
+            Dictionary with collection statistics
+        """
+        if not self.collection_exists(name):
+            return {
+                "name": name,
+                "exists": False,
+                "count": 0,
+                "last_updated": None
+            }
+            
+        storage = MockStorage(name)
+        return {
+            "name": name,
+            "exists": True,
+            "count": storage.count(),
+            "last_updated": storage.get_last_updated()
+        }
+    
+    def get_all(self, collection_name: str) -> List[Dict[str, Any]]:
+        """
+        Get all items from a collection.
+        
+        Args:
+            collection_name: Name of the collection
+            
+        Returns:
+            List of items in the collection
+        """
+        storage = MockStorage(collection_name)
+        return storage.get_all()
+    
+    def get_by_id(self, collection_name: str, item_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Get an item by ID from a collection.
+        
+        Args:
+            collection_name: Name of the collection
+            item_id: ID of the item
+            
+        Returns:
+            The item if found, None otherwise
+        """
+        storage = MockStorage(collection_name)
+        return storage.get_by_id(item_id)
+    
+    def insert(self, collection_name: str, item: Dict[str, Any]) -> str:
+        """
+        Insert an item into a collection.
+        
+        Args:
+            collection_name: Name of the collection
+            item: The item to insert
+            
+        Returns:
+            ID of the inserted item
+        """
+        storage = MockStorage(collection_name)
+        result = storage.create(item)
+        return result["id"]
+    
+    def update(self, collection_name: str, item_id: str, updates: Dict[str, Any]) -> bool:
+        """
+        Update an item in a collection.
+        
+        Args:
+            collection_name: Name of the collection
+            item_id: ID of the item to update
+            updates: The updates to apply
+            
+        Returns:
+            True if updated, False if not found
+        """
+        storage = MockStorage(collection_name)
+        result = storage.update(item_id, updates)
+        return result is not None
+    
+    def delete(self, collection_name: str, item_id: str) -> bool:
+        """
+        Delete an item from a collection.
+        
+        Args:
+            collection_name: Name of the collection
+            item_id: ID of the item to delete
+            
+        Returns:
+            True if deleted, False if not found
+        """
+        storage = MockStorage(collection_name)
+        return storage.delete(item_id)
+    
+    def clear_collection(self, collection_name: str) -> int:
+        """
+        Delete all items from a collection.
+        
+        Args:
+            collection_name: Name of the collection
+            
+        Returns:
+            Number of items deleted
+        """
+        storage = MockStorage(collection_name)
+        return storage.delete_all()
+
+
+def get_storage_stats() -> Dict[str, Any]:
+    """
+    Get statistics about all collections.
+    
+    Returns:
+        Dictionary with storage statistics
+    """
+    manager = StorageManager()
+    collection_names = manager.get_collection_names()
+    
+    collections = []
+    total_items = 0
+    
+    for name in collection_names:
+        stats = manager.get_collection_stats(name)
+        collections.append(stats)
+        total_items += stats["count"]
+    
+    return {
+        "collection_count": len(collections),
+        "total_items": total_items,
+        "collections": collections,
+        "storage_dir": str(STORAGE_DIR)
+    }
+
+
+def get_collections() -> List[Dict[str, Any]]:
+    """
+    Get information about all collections.
+    
+    Returns:
+        List of collection information
+    """
+    manager = StorageManager()
+    collection_names = manager.get_collection_names()
+    
+    return [
+        {
+            "name": name,
+            "count": manager.get_collection_stats(name)["count"],
+            "last_updated": manager.get_collection_stats(name)["last_updated"]
+        }
+        for name in collection_names
+    ]
+
+
 # Helper function to get a storage instance for a collection
 def get_storage(collection: str) -> MockStorage:
     """
