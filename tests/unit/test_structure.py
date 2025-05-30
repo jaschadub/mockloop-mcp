@@ -1,7 +1,8 @@
 """Test to verify the new test structure works correctly."""
 
-import pytest
 from pathlib import Path
+
+import pytest
 
 
 def test_fixtures_directory_exists():
@@ -44,4 +45,3 @@ if __name__ == "__main__":
     test_integration_directory_exists()
     test_unit_directory_structure()
     test_unit_marker()
-    print("✅ All structure tests passed!")

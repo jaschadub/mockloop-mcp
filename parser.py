@@ -1,15 +1,17 @@
 import json
-import yaml
+from pathlib import Path
+
 import requests
+import yaml
+
 
 def load_spec(path_or_url):
     if path_or_url.startswith("http"):
-        content = requests.get(path_or_url).text
+        content = requests.get(path_or_url, timeout=30).text
     else:
-        with open(path_or_url, "r") as f:
-            content = f.read()
+        content = Path(path_or_url).read_text()
 
     try:
         return yaml.safe_load(content)
-    except:
+    except yaml.YAMLError:
         return json.loads(content)

@@ -1,27 +1,33 @@
 """
 Mock server management utilities for discovering and managing MockLoop servers.
 """
-import os
-import json
-import yaml
-from pathlib import Path
-from typing import Dict, List, Optional, Any, Union
 from datetime import datetime
+from pathlib import Path
+from typing import Any
+
+import yaml
 
 # Handle imports for different execution contexts
 try:
-    from .utils.http_client import MockServerClient, discover_running_servers, test_server_connectivity
+    from .utils.http_client import (
+        MockServerClient,
+        discover_running_servers,
+        check_server_connectivity,
+    )
 except ImportError:
-    from utils.http_client import MockServerClient, discover_running_servers, test_server_connectivity
+    from utils.http_client import (
+        MockServerClient,
+        discover_running_servers,
+    )
 
 
 class MockServerManager:
     """Manager for MockLoop generated mock servers."""
-    
-    def __init__(self, generated_mocks_dir: Union[str, Path] = None):
+
+    def __init__(self, generated_mocks_dir: str | Path | None = None):
         """
         Initialize the mock server manager.
-        
+
         Args:
             generated_mocks_dir: Path to the generated mocks directory
         """
@@ -31,43 +37,43 @@ class MockServerManager:
             self.generated_mocks_dir = project_root / "generated_mocks"
         else:
             self.generated_mocks_dir = Path(generated_mocks_dir)
-    
-    def discover_generated_mocks(self) -> List[Dict[str, Any]]:
+
+    def discover_generated_mocks(self) -> list[dict[str, Any]]:
         """
         Discover all generated mock servers in the generated_mocks directory.
-        
+
         Returns:
             List of mock server information
         """
         mock_servers = []
-        
+
         if not self.generated_mocks_dir.exists():
             return mock_servers
-        
+
         for mock_dir in self.generated_mocks_dir.iterdir():
             if mock_dir.is_dir():
                 mock_info = self._analyze_mock_directory(mock_dir)
                 if mock_info:
                     mock_servers.append(mock_info)
-        
+
         return mock_servers
-    
-    def _analyze_mock_directory(self, mock_dir: Path) -> Optional[Dict[str, Any]]:
+
+    def _analyze_mock_directory(self, mock_dir: Path) -> dict[str, Any] | None:
         """
         Analyze a mock directory to extract server information.
-        
+
         Args:
             mock_dir: Path to the mock directory
-            
+
         Returns:
             Dict containing mock server information or None if invalid
         """
         main_py = mock_dir / "main.py"
         docker_compose = mock_dir / "docker-compose.yml"
-        
+
         if not main_py.exists():
             return None
-        
+
         mock_info = {
             "name": mock_dir.name,
             "path": str(mock_dir.absolute()),
@@ -76,14 +82,14 @@ class MockServerManager:
             "created_at": datetime.fromtimestamp(mock_dir.stat().st_ctime).isoformat(),
             "modified_at": datetime.fromtimestamp(mock_dir.stat().st_mtime).isoformat()
         }
-        
+
         # Try to extract port from docker-compose.yml
         if docker_compose.exists():
             try:
-                with open(docker_compose, 'r') as f:
+                with open(docker_compose) as f:
                     compose_data = yaml.safe_load(f)
                     services = compose_data.get('services', {})
-                    for service_name, service_config in services.items():
+                    for service_config in services.values():
                         ports = service_config.get('ports', [])
                         if ports:
                             # Extract host port from port mapping like "8000:8000"
@@ -96,10 +102,10 @@ class MockServerManager:
                         break
             except Exception as e:
                 mock_info["docker_compose_error"] = str(e)
-        
+
         # Try to extract API info from main.py
         try:
-            with open(main_py, 'r') as f:
+            with open(main_py) as f:
                 main_content = f.read()
                 # Look for FastAPI app title and version
                 if 'FastAPI(' in main_content:
@@ -120,64 +126,64 @@ class MockServerManager:
                                 mock_info["api_version"] = line[version_start:version_end]
         except Exception as e:
             mock_info["main_py_analysis_error"] = str(e)
-        
+
         # Check for additional files
         mock_info["has_auth"] = (mock_dir / "auth_middleware.py").exists()
         mock_info["has_webhooks"] = (mock_dir / "webhook_handler.py").exists()
         mock_info["has_storage"] = (mock_dir / "storage.py").exists()
         mock_info["has_admin_ui"] = (mock_dir / "templates" / "admin.html").exists()
-        
+
         # Check for database and logs
         db_dir = mock_dir / "db"
         logs_dir = mock_dir / "logs"
         mock_info["has_database"] = db_dir.exists()
         mock_info["has_logs"] = logs_dir.exists()
-        
+
         if db_dir.exists():
             db_file = db_dir / "request_logs.db"
             mock_info["database_exists"] = db_file.exists()
             if db_file.exists():
                 mock_info["database_size"] = db_file.stat().st_size
-        
+
         return mock_info
-    
+
     async def discover_running_servers(
         self,
-        ports: List[int] = None,
+        ports: list[int] | None = None,
         check_health: bool = True
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Discover running mock servers.
-        
+
         Args:
             ports: List of ports to scan
             check_health: Whether to perform health checks
-            
+
         Returns:
             List of running server information
         """
         return await discover_running_servers(ports, check_health)
-    
-    async def get_server_status(self, server_url: str) -> Dict[str, Any]:
+
+    async def get_server_status(self, server_url: str) -> dict[str, Any]:
         """
         Get the status of a specific mock server.
-        
+
         Args:
             server_url: URL of the mock server
-            
+
         Returns:
             Dict containing server status information
         """
         client = MockServerClient(server_url)
-        
+
         # Get health status
         health_result = await client.health_check()
-        
+
         # Get additional info if server is healthy
         if health_result.get("status") == "healthy":
             stats_result = await client.get_stats()
             debug_result = await client.get_debug_info()
-            
+
             return {
                 "url": server_url,
                 "health": health_result,
@@ -191,32 +197,32 @@ class MockServerManager:
                 "health": health_result,
                 "is_mockloop_server": False
             }
-    
+
     async def query_server_logs(
         self,
         server_url: str,
         **kwargs
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Query logs from a specific mock server.
-        
+
         Args:
             server_url: URL of the mock server
             **kwargs: Additional query parameters
-            
+
         Returns:
             Dict containing log query results
         """
         client = MockServerClient(server_url)
         return await client.query_logs(**kwargs)
-    
-    def get_mock_by_name(self, name: str) -> Optional[Dict[str, Any]]:
+
+    def get_mock_by_name(self, name: str) -> dict[str, Any] | None:
         """
         Get mock server information by name.
-        
+
         Args:
             name: Name of the mock server
-            
+
         Returns:
             Mock server information or None if not found
         """
@@ -224,39 +230,39 @@ class MockServerManager:
         if mock_dir.exists():
             return self._analyze_mock_directory(mock_dir)
         return None
-    
-    def list_available_mocks(self) -> List[str]:
+
+    def list_available_mocks(self) -> list[str]:
         """
         List names of all available generated mocks.
-        
+
         Returns:
             List of mock server names
         """
         if not self.generated_mocks_dir.exists():
             return []
-        
+
         return [
             d.name for d in self.generated_mocks_dir.iterdir()
             if d.is_dir() and (d / "main.py").exists()
         ]
-    
-    async def comprehensive_discovery(self) -> Dict[str, Any]:
+
+    async def comprehensive_discovery(self) -> dict[str, Any]:
         """
         Perform comprehensive discovery of both generated and running mock servers.
-        
+
         Returns:
             Dict containing complete discovery results
         """
         # Discover generated mocks
         generated_mocks = self.discover_generated_mocks()
-        
+
         # Discover running servers
         running_servers = await self.discover_running_servers()
-        
+
         # Try to match running servers with generated mocks
         matched_servers = []
         unmatched_running = []
-        
+
         for running in running_servers:
             matched = False
             for generated in generated_mocks:
@@ -270,10 +276,10 @@ class MockServerManager:
                     })
                     matched = True
                     break
-            
+
             if not matched:
                 unmatched_running.append(running)
-        
+
         # Find generated mocks that are not running
         not_running = []
         for generated in generated_mocks:
@@ -286,7 +292,7 @@ class MockServerManager:
                     "generated_mock": generated,
                     "status": "not_running"
                 })
-        
+
         return {
             "discovery_timestamp": datetime.now().isoformat(),
             "total_generated": len(generated_mocks),
@@ -299,10 +305,10 @@ class MockServerManager:
 
 
 # Convenience functions for direct use
-async def quick_discovery() -> Dict[str, Any]:
+async def quick_discovery() -> dict[str, Any]:
     """
     Quick discovery of mock servers using default settings.
-    
+
     Returns:
         Dict containing discovery results
     """
@@ -310,19 +316,19 @@ async def quick_discovery() -> Dict[str, Any]:
     return await manager.comprehensive_discovery()
 
 
-async def find_server_by_name(name: str) -> Optional[Dict[str, Any]]:
+async def find_server_by_name(name: str) -> dict[str, Any] | None:
     """
     Find a running server by mock name.
-    
+
     Args:
         name: Name of the mock server
-        
+
     Returns:
         Server information if found and running, None otherwise
     """
     manager = MockServerManager()
     mock_info = manager.get_mock_by_name(name)
-    
+
     if mock_info and mock_info.get("default_port"):
         server_url = f"http://localhost:{mock_info['default_port']}"
         status = await manager.get_server_status(server_url)
@@ -331,5 +337,5 @@ async def find_server_by_name(name: str) -> Optional[Dict[str, Any]]:
                 "mock_info": mock_info,
                 "server_status": status
             }
-    
+
     return None

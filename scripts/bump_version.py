@@ -14,12 +14,11 @@ Usage:
 """
 
 import argparse
+from datetime import datetime
+from pathlib import Path
 import re
 import subprocess
 import sys
-from datetime import datetime
-from pathlib import Path
-from typing import Optional, Tuple
 
 
 class VersionBumper:
@@ -52,12 +51,11 @@ class VersionBumper:
             init_content = self.init_path.read_text()
             init_match = re.search(r'__version__\s*=\s*"([^"]+)"', init_content)
             if init_match and init_match.group(1) != pyproject_version:
-                print(f"Version mismatch: pyproject.toml={pyproject_version}, __init__.py={init_match.group(1)}")
                 return False
 
         return True
 
-    def parse_version(self, version: str) -> Tuple[int, int, int, Optional[str]]:
+    def parse_version(self, version: str) -> tuple[int, int, int, str | None]:
         """Parse a semantic version string."""
         # Handle pre-release versions like 1.0.0-alpha.1
         if "-" in version:
@@ -76,7 +74,7 @@ class VersionBumper:
 
         return major, minor, patch, pre_release
 
-    def bump_version(self, bump_type: str, pre_release: Optional[str] = None) -> str:
+    def bump_version(self, bump_type: str, pre_release: str | None = None) -> str:
         """Bump version based on type (major, minor, patch)."""
         current = self.get_current_version()
         major, minor, patch, current_pre = self.parse_version(current)
@@ -123,12 +121,10 @@ class VersionBumper:
             )
             self.init_path.write_text(content)
 
-        print(f"Updated version to {new_version}")
 
     def update_changelog(self, new_version: str) -> None:
         """Update CHANGELOG.md with new version and date."""
         if not self.changelog_path.exists():
-            print("Warning: CHANGELOG.md not found, skipping changelog update")
             return
 
         content = self.changelog_path.read_text()
@@ -180,7 +176,6 @@ class VersionBumper:
                 )
 
         self.changelog_path.write_text(content)
-        print(f"Updated CHANGELOG.md for version {new_version}")
 
     def create_git_commit_and_tag(self, version: str) -> None:
         """Create git commit and tag for the release."""
@@ -204,25 +199,22 @@ class VersionBumper:
             tag_message = f"Release version {version}"
             subprocess.run(["git", "tag", "-a", tag_name, "-m", tag_message], check=True)
 
-            print(f"Created git commit and tag {tag_name}")
-            print("Don't forget to push with: git push && git push --tags")
 
-        except subprocess.CalledProcessError as e:
-            print(f"Git operation failed: {e}")
-            print("You may need to manually commit and tag the changes")
+        except subprocess.CalledProcessError:
+            pass
         except FileNotFoundError:
-            print("Git not found. Please install git or manually commit the changes")
+            pass
 
 
 def main():
     """Main entry point for the version bumping script."""
     parser = argparse.ArgumentParser(description="Bump version for mockloop-mcp")
-    
+
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("bump_type", nargs="?", choices=["major", "minor", "patch"],
                       help="Type of version bump")
     group.add_argument("--version", help="Set specific version")
-    
+
     parser.add_argument("--pre-release", help="Pre-release identifier (alpha, beta, rc)")
     parser.add_argument("--no-git", action="store_true", help="Skip git operations")
     parser.add_argument("--dry-run", action="store_true", help="Show what would be done without making changes")
@@ -238,11 +230,9 @@ def main():
     try:
         # Validate current state
         if not bumper.validate_version_consistency():
-            print("Error: Version inconsistency detected. Please fix manually first.")
             sys.exit(1)
 
-        current_version = bumper.get_current_version()
-        print(f"Current version: {current_version}")
+        bumper.get_current_version()
 
         # Determine new version
         if args.version:
@@ -250,10 +240,8 @@ def main():
         else:
             new_version = bumper.bump_version(args.bump_type, args.pre_release)
 
-        print(f"New version: {new_version}")
 
         if args.dry_run:
-            print("Dry run mode - no changes made")
             return
 
         # Make changes
@@ -263,10 +251,8 @@ def main():
         if not args.no_git:
             bumper.create_git_commit_and_tag(new_version)
 
-        print(f"Successfully bumped version from {current_version} to {new_version}")
 
-    except Exception as e:
-        print(f"Error: {e}")
+    except Exception:
         sys.exit(1)
 
 

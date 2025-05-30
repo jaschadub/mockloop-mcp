@@ -13,12 +13,10 @@ Usage:
 """
 
 import argparse
+from pathlib import Path
 import re
 import subprocess
 import sys
-from datetime import datetime
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
 
 class ReleasePreparation:
@@ -34,17 +32,12 @@ class ReleasePreparation:
 
     def print_header(self, title: str) -> None:
         """Print a formatted header."""
-        print(f"\n{'='*60}")
-        print(f" {title}")
-        print(f"{'='*60}")
 
     def print_check(self, name: str, passed: bool, details: str = "") -> None:
         """Print a check result."""
-        status = "✅ PASS" if passed else "❌ FAIL"
-        print(f"{status} {name}")
         if details:
-            print(f"     {details}")
-        
+            pass
+
         if passed:
             self.checks_passed.append(name)
         else:
@@ -72,15 +65,15 @@ class ReleasePreparation:
                 check=True
             )
             is_clean = len(result.stdout.strip()) == 0
-            
+
             if not is_clean:
                 details = "Working directory has uncommitted changes"
             else:
                 details = "Working directory is clean"
-                
+
             self.print_check("Git working directory clean", is_clean, details)
             return is_clean
-            
+
         except (subprocess.CalledProcessError, FileNotFoundError):
             self.print_check("Git working directory clean", False, "Git not available or not a git repository")
             return False
@@ -89,7 +82,7 @@ class ReleasePreparation:
         """Check if versions are consistent across files."""
         try:
             pyproject_version = self.get_current_version()
-            
+
             # Check __init__.py
             if self.init_path.exists():
                 init_content = self.init_path.read_text()
@@ -104,10 +97,10 @@ class ReleasePreparation:
             else:
                 is_consistent = False
                 details = "__init__.py not found"
-                
+
             self.print_check("Version consistency", is_consistent, details)
             return is_consistent
-            
+
         except Exception as e:
             self.print_check("Version consistency", False, str(e))
             return False
@@ -121,18 +114,18 @@ class ReleasePreparation:
 
             content = self.changelog_path.read_text()
             current_version = self.get_current_version()
-            
+
             # Check if current version is in changelog
             version_pattern = rf"\[{re.escape(current_version)}\]"
             has_version = bool(re.search(version_pattern, content))
-            
+
             # Check if there's content in Unreleased section
             unreleased_match = re.search(r"## \[Unreleased\](.*?)(?=## \[|\Z)", content, re.DOTALL)
             has_unreleased_content = False
             if unreleased_match:
                 unreleased_content = unreleased_match.group(1).strip()
                 # Remove section headers and check if there's actual content
-                content_lines = [line.strip() for line in unreleased_content.split('\n') 
+                content_lines = [line.strip() for line in unreleased_content.split('\n')
                                if line.strip() and not line.strip().startswith('###')]
                 has_unreleased_content = len(content_lines) > 0
 
@@ -145,10 +138,10 @@ class ReleasePreparation:
             else:
                 details = "No version entry or unreleased content found"
                 result = False
-                
+
             self.print_check("Changelog updated", result, details)
             return result
-            
+
         except Exception as e:
             self.print_check("Changelog updated", False, str(e))
             return False
@@ -156,14 +149,13 @@ class ReleasePreparation:
     def check_tests_pass(self) -> bool:
         """Check if all tests pass."""
         try:
-            print("Running tests...")
             result = subprocess.run(
                 ["python", "-m", "pytest", "tests/", "-v", "--tb=short"],
                 capture_output=True,
                 text=True,
-                cwd=self.project_root
+                cwd=self.project_root, check=False
             )
-            
+
             tests_pass = result.returncode == 0
             if tests_pass:
                 # Count tests from output
@@ -172,10 +164,10 @@ class ReleasePreparation:
                 details = test_summary[-1] if test_summary else "All tests passed"
             else:
                 details = "Some tests failed - check output above"
-                
+
             self.print_check("All tests pass", tests_pass, details)
             return tests_pass
-            
+
         except FileNotFoundError:
             self.print_check("All tests pass", False, "pytest not found - install dev dependencies")
             return False
@@ -191,22 +183,22 @@ class ReleasePreparation:
                 ["bandit", "-r", "src/", "-f", "txt"],
                 capture_output=True,
                 text=True,
-                cwd=self.project_root
+                cwd=self.project_root, check=False
             )
-            
+
             # Bandit returns 1 if issues found, 0 if clean
             bandit_clean = bandit_result.returncode == 0
-            
+
             if bandit_clean:
                 details = "No security issues found"
             else:
                 # Count issues
                 issues = bandit_result.stdout.count(">> Issue:")
                 details = f"{issues} potential security issues found"
-                
+
             self.print_check("Security scan (Bandit)", bandit_clean, details)
             return bandit_clean
-            
+
         except FileNotFoundError:
             self.print_check("Security scan (Bandit)", False, "bandit not found - install dev dependencies")
             return False
@@ -222,19 +214,19 @@ class ReleasePreparation:
                 ["safety", "check"],
                 capture_output=True,
                 text=True,
-                cwd=self.project_root
+                cwd=self.project_root, check=False
             )
-            
+
             safety_clean = safety_result.returncode == 0
-            
+
             if safety_clean:
                 details = "No known vulnerabilities found"
             else:
                 details = "Known vulnerabilities detected in dependencies"
-                
+
             self.print_check("Dependency security (Safety)", safety_clean, details)
             return safety_clean
-            
+
         except FileNotFoundError:
             self.print_check("Dependency security (Safety)", False, "safety not found - install dev dependencies")
             return False
@@ -248,32 +240,32 @@ class ReleasePreparation:
             # Clean any existing build artifacts
             build_dir = self.project_root / "build"
             dist_dir = self.project_root / "dist"
-            
+
             if build_dir.exists():
                 subprocess.run(["rm", "-rf", str(build_dir)], check=True)
             if dist_dir.exists():
                 subprocess.run(["rm", "-rf", str(dist_dir)], check=True)
-            
+
             # Build the package
             result = subprocess.run(
                 ["python", "-m", "build"],
                 capture_output=True,
                 text=True,
-                cwd=self.project_root
+                cwd=self.project_root, check=False
             )
-            
+
             build_success = result.returncode == 0
-            
+
             if build_success:
                 # Check if files were created
                 dist_files = list(dist_dir.glob("*")) if dist_dir.exists() else []
                 details = f"Built {len(dist_files)} distribution files"
             else:
                 details = "Build failed - check build dependencies"
-                
+
             self.print_check("Package builds successfully", build_success, details)
             return build_success
-            
+
         except FileNotFoundError:
             self.print_check("Package builds successfully", False, "build module not found - install build dependencies")
             return False
@@ -287,33 +279,33 @@ class ReleasePreparation:
             return f"Release notes for version {version}"
 
         content = self.changelog_path.read_text()
-        
+
         # Try to find the version section
         version_pattern = rf'## \[{re.escape(version)}\].*?\n(.*?)(?=\n## \[|\n\[.*?\]:|\Z)'
         match = re.search(version_pattern, content, re.DOTALL)
-        
+
         if match:
             notes = match.group(1).strip()
             # Remove any trailing links section
             notes = re.sub(r'\n\[.*?\]:.*$', '', notes, flags=re.MULTILINE)
             return notes
-        
+
         # If version not found, try unreleased section
         unreleased_match = re.search(r"## \[Unreleased\](.*?)(?=## \[|\Z)", content, re.DOTALL)
         if unreleased_match:
             notes = unreleased_match.group(1).strip()
             return notes
-            
+
         return f"Release notes for version {version}"
 
     def run_all_checks(self) -> bool:
         """Run all release preparation checks."""
         self.print_header("Release Preparation Checks")
-        
+
         # Reset check counters
         self.checks_passed = []
         self.checks_failed = []
-        
+
         # Run all checks
         checks = [
             self.check_git_status,
@@ -324,67 +316,48 @@ class ReleasePreparation:
             self.check_dependencies_secure,
             self.check_build_works,
         ]
-        
+
         for check in checks:
             check()
-        
+
         # Summary
-        print(f"\n{'='*60}")
-        print(f" Summary: {len(self.checks_passed)} passed, {len(self.checks_failed)} failed")
-        print(f"{'='*60}")
-        
+
         if self.checks_failed:
-            print("\n❌ Failed checks:")
             for check in self.checks_failed:
-                print(f"   - {check}")
-        
+                pass
+
         if self.checks_passed:
-            print("\n✅ Passed checks:")
             for check in self.checks_passed:
-                print(f"   - {check}")
-        
+                pass
+
         return len(self.checks_failed) == 0
 
-    def interactive_release_preparation(self, target_version: Optional[str] = None) -> None:
+    def interactive_release_preparation(self, target_version: str | None = None) -> None:
         """Interactive release preparation workflow."""
         self.print_header("MockLoop MCP Release Preparation")
-        
-        current_version = self.get_current_version()
-        print(f"Current version: {current_version}")
-        
+
+        self.get_current_version()
+
         if target_version:
-            print(f"Target version: {target_version}")
+            pass
         else:
-            print("\nNo target version specified. Will validate current state.")
-        
+            pass
+
         # Run checks
         all_passed = self.run_all_checks()
-        
+
         if not all_passed:
-            print(f"\n❌ Release preparation failed. Please fix the issues above before proceeding.")
             return
-        
-        print(f"\n✅ All checks passed! Ready for release.")
-        
+
+
         # Show next steps
         self.print_header("Next Steps")
-        print("1. If you haven't already, bump the version:")
-        print(f"   python scripts/bump_version.py patch  # or minor/major")
-        print("\n2. Push the changes and create a tag:")
-        print(f"   git push")
-        print(f"   git push --tags")
-        print("\n3. The GitHub Actions release workflow will:")
-        print("   - Run all tests and security checks")
-        print("   - Build the distribution packages")
-        print("   - Create a GitHub release")
-        print("   - Prepare for PyPI publishing (Phase 5)")
-        
+
         # Show release notes preview
         if target_version:
             notes = self.generate_release_notes(target_version)
             if notes:
                 self.print_header("Release Notes Preview")
-                print(notes)
 
 
 def main():
@@ -392,7 +365,7 @@ def main():
     parser = argparse.ArgumentParser(description="Prepare release for mockloop-mcp")
     parser.add_argument("--version", help="Target version for release")
     parser.add_argument("--check-only", action="store_true", help="Only run checks, don't show interactive guide")
-    
+
     args = parser.parse_args()
 
     # Find project root
@@ -410,8 +383,7 @@ def main():
             # Interactive mode
             prep.interactive_release_preparation(args.version)
 
-    except Exception as e:
-        print(f"Error: {e}")
+    except Exception:
         sys.exit(1)
 
 

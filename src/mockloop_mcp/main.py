@@ -1,7 +1,10 @@
 import argparse
+import logging
 import sys
-from pathlib import Path
-from typing import Optional, TypedDict, Any, List, Dict, Union
+from typing import Any, TypedDict
+
+# Configure logger for this module
+logger = logging.getLogger(__name__)
 
 # Handle imports for different execution contexts
 # This allows the script to be run directly (e.g., by 'mcp dev')
@@ -9,27 +12,29 @@ from typing import Optional, TypedDict, Any, List, Dict, Union
 if __package__ is None or __package__ == '':
     # Likely executed by 'mcp dev' or as a standalone script.
     # Assumes 'src/mockloop_mcp/' is in sys.path.
-    from parser import load_api_specification, APIParsingError
-    from generator import generate_mock_api, APIGenerationError
-    from mock_server_manager import MockServerManager
+    from generator import APIGenerationError, generate_mock_api
     from log_analyzer import LogAnalyzer
+    from mock_server_manager import MockServerManager
+    from parser import APIParsingError, load_api_specification
 else:
     # Imported as part of the 'src.mockloop_mcp' package.
-    from .parser import load_api_specification, APIParsingError
-    from .generator import generate_mock_api, APIGenerationError
-    from .mock_server_manager import MockServerManager
+    from .generator import APIGenerationError, generate_mock_api
     from .log_analyzer import LogAnalyzer
+    from .mock_server_manager import MockServerManager
+    from .parser import APIParsingError, load_api_specification
 
 # Import FastMCP and Context from the MCP SDK
-from mcp.server.fastmcp import FastMCP
-from mcp.server.fastmcp import Context # For type hinting if needed in tools
+from mcp.server.fastmcp import (
+    FastMCP,
+)
+
 
 # Define input and output structures for the tool
 # These can be Pydantic models for more robust validation if the SDK supports it,
 # or TypedDicts as used here.
 class GenerateMockApiInput(TypedDict):
     spec_url_or_path: str
-    output_dir_name: Optional[str]
+    output_dir_name: str | None
     # Example: Add more parameters like target_port: Optional[int]
 
 class GenerateMockApiOutput(TypedDict):
@@ -40,31 +45,31 @@ class GenerateMockApiOutput(TypedDict):
 # New TypedDict definitions for enhanced tools
 class QueryMockLogsInput(TypedDict):
     server_url: str
-    limit: Optional[int]
-    offset: Optional[int]
-    method: Optional[str]
-    path_pattern: Optional[str]
-    time_from: Optional[str]
-    time_to: Optional[str]
-    include_admin: Optional[bool]
-    analyze: Optional[bool]
+    limit: int | None
+    offset: int | None
+    method: str | None
+    path_pattern: str | None
+    time_from: str | None
+    time_to: str | None
+    include_admin: bool | None
+    analyze: bool | None
 
 class QueryMockLogsOutput(TypedDict):
     status: str
-    logs: List[Dict[str, Any]]
+    logs: list[dict[str, Any]]
     total_count: int
-    analysis: Optional[Dict[str, Any]]
+    analysis: dict[str, Any] | None
     message: str
 
 class DiscoverMockServersInput(TypedDict):
-    ports: Optional[List[int]]
-    check_health: Optional[bool]
-    include_generated: Optional[bool]
+    ports: list[int] | None
+    check_health: bool | None
+    include_generated: bool | None
 
 class DiscoverMockServersOutput(TypedDict):
     status: str
-    discovered_servers: List[Dict[str, Any]]
-    generated_mocks: List[Dict[str, Any]]
+    discovered_servers: list[dict[str, Any]]
+    generated_mocks: list[dict[str, Any]]
     total_running: int
     total_generated: int
     message: str
@@ -72,18 +77,18 @@ class DiscoverMockServersOutput(TypedDict):
 class ManageMockDataInput(TypedDict):
     server_url: str
     operation: str  # "update_response", "create_scenario", "switch_scenario", "list_scenarios"
-    endpoint_path: Optional[str]
-    response_data: Optional[Dict[str, Any]]
-    scenario_name: Optional[str]
-    scenario_config: Optional[Dict[str, Any]]
+    endpoint_path: str | None
+    response_data: dict[str, Any] | None
+    scenario_name: str | None
+    scenario_config: dict[str, Any] | None
 
 class ManageMockDataOutput(TypedDict):
     status: str
     operation: str
-    result: Dict[str, Any]
+    result: dict[str, Any]
     server_url: str
     message: str
-    performance_metrics: Optional[Dict[str, Any]]
+    performance_metrics: dict[str, Any] | None
 
 # Create an MCP server instance
 # The name "MockLoop" will be visible in MCP clients like Claude Desktop.
@@ -101,8 +106,8 @@ server = FastMCP(
     # output_schema=GenerateMockApiOutput, # FastMCP infers from return type hint
 )
 async def generate_mock_api_tool(
-    spec_url_or_path: str, 
-    output_dir_name: Optional[str] = None,
+    spec_url_or_path: str,
+    output_dir_name: str | None = None,
     auth_enabled: bool = True,
     webhooks_enabled: bool = True,
     admin_ui_enabled: bool = True,
@@ -111,7 +116,7 @@ async def generate_mock_api_tool(
 ) -> GenerateMockApiOutput:
     """
     MCP Tool to generate a mock API server.
-    
+
     Args:
         spec_url_or_path: URL or local file path to the API specification.
         output_dir_name: Optional name for the generated mock server directory.
@@ -143,22 +148,16 @@ async def generate_mock_api_tool(
 
         # If using ctx for logging to MCP client:
         # await ctx.info(f"Loading API specification from: {spec_url_or_path}")
-        print(f"Tool: Loading API specification from: {spec_url_or_path}") # Server-side log
-        
+
         # Print received boolean flags for debugging
-        print(f"Tool: Hardcoded auth_enabled: {auth_enabled_debug} (type: {type(auth_enabled_debug)}) (original was: {auth_enabled})")
-        print(f"Tool: Hardcoded webhooks_enabled: {webhooks_enabled_debug} (type: {type(webhooks_enabled_debug)}) (original was: {webhooks_enabled})")
-        print(f"Tool: Hardcoded admin_ui_enabled: {admin_ui_enabled_debug} (type: {type(admin_ui_enabled_debug)}) (original was: {admin_ui_enabled})")
-        print(f"Tool: Hardcoded storage_enabled: {storage_enabled_debug} (type: {type(storage_enabled_debug)}) (original was: {storage_enabled})")
-        
+
         parsed_spec = load_api_specification(spec_url_or_path)
-        
+
         # await ctx.info(f"Generating mock API server...")
-        print(f"Tool: Generating mock API server...")
         if output_dir_name:
             # await ctx.info(f"Using custom output directory name: {output_dir_name}")
-            print(f"Tool: Using custom output directory name: {output_dir_name}")
-        
+            pass
+
         generated_path = generate_mock_api(
             spec_data=parsed_spec,
             mock_server_name=output_dir_name,
@@ -168,11 +167,10 @@ async def generate_mock_api_tool(
             storage_enabled=storage_enabled_debug # Pass debug hardcoded True
             # output_base_dir can be configured if needed, defaults to "generated_mocks"
         )
-        
+
         resolved_path = str(generated_path.resolve())
         # await ctx.info(f"Mock API server generated successfully at: {resolved_path}")
-        print(f"Tool: Mock API server generated successfully at: {resolved_path}")
-        
+
         return {
             "generated_mock_path": resolved_path,
             "message": f"Mock API server generated successfully at {resolved_path}. "
@@ -181,7 +179,6 @@ async def generate_mock_api_tool(
         }
 
     except APIParsingError as e:
-        print(f"Tool Error: Error parsing API specification: {e}")
         # await ctx.error(f"Error parsing API specification: {e}")
         return {
             "generated_mock_path": "",
@@ -189,7 +186,6 @@ async def generate_mock_api_tool(
             "status": "error"
         }
     except APIGenerationError as e:
-        print(f"Tool Error: Error generating mock API: {e}")
         # await ctx.error(f"Error generating mock API: {e}")
         return {
             "generated_mock_path": "",
@@ -198,8 +194,7 @@ async def generate_mock_api_tool(
         }
     except Exception as e:
         import traceback
-        error_details = traceback.format_exc()
-        print(f"Tool Error: An unexpected error occurred: {error_details}")
+        traceback.format_exc()
         # await ctx.error(f"An unexpected error occurred: {e}\n{error_details}")
         return {
             "generated_mock_path": "",
@@ -216,16 +211,16 @@ async def query_mock_logs_tool(
     server_url: str,
     limit: int = 100,
     offset: int = 0,
-    method: Optional[str] = None,
-    path_pattern: Optional[str] = None,
-    time_from: Optional[str] = None,
-    time_to: Optional[str] = None,
+    method: str | None = None,
+    path_pattern: str | None = None,
+    time_from: str | None = None,
+    time_to: str | None = None,
     include_admin: bool = False,
     analyze: bool = True
 ) -> QueryMockLogsOutput:
     """
     Query request logs from a MockLoop server with optional analysis.
-    
+
     Args:
         server_url: URL of the mock server (e.g., "http://localhost:8000")
         limit: Maximum number of logs to return (default: 100)
@@ -238,11 +233,10 @@ async def query_mock_logs_tool(
         analyze: Perform analysis on the logs
     """
     try:
-        print(f"Tool: Querying logs from {server_url}")
-        
+
         # Initialize the mock server manager
         manager = MockServerManager()
-        
+
         # Query logs from the server
         log_result = await manager.query_server_logs(
             server_url=server_url,
@@ -252,7 +246,7 @@ async def query_mock_logs_tool(
             path=path_pattern,
             include_admin=include_admin
         )
-        
+
         if log_result.get("status") != "success":
             return {
                 "status": "error",
@@ -261,9 +255,9 @@ async def query_mock_logs_tool(
                 "analysis": None,
                 "message": f"Failed to query logs: {log_result.get('error', 'Unknown error')}"
             }
-        
+
         logs = log_result.get("logs", [])
-        
+
         # Apply additional filtering if needed
         if time_from or time_to or path_pattern:
             analyzer = LogAnalyzer()
@@ -275,13 +269,12 @@ async def query_mock_logs_tool(
                 time_to=time_to,
                 include_admin=include_admin
             )
-        
+
         analysis = None
         if analyze and logs:
             analyzer = LogAnalyzer()
             analysis = analyzer.analyze_logs(logs)
-            print(f"Tool: Analyzed {len(logs)} log entries")
-        
+
         return {
             "status": "success",
             "logs": logs,
@@ -289,17 +282,16 @@ async def query_mock_logs_tool(
             "analysis": analysis,
             "message": f"Successfully retrieved {len(logs)} log entries from {server_url}"
         }
-        
+
     except Exception as e:
         import traceback
-        error_details = traceback.format_exc()
-        print(f"Tool Error: Failed to query logs: {error_details}")
+        traceback.format_exc()
         return {
             "status": "error",
             "logs": [],
             "total_count": 0,
             "analysis": None,
-            "message": f"Error querying logs: {str(e)}"
+            "message": f"Error querying logs: {e!s}"
         }
 
 @server.tool(
@@ -308,28 +300,27 @@ async def query_mock_logs_tool(
                 "Scans common ports and matches with generated mocks.",
 )
 async def discover_mock_servers_tool(
-    ports: Optional[List[int]] = None,
+    ports: list[int] | None = None,
     check_health: bool = True,
     include_generated: bool = True
 ) -> DiscoverMockServersOutput:
     """
     Discover running mock servers and generated mock configurations.
-    
+
     Args:
         ports: List of ports to scan (default: common ports 8000-8005, 3000-3001, 5000-5001)
         check_health: Perform health checks on discovered servers
         include_generated: Include information about generated but not running mocks
     """
     try:
-        print("Tool: Discovering mock servers...")
-        
+
         # Initialize the mock server manager
         manager = MockServerManager()
-        
+
         if include_generated:
             # Perform comprehensive discovery
             discovery_result = await manager.comprehensive_discovery()
-            
+
             return {
                 "status": "success",
                 "discovered_servers": discovery_result.get("matched_servers", []) +
@@ -343,7 +334,7 @@ async def discover_mock_servers_tool(
         else:
             # Just discover running servers
             running_servers = await manager.discover_running_servers(ports, check_health)
-            
+
             return {
                 "status": "success",
                 "discovered_servers": running_servers,
@@ -352,18 +343,17 @@ async def discover_mock_servers_tool(
                 "total_generated": 0,
                 "message": f"Discovered {len(running_servers)} running servers"
             }
-        
+
     except Exception as e:
         import traceback
-        error_details = traceback.format_exc()
-        print(f"Tool Error: Failed to discover servers: {error_details}")
+        traceback.format_exc()
         return {
             "status": "error",
             "discovered_servers": [],
             "generated_mocks": [],
             "total_running": 0,
             "total_generated": 0,
-            "message": f"Error discovering servers: {str(e)}"
+            "message": f"Error discovering servers: {e!s}"
         }
 
 @server.tool(
@@ -374,14 +364,14 @@ async def discover_mock_servers_tool(
 async def manage_mock_data_tool(
     server_url: str,
     operation: str,
-    endpoint_path: Optional[str] = None,
-    response_data: Optional[Dict[str, Any]] = None,
-    scenario_name: Optional[str] = None,
-    scenario_config: Optional[Dict[str, Any]] = None
+    endpoint_path: str | None = None,
+    response_data: dict[str, Any] | None = None,
+    scenario_name: str | None = None,
+    scenario_config: dict[str, Any] | None = None
 ) -> ManageMockDataOutput:
     """
     Manage mock data and scenarios for dynamic response management.
-    
+
     Args:
         server_url: URL of the mock server (e.g., "http://localhost:8000")
         operation: Operation to perform ("update_response", "create_scenario", "switch_scenario", "list_scenarios")
@@ -393,17 +383,16 @@ async def manage_mock_data_tool(
     import time
     # Handle imports for different execution contexts
     if __package__ is None or __package__ == '':
-        from utils.http_client import MockServerClient, test_server_connectivity
+        from utils.http_client import MockServerClient, check_server_connectivity
     else:
-        from .utils.http_client import MockServerClient, test_server_connectivity
-    
+        from .utils.http_client import MockServerClient, check_server_connectivity
+
     start_time = time.time()
-    
+
     try:
-        print(f"Tool: Managing mock data for {server_url}, operation: {operation}")
-        
+
         # Validate server accessibility first
-        connectivity_result = await test_server_connectivity(server_url)
+        connectivity_result = await check_server_connectivity(server_url)
         if connectivity_result.get("status") != "healthy":
             return {
                 "status": "error",
@@ -413,10 +402,10 @@ async def manage_mock_data_tool(
                 "message": f"Server not accessible: {connectivity_result.get('error', 'Unknown error')}",
                 "performance_metrics": None
             }
-        
+
         # Initialize the mock server manager for server validation
         manager = MockServerManager()
-        
+
         # Validate that this is a MockLoop server
         server_status = await manager.get_server_status(server_url)
         if not server_status.get("is_mockloop_server", False):
@@ -428,10 +417,10 @@ async def manage_mock_data_tool(
                 "message": "Target server is not a MockLoop server or does not support admin operations",
                 "performance_metrics": None
             }
-        
+
         # Initialize HTTP client
         client = MockServerClient(server_url)
-        
+
         # Perform the requested operation
         if operation == "update_response":
             if not endpoint_path or response_data is None:
@@ -443,7 +432,7 @@ async def manage_mock_data_tool(
                     "message": "update_response operation requires endpoint_path and response_data parameters",
                     "performance_metrics": None
                 }
-            
+
             # Get current response for before/after comparison
             before_state = {}
             try:
@@ -451,11 +440,12 @@ async def manage_mock_data_tool(
                 debug_info = await client.get_debug_info()
                 if debug_info.get("status") == "success":
                     before_state = debug_info.get("debug_info", {}).get("endpoints", {}).get(endpoint_path, {})
-            except Exception:
-                pass  # Continue without before state if not available
-            
+            except Exception as e:
+                logger.debug(f"Failed to get before state for endpoint {endpoint_path}: {e}")
+                # Continue without before state if not available
+
             result = await client.update_response(endpoint_path, response_data)
-            
+
             if result.get("status") == "success":
                 # Get after state
                 after_state = {}
@@ -463,16 +453,16 @@ async def manage_mock_data_tool(
                     debug_info = await client.get_debug_info()
                     if debug_info.get("status") == "success":
                         after_state = debug_info.get("debug_info", {}).get("endpoints", {}).get(endpoint_path, {})
-                except Exception:
-                    pass
-                
+                except Exception as e:
+                    logger.debug(f"Failed to get after state for endpoint {endpoint_path}: {e}")
+
                 result["before_state"] = before_state
                 result["after_state"] = after_state
-                
+
                 message = f"Successfully updated response for {endpoint_path}"
             else:
                 message = f"Failed to update response for {endpoint_path}: {result.get('error', 'Unknown error')}"
-        
+
         elif operation == "create_scenario":
             if not scenario_name or not scenario_config:
                 return {
@@ -483,14 +473,14 @@ async def manage_mock_data_tool(
                     "message": "create_scenario operation requires scenario_name and scenario_config parameters",
                     "performance_metrics": None
                 }
-            
+
             result = await client.create_scenario(scenario_name, scenario_config)
-            
+
             if result.get("status") == "success":
                 message = f"Successfully created scenario '{scenario_name}'"
             else:
                 message = f"Failed to create scenario '{scenario_name}': {result.get('error', 'Unknown error')}"
-        
+
         elif operation == "switch_scenario":
             if not scenario_name:
                 return {
@@ -501,13 +491,13 @@ async def manage_mock_data_tool(
                     "message": "switch_scenario operation requires scenario_name parameter",
                     "performance_metrics": None
                 }
-            
+
             # Get current scenario before switching
             current_result = await client.get_current_scenario()
             before_scenario = current_result.get("current_scenario", {}) if current_result.get("status") == "success" else {}
-            
+
             result = await client.switch_scenario(scenario_name)
-            
+
             if result.get("status") == "success":
                 result["before_scenario"] = before_scenario
                 message = f"Successfully switched to scenario '{scenario_name}'"
@@ -515,21 +505,21 @@ async def manage_mock_data_tool(
                     message += f" (from '{result['previous_scenario']}')"
             else:
                 message = f"Failed to switch to scenario '{scenario_name}': {result.get('error', 'Unknown error')}"
-        
+
         elif operation == "list_scenarios":
             result = await client.list_scenarios()
-            
+
             if result.get("status") == "success":
                 scenarios = result.get("scenarios", [])
                 # Get current scenario info
                 current_result = await client.get_current_scenario()
                 if current_result.get("status") == "success":
                     result["current_scenario"] = current_result.get("current_scenario")
-                
+
                 message = f"Successfully retrieved {len(scenarios)} scenarios"
             else:
                 message = f"Failed to list scenarios: {result.get('error', 'Unknown error')}"
-        
+
         else:
             return {
                 "status": "error",
@@ -539,7 +529,7 @@ async def manage_mock_data_tool(
                 "message": f"Unknown operation '{operation}'. Supported operations: update_response, create_scenario, switch_scenario, list_scenarios",
                 "performance_metrics": None
             }
-        
+
         # Calculate performance metrics
         end_time = time.time()
         performance_metrics = {
@@ -547,9 +537,8 @@ async def manage_mock_data_tool(
             "server_response_time": connectivity_result.get("response_time_ms", "unknown"),
             "timestamp": time.time()
         }
-        
-        print(f"Tool: {operation} completed in {performance_metrics['operation_time_ms']}ms")
-        
+
+
         return {
             "status": result.get("status", "unknown"),
             "operation": operation,
@@ -558,25 +547,24 @@ async def manage_mock_data_tool(
             "message": message,
             "performance_metrics": performance_metrics
         }
-        
+
     except Exception as e:
         import traceback
-        error_details = traceback.format_exc()
-        print(f"Tool Error: Failed to manage mock data: {error_details}")
-        
+        traceback.format_exc()
+
         end_time = time.time()
         performance_metrics = {
             "operation_time_ms": round((end_time - start_time) * 1000, 2),
             "error": True,
             "timestamp": time.time()
         }
-        
+
         return {
             "status": "error",
             "operation": operation,
             "result": {},
             "server_url": server_url,
-            "message": f"Error managing mock data: {str(e)}",
+            "message": f"Error managing mock data: {e!s}",
             "performance_metrics": performance_metrics
         }
 
@@ -585,7 +573,7 @@ async def run_tool_from_cli(args):
     """Helper to call the tool logic for CLI testing."""
     # This simulates how the MCP server would call the tool.
     # The actual MCP server handles the async nature and context injection.
-    
+
     # Create a dummy context if your tool expects one and you want to test that part.
     # class DummyContext:
     #     async def info(self, msg): print(f"CTX.INFO: {msg}")
@@ -597,12 +585,9 @@ async def run_tool_from_cli(args):
         output_dir_name=args.output_name,
         # ctx=dummy_ctx # if tool expects context
     )
-    print("\n--- CLI Tool Execution Result ---")
-    print(f"Status: {result['status']}")
-    print(f"Message: {result['message']}")
     if result['generated_mock_path']:
-        print(f"Generated Path: {result['generated_mock_path']}")
-    
+        pass
+
     if result['status'] == "error":
         sys.exit(1)
 
@@ -623,13 +608,11 @@ def main_cli():
 if __name__ == "__main__":
     # Check if --cli flag is passed, otherwise assume MCP server run
     if "--cli" in sys.argv:
-        print("Running in CLI test mode...")
         # Remove --cli from sys.argv so argparse doesn't see it
         sys.argv.remove("--cli")
         main_cli()
     else:
         # Start the MCP server
-        print("Starting MockLoop MCP Server...")
         server.run()
 
 

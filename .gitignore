@@ -55,6 +55,7 @@ Desktop.ini
 bandit-report.json
 bandit-report.xml
 .bandit
+bandit-*
 
 # Memory Bank
 memory-bank/

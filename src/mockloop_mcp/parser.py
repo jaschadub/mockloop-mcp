@@ -1,14 +1,20 @@
 import json
-import yaml
-import requests
+import logging
 from pathlib import Path
-from typing import Any, Dict, Union, Optional
+from typing import Any
+
+import requests
+import yaml
+
+# Configure logger for this module
+logger = logging.getLogger(__name__)
+
 
 class APIParsingError(Exception):
     """Custom exception for API parsing errors."""
     pass
 
-def load_api_specification(spec_source: Union[str, Path]) -> Dict[str, Any]:
+def load_api_specification(spec_source: str | Path) -> dict[str, Any]:
     """
     Loads an API specification from a URL or a local file path.
     Supports JSON and YAML formats.
@@ -34,7 +40,7 @@ def load_api_specification(spec_source: Union[str, Path]) -> Dict[str, Any]:
             if not source_path.exists():
                 raise APIParsingError(f"Local specification file not found: {source_display_name}")
             content = source_path.read_text(encoding="utf-8")
-            
+
         elif isinstance(spec_source, str) and (spec_source.startswith("http://") or spec_source.startswith("https://")):
             # Handle URL
             response = requests.get(spec_source, timeout=10) # 10 second timeout
@@ -56,7 +62,7 @@ def load_api_specification(spec_source: Union[str, Path]) -> Dict[str, Any]:
 
     except requests.exceptions.RequestException as e:
         raise APIParsingError(f"Failed to fetch API specification from URL '{source_display_name}': {e}") from e
-    except IOError as e:
+    except OSError as e:
         raise APIParsingError(f"Failed to read local API specification file '{source_display_name}': {e}") from e
     except Exception as e: # Catch any other unexpected error during loading
         raise APIParsingError(f"An unexpected error occurred while loading API specification from '{source_display_name}': {e}") from e
@@ -65,12 +71,12 @@ def load_api_specification(spec_source: Union[str, Path]) -> Dict[str, Any]:
         raise APIParsingError(f"No content loaded from API specification source: {source_display_name}")
 
     # Attempt to parse as YAML, then fall back to JSON
-    parsed_spec: Optional[Dict[str, Any]] = None
+    parsed_spec: dict[str, Any] | None = None
     try:
         parsed_spec = yaml.safe_load(content)
         if not isinstance(parsed_spec, dict): # Ensure it's a dictionary (root of spec)
             # If safe_load returns a non-dict (e.g. a string if content was just a string), try JSON
-            parsed_spec = None 
+            parsed_spec = None
             raise yaml.YAMLError("Parsed YAML content is not a dictionary.")
     except yaml.YAMLError:
         # YAML parsing failed or resulted in non-dict, try JSON
@@ -86,7 +92,7 @@ def load_api_specification(spec_source: Union[str, Path]) -> Dict[str, Any]:
                 "Content is not valid YAML or JSON. "
                 f"YAML Error (if any): Previous error. JSON Error: {e}"
             ) from e
-    
+
     if parsed_spec is None: # Should not happen if logic above is correct
         raise APIParsingError(f"Could not parse content from '{source_display_name}' as YAML or JSON.")
 
@@ -171,21 +177,18 @@ if __name__ == '__main__':
     ]
 
     for spec_source in test_specs:
-        print(f"\n--- Loading: {spec_source} ---")
         try:
             spec_data = load_api_specification(spec_source)
-            print(f"Successfully loaded and parsed. OpenAPI version: {spec_data.get('openapi') or spec_data.get('swagger', 'N/A')}")
             # print(json.dumps(spec_data, indent=2)) # Print full spec
         except APIParsingError as e:
-            print(f"Error: {e}")
+            logger.debug(f"API parsing error for {spec_source}: {e}")
         except Exception as e:
-            print(f"Unexpected test error: {e}")
+            logger.debug(f"Unexpected error for {spec_source}: {e}")
 
     # Test with a non-spec file (e.g., this parser.py file itself)
-    print(f"\n--- Loading: {__file__} (expected to fail parsing) ---")
     try:
         spec_data = load_api_specification(__file__)
     except APIParsingError as e:
-        print(f"Correctly failed: {e}")
+        logger.debug(f"API parsing error for {__file__}: {e}")
     except Exception as e:
-        print(f"Unexpected test error: {e}")
+        logger.debug(f"Unexpected error for {__file__}: {e}")

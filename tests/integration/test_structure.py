@@ -1,7 +1,8 @@
 """Integration test to verify the new test structure works correctly."""
 
-import pytest
 from pathlib import Path
+
+import pytest
 
 
 def test_integration_can_access_fixtures():
@@ -36,4 +37,3 @@ if __name__ == "__main__":
     test_integration_can_access_unit_tests()
     test_integration_marker()
     test_slow_marker()
-    print("✅ All integration structure tests passed!")

@@ -1,32 +1,35 @@
 """
 HTTP client utilities for communicating with mock servers.
 """
-import asyncio
-import json
-from typing import Dict, List, Optional, Any, Union
-from urllib.parse import urljoin, urlparse
-import aiohttp
+import logging
 import socket
+from typing import Any
+from urllib.parse import urlparse
+
+import aiohttp
+
+# Configure logger for this module
+logger = logging.getLogger(__name__)
 
 
 class MockServerClient:
     """Client for communicating with MockLoop generated mock servers."""
-    
+
     def __init__(self, base_url: str, timeout: int = 30):
         """
         Initialize the mock server client.
-        
+
         Args:
             base_url: Base URL of the mock server (e.g., "http://localhost:8000")
             timeout: Request timeout in seconds
         """
         self.base_url = base_url.rstrip('/')
         self.timeout = aiohttp.ClientTimeout(total=timeout)
-        
-    async def health_check(self) -> Dict[str, Any]:
+
+    async def health_check(self) -> dict[str, Any]:
         """
         Check if the mock server is healthy and responsive.
-        
+
         Returns:
             Dict containing health status and server info
         """
@@ -51,19 +54,19 @@ class MockServerClient:
                 "status": "unreachable",
                 "error": str(e)
             }
-    
+
     async def query_logs(
         self,
         limit: int = 100,
         offset: int = 0,
-        method: Optional[str] = None,
-        path: Optional[str] = None,
+        method: str | None = None,
+        path: str | None = None,
         include_admin: bool = False,
-        log_id: Optional[int] = None
-    ) -> Dict[str, Any]:
+        log_id: int | None = None
+    ) -> dict[str, Any]:
         """
         Query request logs from the mock server.
-        
+
         Args:
             limit: Maximum number of logs to return
             offset: Number of logs to skip
@@ -71,7 +74,7 @@ class MockServerClient:
             path: Filter by path pattern
             include_admin: Include admin requests in results
             log_id: Get specific log by ID
-            
+
         Returns:
             Dict containing logs and metadata
         """
@@ -81,14 +84,14 @@ class MockServerClient:
                 "offset": offset,
                 "include_admin": include_admin
             }
-            
+
             if method:
                 params["method"] = method
             if path:
                 params["path"] = path
             if log_id:
                 params["id"] = log_id
-                
+
             async with aiohttp.ClientSession(timeout=self.timeout) as session:
                 async with session.get(
                     f"{self.base_url}/admin/api/requests",
@@ -120,11 +123,11 @@ class MockServerClient:
                 "error": str(e),
                 "logs": []
             }
-    
-    async def get_stats(self) -> Dict[str, Any]:
+
+    async def get_stats(self) -> dict[str, Any]:
         """
         Get request statistics from the mock server.
-        
+
         Returns:
             Dict containing request statistics
         """
@@ -148,11 +151,11 @@ class MockServerClient:
                 "status": "error",
                 "error": str(e)
             }
-    
-    async def get_debug_info(self) -> Dict[str, Any]:
+
+    async def get_debug_info(self) -> dict[str, Any]:
         """
         Get debug information from the mock server.
-        
+
         Returns:
             Dict containing debug information
         """
@@ -176,21 +179,21 @@ class MockServerClient:
                 "status": "error",
                 "error": str(e)
             }
-    
+
     async def update_response(
         self,
         endpoint_path: str,
-        response_data: Dict[str, Any],
+        response_data: dict[str, Any],
         method: str = "GET"
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Update response data for a specific endpoint.
-        
+
         Args:
             endpoint_path: Path of the endpoint to update
             response_data: New response data
             method: HTTP method for the endpoint
-            
+
         Returns:
             Dict containing update operation result
         """
@@ -200,7 +203,7 @@ class MockServerClient:
                 "method": method,
                 "response_data": response_data
             }
-            
+
             async with aiohttp.ClientSession(timeout=self.timeout) as session:
                 async with session.post(
                     f"{self.base_url}/admin/api/responses/update",
@@ -227,19 +230,19 @@ class MockServerClient:
                 "error": str(e),
                 "endpoint_path": endpoint_path
             }
-    
+
     async def create_scenario(
         self,
         scenario_name: str,
-        scenario_config: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        scenario_config: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Create a new test scenario.
-        
+
         Args:
             scenario_name: Name of the scenario
             scenario_config: Complete scenario configuration
-            
+
         Returns:
             Dict containing scenario creation result
         """
@@ -248,7 +251,7 @@ class MockServerClient:
                 "scenario_name": scenario_name,
                 "scenario_config": scenario_config
             }
-            
+
             async with aiohttp.ClientSession(timeout=self.timeout) as session:
                 async with session.post(
                     f"{self.base_url}/admin/api/scenarios/create",
@@ -274,17 +277,17 @@ class MockServerClient:
                 "error": str(e),
                 "scenario_name": scenario_name
             }
-    
+
     async def switch_scenario(
         self,
         scenario_name: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Switch to a different test scenario.
-        
+
         Args:
             scenario_name: Name of the scenario to switch to
-            
+
         Returns:
             Dict containing scenario switch result
         """
@@ -292,7 +295,7 @@ class MockServerClient:
             payload = {
                 "scenario_name": scenario_name
             }
-            
+
             async with aiohttp.ClientSession(timeout=self.timeout) as session:
                 async with session.post(
                     f"{self.base_url}/admin/api/scenarios/switch",
@@ -319,11 +322,11 @@ class MockServerClient:
                 "error": str(e),
                 "scenario_name": scenario_name
             }
-    
-    async def list_scenarios(self) -> Dict[str, Any]:
+
+    async def list_scenarios(self) -> dict[str, Any]:
         """
         List all available test scenarios.
-        
+
         Returns:
             Dict containing list of scenarios
         """
@@ -350,11 +353,11 @@ class MockServerClient:
                 "error": str(e),
                 "scenarios": []
             }
-    
-    async def get_current_scenario(self) -> Dict[str, Any]:
+
+    async def get_current_scenario(self) -> dict[str, Any]:
         """
         Get information about the currently active scenario.
-        
+
         Returns:
             Dict containing current scenario information
         """
@@ -378,19 +381,19 @@ class MockServerClient:
                 "status": "error",
                 "error": str(e)
             }
-    
+
     async def get_logs(
         self,
         limit: int = 100,
         offset: int = 0,
-        method: Optional[str] = None,
-        path: Optional[str] = None,
+        method: str | None = None,
+        path: str | None = None,
         include_admin: bool = False,
-        log_id: Optional[int] = None
-    ) -> Dict[str, Any]:
+        log_id: int | None = None
+    ) -> dict[str, Any]:
         """
         Alias for query_logs method for backward compatibility.
-        
+
         Args:
             limit: Maximum number of logs to return
             offset: Number of logs to skip
@@ -398,7 +401,7 @@ class MockServerClient:
             path: Filter by path pattern
             include_admin: Include admin requests in results
             log_id: Get specific log by ID
-            
+
         Returns:
             Dict containing logs and metadata
         """
@@ -406,24 +409,24 @@ class MockServerClient:
 
 
 async def discover_running_servers(
-    ports: List[int] = None,
+    ports: list[int] | None = None,
     check_health: bool = True
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Discover running MockLoop servers by scanning common ports.
-    
+
     Args:
         ports: List of ports to scan. If None, scans common ports.
         check_health: Whether to perform health checks on discovered servers
-        
+
     Returns:
         List of discovered server information
     """
     if ports is None:
         ports = [8000, 8001, 8002, 8003, 8004, 8005, 3000, 3001, 5000, 5001]
-    
+
     discovered_servers = []
-    
+
     for port in ports:
         try:
             # Quick port check
@@ -431,7 +434,7 @@ async def discover_running_servers(
             sock.settimeout(1)
             result = sock.connect_ex(('localhost', port))
             sock.close()
-            
+
             if result == 0:  # Port is open
                 server_url = f"http://localhost:{port}"
                 server_info = {
@@ -439,12 +442,12 @@ async def discover_running_servers(
                     "port": port,
                     "status": "discovered"
                 }
-                
+
                 if check_health:
                     client = MockServerClient(server_url, timeout=5)
                     health_result = await client.health_check()
                     server_info.update(health_result)
-                    
+
                     # Try to get additional server info if it's a MockLoop server
                     if health_result.get("status") == "healthy":
                         debug_result = await client.get_debug_info()
@@ -453,23 +456,24 @@ async def discover_running_servers(
                             server_info["debug_info"] = debug_result.get("debug_info", {})
                         else:
                             server_info["is_mockloop_server"] = False
-                
+
                 discovered_servers.append(server_info)
-                
+
         except Exception as e:
+            logger.debug(f"Port scan failed for port {port}: {e}")
             # Port scan failed, continue to next port
             continue
-    
+
     return discovered_servers
 
 
 def is_valid_url(url: str) -> bool:
     """
     Check if a URL is valid and properly formatted.
-    
+
     Args:
         url: URL to validate
-        
+
     Returns:
         True if URL is valid, False otherwise
     """
@@ -480,14 +484,14 @@ def is_valid_url(url: str) -> bool:
         return False
 
 
-async def test_server_connectivity(url: str, timeout: int = 10) -> Dict[str, Any]:
+async def check_server_connectivity(url: str, timeout: int = 10) -> dict[str, Any]:
     """
     Test connectivity to a server URL.
-    
+
     Args:
         url: Server URL to test
         timeout: Connection timeout in seconds
-        
+
     Returns:
         Dict containing connectivity test results
     """
@@ -496,6 +500,6 @@ async def test_server_connectivity(url: str, timeout: int = 10) -> Dict[str, Any
             "status": "error",
             "error": "Invalid URL format"
         }
-    
+
     client = MockServerClient(url, timeout=timeout)
     return await client.health_check()

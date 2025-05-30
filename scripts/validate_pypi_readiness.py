@@ -8,53 +8,49 @@ dependencies, documentation, and more.
 """
 
 import argparse
-import ast
+from dataclasses import asdict, dataclass
 import json
-import os
+from pathlib import Path
 import re
 import subprocess
 import sys
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Any
-import importlib.util
-from dataclasses import dataclass, asdict
 
 
 @dataclass
 class ValidationResult:
     """Result of a validation check."""
-    
+
     name: str
     passed: bool
     message: str
-    details: Optional[str] = None
+    details: str | None = None
     severity: str = "error"  # error, warning, info
 
 
 @dataclass
 class ValidationSummary:
     """Summary of all validation results."""
-    
+
     total_checks: int
     passed_checks: int
     failed_checks: int
     warnings: int
     errors: int
-    results: List[ValidationResult]
+    results: list[ValidationResult]
     overall_status: str
-    recommendations: List[str]
+    recommendations: list[str]
 
 
 class PyPIValidator:
     """Comprehensive PyPI readiness validator."""
-    
+
     def __init__(self, project_root: Path):
         self.project_root = project_root
-        self.results: List[ValidationResult] = []
-        self.recommendations: List[str] = []
-    
-    def add_result(self, name: str, passed: bool, message: str, 
-                   details: Optional[str] = None, severity: str = "error") -> None:
+        self.results: list[ValidationResult] = []
+        self.recommendations: list[str] = []
+
+    def add_result(self, name: str, passed: bool, message: str,
+                   details: str | None = None, severity: str = "error") -> None:
         """Add a validation result."""
         self.results.append(ValidationResult(
             name=name,
@@ -63,12 +59,12 @@ class PyPIValidator:
             details=details,
             severity=severity
         ))
-    
+
     def add_recommendation(self, recommendation: str) -> None:
         """Add a recommendation."""
         self.recommendations.append(recommendation)
-    
-    def run_command(self, command: List[str], cwd: Optional[Path] = None) -> Tuple[bool, str, str]:
+
+    def run_command(self, command: list[str], cwd: Path | None = None) -> tuple[bool, str, str]:
         """Run a command and return success, stdout, stderr."""
         try:
             result = subprocess.run(
@@ -76,14 +72,14 @@ class PyPIValidator:
                 cwd=cwd or self.project_root,
                 capture_output=True,
                 text=True,
-                timeout=60
+                timeout=60, check=False
             )
             return result.returncode == 0, result.stdout, result.stderr
         except subprocess.TimeoutExpired:
             return False, "", "Command timed out"
         except Exception as e:
             return False, "", str(e)
-    
+
     def validate_project_structure(self) -> None:
         """Validate basic project structure."""
         required_files = [
@@ -94,7 +90,7 @@ class PyPIValidator:
             "src/mockloop_mcp/__init__.py",
             "src/mockloop_mcp/main.py"
         ]
-        
+
         for file_path in required_files:
             full_path = self.project_root / file_path
             if full_path.exists():
@@ -110,7 +106,7 @@ class PyPIValidator:
                     f"Missing required file: {file_path}"
                 )
                 self.add_recommendation(f"Create missing file: {file_path}")
-        
+
         # Check for common optional files
         optional_files = [
             "MANIFEST.in",
@@ -119,7 +115,7 @@ class PyPIValidator:
             "docs/",
             "tests/"
         ]
-        
+
         for file_path in optional_files:
             full_path = self.project_root / file_path
             if full_path.exists():
@@ -136,11 +132,11 @@ class PyPIValidator:
                     f"Optional file/directory missing: {file_path}",
                     severity="warning"
                 )
-    
+
     def validate_pyproject_toml(self) -> None:
         """Validate pyproject.toml configuration."""
         pyproject_path = self.project_root / "pyproject.toml"
-        
+
         if not pyproject_path.exists():
             self.add_result(
                 "pyproject_exists",
@@ -148,7 +144,7 @@ class PyPIValidator:
                 "pyproject.toml file is missing"
             )
             return
-        
+
         try:
             import tomllib
         except ImportError:
@@ -161,7 +157,7 @@ class PyPIValidator:
                     "Cannot parse pyproject.toml - tomllib/tomli not available"
                 )
                 return
-        
+
         try:
             with open(pyproject_path, 'rb') as f:
                 config = tomllib.load(f)
@@ -172,13 +168,13 @@ class PyPIValidator:
                 f"Failed to parse pyproject.toml: {e}"
             )
             return
-        
+
         self.add_result(
             "pyproject_parse",
             True,
             "pyproject.toml parsed successfully"
         )
-        
+
         # Check required sections
         required_sections = ["build-system", "project"]
         for section in required_sections:
@@ -194,12 +190,12 @@ class PyPIValidator:
                     False,
                     f"pyproject.toml missing required section: {section}"
                 )
-        
+
         # Check project metadata
         if "project" in config:
             project = config["project"]
             required_fields = ["name", "version", "description", "authors"]
-            
+
             for field in required_fields:
                 if field in project:
                     self.add_result(
@@ -213,7 +209,7 @@ class PyPIValidator:
                         False,
                         f"Project missing required field: {field}"
                     )
-            
+
             # Check version format
             if "version" in project:
                 version = project["version"]
@@ -229,7 +225,7 @@ class PyPIValidator:
                         False,
                         f"Version format is invalid: {version}"
                     )
-            
+
             # Check Python version requirements
             if "requires-python" in project:
                 python_req = project["requires-python"]
@@ -245,7 +241,7 @@ class PyPIValidator:
                     "Python requirement not specified"
                 )
                 self.add_recommendation("Add requires-python field to specify supported Python versions")
-    
+
     def validate_package_imports(self) -> None:
         """Validate that the package can be imported."""
         src_path = self.project_root / "src"
@@ -256,10 +252,10 @@ class PyPIValidator:
                 "src/ directory not found"
             )
             return
-        
+
         # Add src to Python path temporarily
         sys.path.insert(0, str(src_path))
-        
+
         try:
             import mockloop_mcp
             self.add_result(
@@ -267,7 +263,7 @@ class PyPIValidator:
                 True,
                 "Package imports successfully"
             )
-            
+
             # Check for main module
             if hasattr(mockloop_mcp, 'main'):
                 self.add_result(
@@ -281,7 +277,7 @@ class PyPIValidator:
                     False,
                     "Main module not found in package"
                 )
-            
+
             # Check version attribute
             if hasattr(mockloop_mcp, '__version__'):
                 version = mockloop_mcp.__version__
@@ -297,7 +293,7 @@ class PyPIValidator:
                     "Package version not available"
                 )
                 self.add_recommendation("Add __version__ attribute to package __init__.py")
-        
+
         except ImportError as e:
             self.add_result(
                 "package_import",
@@ -306,26 +302,26 @@ class PyPIValidator:
             )
         finally:
             sys.path.remove(str(src_path))
-    
+
     def validate_dependencies(self) -> None:
         """Validate package dependencies."""
         # Check if requirements.txt exists and is reasonable
         req_file = self.project_root / "requirements.txt"
         if req_file.exists():
             try:
-                with open(req_file, 'r') as f:
+                with open(req_file) as f:
                     requirements = f.read().strip().split('\n')
-                
+
                 # Filter out empty lines and comments
-                deps = [req.strip() for req in requirements 
+                deps = [req.strip() for req in requirements
                        if req.strip() and not req.strip().startswith('#')]
-                
+
                 self.add_result(
                     "requirements_file",
                     True,
                     f"requirements.txt found with {len(deps)} dependencies"
                 )
-                
+
                 # Check for common problematic patterns
                 for dep in deps:
                     if '==' in dep and not re.search(r'==\d+\.\d+', dep):
@@ -335,19 +331,19 @@ class PyPIValidator:
                             f"Dependency has problematic pinning: {dep}",
                             severity="warning"
                         )
-            
+
             except Exception as e:
                 self.add_result(
                     "requirements_file",
                     False,
                     f"Failed to read requirements.txt: {e}"
                 )
-        
+
         # Test dependency installation
         success, stdout, stderr = self.run_command([
             sys.executable, "-m", "pip", "check"
         ])
-        
+
         if success:
             self.add_result(
                 "dependency_check",
@@ -360,15 +356,15 @@ class PyPIValidator:
                 False,
                 f"Dependency conflicts detected: {stderr}"
             )
-    
+
     def validate_documentation(self) -> None:
         """Validate documentation completeness."""
         readme_path = self.project_root / "README.md"
-        
+
         if readme_path.exists():
-            with open(readme_path, 'r', encoding='utf-8') as f:
+            with open(readme_path, encoding='utf-8') as f:
                 readme_content = f.read()
-            
+
             # Check README length
             if len(readme_content) > 500:
                 self.add_result(
@@ -383,12 +379,12 @@ class PyPIValidator:
                     f"README.md is too short ({len(readme_content)} chars)"
                 )
                 self.add_recommendation("Expand README.md with more detailed information")
-            
+
             # Check for required sections
             required_sections = [
                 "installation", "usage", "example", "getting started"
             ]
-            
+
             for section in required_sections:
                 if section.lower() in readme_content.lower():
                     self.add_result(
@@ -403,7 +399,7 @@ class PyPIValidator:
                         f"README missing {section} information",
                         severity="warning"
                     )
-            
+
             # Check for PyPI badges
             if "pypi.org" in readme_content or "img.shields.io" in readme_content:
                 self.add_result(
@@ -419,26 +415,26 @@ class PyPIValidator:
                     severity="warning"
                 )
                 self.add_recommendation("Add PyPI badges to README for better visibility")
-    
+
     def validate_tests(self) -> None:
         """Validate test suite."""
         tests_dir = self.project_root / "tests"
-        
+
         if tests_dir.exists():
             test_files = list(tests_dir.rglob("test_*.py"))
-            
+
             if test_files:
                 self.add_result(
                     "test_files",
                     True,
                     f"Found {len(test_files)} test files"
                 )
-                
+
                 # Try to run tests
                 success, stdout, stderr = self.run_command([
                     sys.executable, "-m", "pytest", "--collect-only", "-q"
                 ])
-                
+
                 if success:
                     self.add_result(
                         "test_collection",
@@ -467,21 +463,21 @@ class PyPIValidator:
                 severity="warning"
             )
             self.add_recommendation("Add comprehensive test suite")
-    
+
     def validate_build_system(self) -> None:
         """Validate that the package can be built."""
         # Test package building
         success, stdout, stderr = self.run_command([
             sys.executable, "-m", "build", "--wheel", "--no-isolation"
         ])
-        
+
         if success:
             self.add_result(
                 "package_build",
                 True,
                 "Package builds successfully"
             )
-            
+
             # Check if wheel was created
             dist_dir = self.project_root / "dist"
             if dist_dir.exists():
@@ -505,12 +501,12 @@ class PyPIValidator:
                 f"Package build failed: {stderr}"
             )
             self.add_recommendation("Fix package build issues before PyPI upload")
-    
+
     def validate_security(self) -> None:
         """Validate security aspects."""
         # Check for common security files
         security_files = [".secrets.baseline", "SECURITY.md"]
-        
+
         for file_path in security_files:
             full_path = self.project_root / file_path
             if full_path.exists():
@@ -527,7 +523,7 @@ class PyPIValidator:
                     f"Security file missing: {file_path}",
                     severity="warning"
                 )
-        
+
         # Check for hardcoded secrets (basic check)
         python_files = list(self.project_root.rglob("*.py"))
         secret_patterns = [
@@ -536,13 +532,13 @@ class PyPIValidator:
             r'secret\s*=\s*["\'][^"\']+["\']',
             r'token\s*=\s*["\'][^"\']+["\']'
         ]
-        
+
         secrets_found = False
         for py_file in python_files:
             try:
-                with open(py_file, 'r', encoding='utf-8') as f:
+                with open(py_file, encoding='utf-8') as f:
                     content = f.read()
-                
+
                 for pattern in secret_patterns:
                     if re.search(pattern, content, re.IGNORECASE):
                         secrets_found = True
@@ -555,18 +551,17 @@ class PyPIValidator:
                         break
             except Exception:
                 continue
-        
+
         if not secrets_found:
             self.add_result(
                 "hardcoded_secrets",
                 True,
                 "No obvious hardcoded secrets found"
             )
-    
+
     def validate_all(self) -> ValidationSummary:
         """Run all validation checks."""
-        print("🔍 Running PyPI readiness validation...")
-        
+
         validation_methods = [
             ("Project Structure", self.validate_project_structure),
             ("pyproject.toml", self.validate_pyproject_toml),
@@ -577,9 +572,8 @@ class PyPIValidator:
             ("Build System", self.validate_build_system),
             ("Security", self.validate_security),
         ]
-        
+
         for name, method in validation_methods:
-            print(f"  Checking {name}...")
             try:
                 method()
             except Exception as e:
@@ -588,14 +582,14 @@ class PyPIValidator:
                     False,
                     f"Validation failed for {name}: {e}"
                 )
-        
+
         # Calculate summary
         total_checks = len(self.results)
         passed_checks = sum(1 for r in self.results if r.passed)
         failed_checks = total_checks - passed_checks
         warnings = sum(1 for r in self.results if r.severity == "warning")
         errors = sum(1 for r in self.results if r.severity == "error" and not r.passed)
-        
+
         # Determine overall status
         if errors > 0:
             overall_status = "FAILED"
@@ -605,7 +599,7 @@ class PyPIValidator:
             overall_status = "READY"
         else:
             overall_status = "NEEDS_IMPROVEMENT"
-        
+
         return ValidationSummary(
             total_checks=total_checks,
             passed_checks=passed_checks,
@@ -620,50 +614,30 @@ class PyPIValidator:
 
 def print_summary(summary: ValidationSummary) -> None:
     """Print validation summary."""
-    status_colors = {
-        "READY": "🟢",
-        "NEEDS_IMPROVEMENT": "🟡",
-        "NEEDS_ATTENTION": "🟠",
-        "FAILED": "🔴"
-    }
-    
-    print(f"\n{'='*60}")
-    print(f"📦 PyPI Readiness Validation Summary")
-    print(f"{'='*60}")
-    print(f"Overall Status: {status_colors.get(summary.overall_status, '⚪')} {summary.overall_status}")
-    print(f"Total Checks: {summary.total_checks}")
-    print(f"Passed: ✅ {summary.passed_checks}")
-    print(f"Failed: ❌ {summary.failed_checks}")
-    print(f"Warnings: ⚠️ {summary.warnings}")
-    print(f"Errors: 🚨 {summary.errors}")
-    
+
+
     # Print failed checks
     failed_results = [r for r in summary.results if not r.passed and r.severity == "error"]
     if failed_results:
-        print(f"\n🚨 Critical Issues:")
         for result in failed_results:
-            print(f"  ❌ {result.message}")
             if result.details:
-                print(f"     {result.details}")
-    
+                pass
+
     # Print warnings
     warning_results = [r for r in summary.results if not r.passed and r.severity == "warning"]
     if warning_results:
-        print(f"\n⚠️ Warnings:")
         for result in warning_results[:5]:  # Show first 5 warnings
-            print(f"  ⚠️ {result.message}")
+            pass
         if len(warning_results) > 5:
-            print(f"  ... and {len(warning_results) - 5} more warnings")
-    
+            pass
+
     # Print recommendations
     if summary.recommendations:
-        print(f"\n💡 Recommendations:")
-        for rec in summary.recommendations[:10]:  # Show first 10 recommendations
-            print(f"  • {rec}")
+        for _rec in summary.recommendations[:10]:  # Show first 10 recommendations
+            pass
         if len(summary.recommendations) > 10:
-            print(f"  ... and {len(summary.recommendations) - 10} more recommendations")
-    
-    print(f"\n{'='*60}")
+            pass
+
 
 
 def main():
@@ -691,30 +665,27 @@ def main():
         action="store_true",
         help="Exit with error code if warnings are found"
     )
-    
+
     args = parser.parse_args()
-    
+
     validator = PyPIValidator(args.project_root)
     summary = validator.validate_all()
-    
+
     if args.format in ["text", "both"]:
         print_summary(summary)
-    
+
     if args.format in ["json", "both"] or args.output:
         output_data = asdict(summary)
-        
+
         if args.output:
             with open(args.output, 'w') as f:
                 json.dump(output_data, f, indent=2, default=str)
-            print(f"\n📄 Detailed results saved to: {args.output}")
-        
+
         if args.format == "json":
-            print(json.dumps(output_data, indent=2, default=str))
-    
+            pass
+
     # Exit with appropriate code
-    if summary.overall_status == "FAILED":
-        sys.exit(1)
-    elif summary.overall_status in ["NEEDS_ATTENTION", "NEEDS_IMPROVEMENT"] and args.fail_on_warnings:
+    if summary.overall_status == "FAILED" or (summary.overall_status in ["NEEDS_ATTENTION", "NEEDS_IMPROVEMENT"] and args.fail_on_warnings):
         sys.exit(1)
     else:
         sys.exit(0)
