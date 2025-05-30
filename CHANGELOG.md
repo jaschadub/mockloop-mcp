@@ -19,6 +19,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [2.2.1] - 2025-05-30
+
+### Added
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
 ## [2.2.0] - 2025-05-30
 
 ### Added
@@ -66,6 +80,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Integrated multiple security analysis tools (Bandit, Safety, Semgrep, pip-audit)
 - Configured secure coding practices and validation
 
-[Unreleased]: https://github.com/mockloop/mockloop-mcp/compare/v2.2.0...HEAD
+[Unreleased]: https://github.com/mockloop/mockloop-mcp/compare/v2.2.1...HEAD
+[2.2.1]: https://github.com/mockloop/mockloop-mcp/releases/tag/v2.2.1
+v2.2.0...HEAD
 [2.2.0]: https://github.com/mockloop/mockloop-mcp/releases/tag/v2.2.0
 [0.1.0]: https://github.com/mockloop/mockloop-mcp/releases/tag/v0.1.0
