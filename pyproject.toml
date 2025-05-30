@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mockloop-mcp"
-version = "0.1.0"
+version = "2.2.0"
 description = "MCP server to generate and run mock APIs from specifications."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -99,7 +99,7 @@ skip_glob = ["src/mockloop_mcp/templates/*"]
 
 [tool.ruff]
 line-length = 88
-target-version = "py310"
+target-version = "2.2.0"
 src = ["src", "tests"]
 exclude = [
     ".bzr",
@@ -189,7 +189,7 @@ known-first-party = ["mockloop_mcp"]
 force-sort-within-sections = true
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "2.2.0"
 warn_return_any = true
 warn_unused_configs = true
 warn_redundant_casts = true
@@ -234,7 +234,7 @@ skips = ["B101", "B601"]  # Skip assert_used and shell_injection for templates
 skips = ["*_test.py", "test_*.py"]
 
 [tool.pytest.ini_options]
-minversion = "7.0"
+minversion = "2.2.0"
 addopts = [
     "--strict-markers",
     "--strict-config",
