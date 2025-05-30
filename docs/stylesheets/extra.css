@@ -1,0 +1,240 @@
+/* MockLoop MCP Documentation Custom Styles */
+/* Matching the green color scheme from mockloop.com */
+
+:root {
+  --mockloop-green: #00ff99;
+  --mockloop-green-hover: #00cc7a;
+  --mockloop-dark-bg: #0e0e0e;
+  --mockloop-header-bg: #151515;
+  --mockloop-border: #1f1f1f;
+}
+
+/* Header customization to match MockLoop branding */
+.md-header {
+  background-color: var(--mockloop-header-bg) !important;
+  border-bottom: 1px solid var(--mockloop-border);
+}
+
+/* Primary color overrides for dark theme */
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color: var(--mockloop-green);
+  --md-primary-fg-color--light: var(--mockloop-green);
+  --md-primary-fg-color--dark: var(--mockloop-green-hover);
+  --md-accent-fg-color: var(--mockloop-green);
+  --md-accent-fg-color--transparent: rgba(0, 255, 153, 0.1);
+}
+
+/* Navigation tabs styling */
+.md-tabs {
+  background-color: var(--mockloop-header-bg) !important;
+  border-bottom: 1px solid var(--mockloop-border);
+}
+
+.md-tabs__item {
+  color: #ccc;
+}
+
+.md-tabs__link {
+  color: #ccc !important;
+  transition: color 0.2s ease;
+}
+
+.md-tabs__link:hover {
+  color: var(--mockloop-green) !important;
+}
+
+.md-tabs__link--active {
+  color: var(--mockloop-green) !important;
+}
+
+/* Header title styling */
+.md-header__title {
+  color: var(--mockloop-green) !important;
+  font-weight: bold;
+}
+
+/* Search box styling */
+.md-search__input {
+  background-color: #1e1e1e;
+  border: 1px solid #444;
+  color: #e0e0e0;
+}
+
+.md-search__input:focus {
+  border-color: var(--mockloop-green);
+}
+
+/* Navigation sidebar styling */
+.md-nav__title {
+  color: var(--mockloop-green) !important;
+  font-weight: bold;
+}
+
+.md-nav__link--active {
+  color: var(--mockloop-green) !important;
+}
+
+.md-nav__link:hover {
+  color: var(--mockloop-green) !important;
+}
+
+/* Button styling */
+.md-button {
+  background-color: var(--mockloop-green) !important;
+  color: var(--mockloop-dark-bg) !important;
+  border: none;
+  transition: background-color 0.2s ease;
+}
+
+.md-button:hover {
+  background-color: var(--mockloop-green-hover) !important;
+}
+
+.md-button--primary {
+  background-color: var(--mockloop-green) !important;
+  color: var(--mockloop-dark-bg) !important;
+}
+
+.md-button--primary:hover {
+  background-color: var(--mockloop-green-hover) !important;
+}
+
+/* Code block styling */
+.highlight .hll {
+  background-color: rgba(0, 255, 153, 0.1);
+}
+
+/* Link styling */
+.md-content a {
+  color: var(--mockloop-green);
+}
+
+.md-content a:hover {
+  color: var(--mockloop-green-hover);
+}
+
+/* Table of contents styling */
+.md-nav--secondary .md-nav__link--active {
+  color: var(--mockloop-green) !important;
+}
+
+/* Footer styling */
+.md-footer {
+  background-color: var(--mockloop-header-bg);
+  border-top: 1px solid var(--mockloop-border);
+}
+
+.md-footer-meta {
+  background-color: var(--mockloop-header-bg);
+}
+
+/* Admonition styling */
+.md-typeset .admonition.note,
+.md-typeset .admonition.info {
+  border-color: var(--mockloop-green);
+}
+
+.md-typeset .admonition.note > .admonition-title,
+.md-typeset .admonition.info > .admonition-title {
+  background-color: rgba(0, 255, 153, 0.1);
+  border-color: var(--mockloop-green);
+}
+
+/* Tab styling */
+.md-typeset .tabbed-set > input:checked + label {
+  color: var(--mockloop-green);
+  border-color: var(--mockloop-green);
+}
+
+/* Progress bar styling */
+.md-progress__value {
+  background-color: var(--mockloop-green);
+}
+
+/* Custom styling for hero section on homepage */
+.hero-section {
+  background: linear-gradient(135deg, #0e0e0e 0%, #151515 100%);
+  padding: 4rem 2rem;
+  text-align: center;
+  border-bottom: 1px solid var(--mockloop-border);
+}
+
+.hero-section h1 {
+  color: var(--mockloop-green) !important;
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  font-weight: bold;
+}
+
+.hero-section p {
+  color: #999;
+  font-size: 1.1rem;
+  line-height: 1.6;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Custom CTA button styling */
+.cta-button {
+  display: inline-block;
+  background-color: var(--mockloop-green) !important;
+  color: var(--mockloop-dark-bg) !important;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-weight: bold;
+  text-decoration: none;
+  transition: background-color 0.2s ease;
+  margin-top: 2rem;
+}
+
+.cta-button:hover {
+  background-color: var(--mockloop-green-hover) !important;
+  color: var(--mockloop-dark-bg) !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .hero-section h1 {
+    font-size: 2rem;
+  }
+  
+  .hero-section p {
+    font-size: 1rem;
+  }
+}
+
+/* Ensure proper contrast for accessibility */
+.md-typeset h1,
+.md-typeset h2,
+.md-typeset h3,
+.md-typeset h4,
+.md-typeset h5,
+.md-typeset h6 {
+  color: #e0e0e0;
+}
+
+/* Special styling for MockLoop branding elements */
+.mockloop-brand {
+  color: var(--mockloop-green) !important;
+  font-weight: bold;
+}
+
+/* Code syntax highlighting with MockLoop theme */
+.highlight .k,
+.highlight .kd,
+.highlight .kn,
+.highlight .kp,
+.highlight .kr,
+.highlight .kt {
+  color: var(--mockloop-green);
+}
+
+.highlight .s,
+.highlight .s1,
+.highlight .s2,
+.highlight .se,
+.highlight .sh,
+.highlight .si,
+.highlight .sx {
+  color: #a8e6cf;
+}

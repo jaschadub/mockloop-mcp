@@ -1,0 +1,120 @@
+site_name: MockLoop MCP Documentation
+site_description: Comprehensive documentation for MockLoop MCP - A Model Context Protocol server for generating sophisticated mock API servers
+site_author: MockLoop Team
+site_url: https://mockloop.github.io/mockloop-mcp/
+
+repo_name: mockloop/mockloop-mcp
+repo_url: https://github.com/mockloop/mockloop-mcp
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  palette:
+    - scheme: slate
+      primary: green
+      accent: green
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+    - scheme: default
+      primary: green
+      accent: green
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.code.annotate
+    - navigation.instant
+    - navigation.tracking
+
+plugins:
+  - search
+  - mermaid2
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - admonition
+  - pymdownx.details
+  - attr_list
+  - md_in_html
+  - tables
+  - footnotes
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: getting-started/installation.md
+    - Quick Start: getting-started/quick-start.md
+    - Configuration: getting-started/configuration.md
+    - First Mock Server: getting-started/first-mock-server.md
+  - User Guides:
+    - Basic Usage: guides/basic-usage.md
+    - Advanced Features: guides/advanced-features.md
+    - Mock Server Management: guides/mock-server-management.md
+    - Request/Response Logging: guides/logging.md
+    - Performance Monitoring: guides/performance-monitoring.md
+    - Scenario Management: guides/scenario-management.md
+    - Docker Integration: guides/docker-integration.md
+  - AI Integration:
+    - Overview: ai-integration/overview.md
+    - LangGraph Integration: ai-integration/langgraph.md
+    - CrewAI Integration: ai-integration/crewai.md
+    - LangChain Integration: ai-integration/langchain.md
+    - Custom AI Workflows: ai-integration/custom-workflows.md
+  - API Reference:
+    - MCP Tools: api/mcp-tools.md
+    - Core Classes: api/core-classes.md
+    - Configuration Options: api/configuration.md
+    - Database Schema: api/database-schema.md
+    - Admin API: api/admin-api.md
+  - Advanced Topics:
+    - Architecture: advanced/architecture.md
+    - Database Migrations: advanced/database-migrations.md
+    - Performance Optimization: advanced/performance-optimization.md
+    - Security Considerations: advanced/security.md
+    - Troubleshooting: advanced/troubleshooting.md
+  - Contributing:
+    - Development Setup: contributing/development-setup.md
+    - Contributing Guidelines: contributing/guidelines.md
+    - Testing: contributing/testing.md
+    - Release Process: contributing/release-process.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/mockloop/mockloop-mcp
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/mockloop-mcp/
+
+extra_css:
+  - stylesheets/extra.css
+
+copyright: Copyright &copy; 2025 Tarnover LLC

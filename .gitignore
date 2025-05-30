@@ -58,3 +58,7 @@ memory-bank/
 # Avoid logs
 request_logs_backup*
 
+# MkDocs
+site/
+.mkdocs_cache/
+
