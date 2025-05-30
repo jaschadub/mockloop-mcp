@@ -106,6 +106,7 @@ nav:
     - Contributing Guidelines: contributing/guidelines.md
     - Testing: contributing/testing.md
     - Release Process: contributing/release-process.md
+    - Community Support: contributing/community-support.md
 
 extra:
   social:

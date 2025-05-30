@@ -10,7 +10,7 @@ Start with our comprehensive documentation:
 
 - **[Installation Guide](../getting-started/installation.md)**: Step-by-step installation instructions
 - **[Quick Start](../getting-started/quick-start.md)**: Get up and running quickly
-- **[API Reference](../api/)**: Detailed API documentation
+- **[API Reference](../api/mcp-tools.md)**: Detailed API documentation
 - **[Troubleshooting](../advanced/troubleshooting.md)**: Common issues and solutions
 
 ### 💬 Community Channels
@@ -92,7 +92,7 @@ For security vulnerabilities:
 3. **Include**: Detailed description and reproduction steps
 4. **Response**: We aim to respond within 48 hours
 
-See our [Security Policy](../../.github/SECURITY.md) for more details.
+See our [Security Policy](https://github.com/mockloop/mockloop-mcp/blob/main/.github/SECURITY.md) for more details.
 
 ### 📦 PyPI-Related Issues
 
@@ -252,7 +252,7 @@ New contributors should look for:
 We recognize contributors in several ways:
 
 #### Contributors File
-All contributors are listed in our [CONTRIBUTORS.md](../../CONTRIBUTORS.md) file.
+All contributors are listed in our CONTRIBUTORS.md file (to be created).
 
 #### Release Notes
 Significant contributions are mentioned in release notes with contributor attribution.

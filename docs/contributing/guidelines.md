@@ -29,7 +29,7 @@ MockLoop MCP is distributed via PyPI, which requires special attention to certai
 
 When reporting issues related to PyPI installation or distribution:
 
-1. **Installation Issues**: Use the [PyPI Installation Issue template](.github/ISSUE_TEMPLATE/pypi-installation.md)
+1. **Installation Issues**: Use the PyPI Installation Issue template (available in GitHub issue templates)
 2. **Version Problems**: Include specific version numbers and Python environment details
 3. **Dependency Conflicts**: Provide complete pip freeze output
 4. **Distribution Issues**: Tag issues with `pypi` and `distribution` labels

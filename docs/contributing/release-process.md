@@ -1241,5 +1241,5 @@ gh issue list --label "installation"
 - **[Development Setup](development-setup.md)**: Setting up your development environment
 - **[Contributing Guidelines](guidelines.md)**: Code standards and contribution process
 - **[Testing Guide](testing.md)**: Comprehensive testing practices
-- **[Installation Verification Script](../../scripts/verify_installation.py)**: Automated installation testing
+- **[Installation Verification Script](https://github.com/mockloop/mockloop-mcp/blob/main/scripts/verify_installation.py)**: Automated installation testing
 - **[PyPI Project Page](https://pypi.org/project/mockloop-mcp/)**: Official package distribution
