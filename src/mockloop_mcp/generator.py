@@ -105,7 +105,7 @@ def generate_mock_api(
         mock_server_dir = Path(_output_base_dir) / _mock_server_name
         mock_server_dir.mkdir(parents=True, exist_ok=True)
 
-        requirements_content = "fastapi\nuvicorn[standard]\n"
+        requirements_content = "fastapi\nuvicorn[standard]\npsutil\n"
         
         with open(mock_server_dir / "requirements_mock.txt", "w", encoding="utf-8") as f:
             f.write(requirements_content)
@@ -213,7 +213,7 @@ def generate_mock_api(
         webhook_imports = "from webhook_handler import register_webhook, get_webhooks, delete_webhook, get_webhook_history, trigger_webhooks, test_webhook\n\n# Configure logging for webhook functionality\nlogger = logging.getLogger(\"webhook_handler\")\n" if webhooks_enabled_bool else ""
         storage_imports = "from storage import StorageManager, get_storage_stats, get_collections\n" if storage_enabled_bool else ""
         imports_section = common_imports + auth_imports + webhook_imports + storage_imports
-        app_setup = "app = FastAPI(title=\"{{ api_title }}\", version=\"{{ api_version }}\")\ntemplates = Jinja2Templates(directory=\"templates\")\napp.add_middleware(LoggingMiddleware)\napp.add_middleware(CORSMiddleware, allow_origins=[\"*\"], allow_credentials=True, allow_methods=[\"*\"], allow_headers=[\"*\"])\n\n# Setup database path for logs (same as in middleware)\ndb_dir = Path(\"db\")\ndb_dir.mkdir(exist_ok=True)\nDB_PATH = db_dir / \"request_logs.db\"\n"
+        app_setup = "app = FastAPI(title=\"{{ api_title }}\", version=\"{{ api_version }}\")\ntemplates = Jinja2Templates(directory=\"templates\")\napp.add_middleware(LoggingMiddleware)\napp.add_middleware(CORSMiddleware, allow_origins=[\"*\"], allow_credentials=True, allow_methods=[\"*\"], allow_headers=[\"*\"])\n\n# Setup database path for logs (same as in middleware)\ndb_dir = Path(\"db\")\ndb_dir.mkdir(exist_ok=True)\nDB_PATH = db_dir / \"request_logs.db\"\n\n# Global variable for active scenario\nactive_scenario = None\n\n# Initialize active scenario from database on startup\ndef load_active_scenario():\n    global active_scenario\n    try:\n        conn = sqlite3.connect(str(DB_PATH))\n        conn.row_factory = sqlite3.Row\n        cursor = conn.cursor()\n        cursor.execute(\"SELECT id, name, config FROM mock_scenarios WHERE is_active = 1\")\n        row = cursor.fetchone()\n        if row:\n            active_scenario = {\n                \"id\": row[0],\n                \"name\": row[1],\n                \"config\": json.loads(row[2]) if row[2] else {}\n            }\n        conn.close()\n    except Exception as e:\n        print(f\"Error loading active scenario: {e}\")\n        active_scenario = None\n\n# Load active scenario on startup\nload_active_scenario()\n"
         auth_endpoints_str = "@app.post(\"/token\", summary=\"Get access token\", tags=[\"authentication\"])\nasync def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):\n    return generate_token_response(form_data.username, form_data.password)\n" if auth_enabled_bool else ""
         
         admin_api_endpoints_str = ""
@@ -423,6 +423,652 @@ async def get_request_stats():
     except Exception as e:
         print(f"Error getting request stats: {e}")
         return {"error": str(e), "total_requests": 0}
+
+@app.get("/admin/api/logs/search", tags=["_admin"])
+async def search_logs(
+    q: str = None,
+    method: str = None,
+    status: int = None,
+    path_regex: str = None,
+    time_from: str = None,
+    time_to: str = None,
+    limit: int = 100,
+    offset: int = 0,
+    include_admin: bool = False
+):
+    \"\"\"Advanced log search with complex filtering\"\"\"
+    import re
+    import time as time_module
+    
+    search_start = time_module.time()
+    
+    try:
+        conn = sqlite3.connect(str(DB_PATH))
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        # Build dynamic query
+        query = "SELECT * FROM request_logs"
+        params = []
+        where_clauses = []
+        
+        # Text search in path, headers, request_body, response_body
+        if q:
+            search_clause = "(path LIKE ? OR headers LIKE ? OR request_body LIKE ? OR response_body LIKE ?)"
+            where_clauses.append(search_clause)
+            search_term = f"%{q}%"
+            params.extend([search_term, search_term, search_term, search_term])
+        
+        # Method filter
+        if method:
+            where_clauses.append("method = ?")
+            params.append(method.upper())
+        
+        # Status code filter
+        if status:
+            where_clauses.append("status_code = ?")
+            params.append(status)
+        
+        # Path regex filter
+        if path_regex:
+            # SQLite doesn't have native regex, so we'll filter in Python after query
+            pass
+        
+        # Time range filters
+        if time_from:
+            where_clauses.append("timestamp >= ?")
+            params.append(time_from)
+        
+        if time_to:
+            where_clauses.append("timestamp <= ?")
+            params.append(time_to)
+        
+        # Admin filter
+        if not include_admin:
+            where_clauses.append("(is_admin = 0 OR is_admin IS NULL)")
+        
+        # Combine where clauses
+        if where_clauses:
+            query += " WHERE " + " AND ".join(where_clauses)
+        
+        # Add ordering and pagination
+        query += " ORDER BY id DESC LIMIT ? OFFSET ?"
+        params.extend([limit, offset])
+        
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+        
+        # Convert to list of dicts and apply regex filter if needed
+        logs = []
+        for row in rows:
+            log_entry = dict(row)
+            if "headers" in log_entry and log_entry["headers"]:
+                try:
+                    log_entry["headers"] = json.loads(log_entry["headers"])
+                except:
+                    log_entry["headers"] = {}
+            
+            # Apply regex filter if specified
+            if path_regex:
+                try:
+                    if not re.search(path_regex, log_entry.get("path", "")):
+                        continue
+                except re.error:
+                    # Invalid regex, skip this filter
+                    pass
+            
+            logs.append(log_entry)
+        
+        # Get total count for pagination info
+        count_query = "SELECT COUNT(*) FROM request_logs"
+        if where_clauses:
+            count_query += " WHERE " + " AND ".join(where_clauses[:-2])  # Exclude limit/offset params
+            count_params = params[:-2]
+        else:
+            count_params = []
+        
+        cursor.execute(count_query, count_params)
+        total_count = cursor.fetchone()[0]
+        
+        conn.close()
+        
+        search_time = int((time_module.time() - search_start) * 1000)
+        
+        return {
+            "logs": logs,
+            "total_count": total_count,
+            "returned_count": len(logs),
+            "limit": limit,
+            "offset": offset,
+            "search_time": search_time,
+            "filters_applied": {
+                "query": q,
+                "method": method,
+                "status": status,
+                "path_regex": path_regex,
+                "time_from": time_from,
+                "time_to": time_to,
+                "include_admin": include_admin
+            }
+        }
+    except Exception as e:
+        return {"error": str(e), "logs": []}
+
+@app.get("/admin/api/logs/analyze", tags=["_admin"])
+async def analyze_logs(
+    method: str = None,
+    status: int = None,
+    path_regex: str = None,
+    time_from: str = None,
+    time_to: str = None,
+    group_by: str = None,
+    include_admin: bool = False
+):
+    \"\"\"Log analysis and insights generation\"\"\"
+    try:
+        # First get the logs using similar filtering logic
+        conn = sqlite3.connect(str(DB_PATH))
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        # Build query with filters
+        query = "SELECT * FROM request_logs"
+        params = []
+        where_clauses = []
+        
+        if method:
+            where_clauses.append("method = ?")
+            params.append(method.upper())
+        
+        if status:
+            where_clauses.append("status_code = ?")
+            params.append(status)
+        
+        if time_from:
+            where_clauses.append("timestamp >= ?")
+            params.append(time_from)
+        
+        if time_to:
+            where_clauses.append("timestamp <= ?")
+            params.append(time_to)
+        
+        if not include_admin:
+            where_clauses.append("(is_admin = 0 OR is_admin IS NULL)")
+        
+        if where_clauses:
+            query += " WHERE " + " AND ".join(where_clauses)
+        
+        query += " ORDER BY id DESC"
+        
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+        
+        # Convert to list of dicts for analysis
+        logs = []
+        for row in rows:
+            log_entry = dict(row)
+            if "headers" in log_entry and log_entry["headers"]:
+                try:
+                    log_entry["headers"] = json.loads(log_entry["headers"])
+                except:
+                    log_entry["headers"] = {}
+            logs.append(log_entry)
+        
+        conn.close()
+        
+        # Apply regex filter if needed
+        if path_regex:
+            import re
+            try:
+                logs = [log for log in logs if re.search(path_regex, log.get("path", ""))]
+            except re.error:
+                pass  # Invalid regex, skip filter
+        
+        # Use the existing LogAnalyzer
+        from log_analyzer import LogAnalyzer
+        analyzer = LogAnalyzer()
+        analysis = analyzer.analyze_logs(logs)
+        
+        # Add filter information to the analysis
+        analysis["filters_applied"] = {
+            "method": method,
+            "status": status,
+            "path_regex": path_regex,
+            "time_from": time_from,
+            "time_to": time_to,
+            "group_by": group_by,
+            "include_admin": include_admin
+        }
+        
+        return analysis
+        
+    except Exception as e:
+        return {"error": str(e), "total_requests": 0}
+
+@app.get("/admin/api/mock-data/scenarios", tags=["_admin"])
+async def get_scenarios():
+    \"\"\"Get all mock scenarios\"\"\"
+    try:
+        conn = sqlite3.connect(str(DB_PATH))
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute(\"\"\"
+            SELECT id, name, description, config, is_active, created_at, updated_at
+            FROM mock_scenarios
+            ORDER BY created_at DESC
+        \"\"\")
+        rows = cursor.fetchall()
+        
+        scenarios = []
+        for row in rows:
+            scenario = dict(row)
+            # Parse JSON config
+            try:
+                scenario['config'] = json.loads(scenario['config']) if scenario['config'] else {}
+            except:
+                scenario['config'] = {}
+            scenarios.append(scenario)
+        
+        conn.close()
+        return scenarios
+    except Exception as e:
+        print(f"Error getting scenarios: {e}")
+        return []
+
+@app.post("/admin/api/mock-data/scenarios", tags=["_admin"])
+async def create_scenario(scenario_data: dict = Body(...)):
+    \"\"\"Create a new mock scenario\"\"\"
+    try:
+        name = scenario_data.get("name")
+        description = scenario_data.get("description", "")
+        config = scenario_data.get("config", {})
+        
+        if not name:
+            raise HTTPException(status_code=400, detail="Scenario name is required")
+        
+        conn = sqlite3.connect(str(DB_PATH))
+        cursor = conn.cursor()
+        
+        # Check if name already exists
+        cursor.execute("SELECT id FROM mock_scenarios WHERE name = ?", (name,))
+        if cursor.fetchone():
+            conn.close()
+            raise HTTPException(status_code=400, detail="Scenario name already exists")
+        
+        # Insert new scenario
+        cursor.execute(\"\"\"
+            INSERT INTO mock_scenarios (name, description, config, is_active, created_at, updated_at)
+            VALUES (?, ?, ?, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        \"\"\", (name, description, json.dumps(config)))
+        
+        scenario_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        
+        return {"id": scenario_id, "name": name, "description": description, "config": config, "is_active": False}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error creating scenario: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/admin/api/mock-data/scenarios/{scenario_id}", tags=["_admin"])
+async def update_scenario(scenario_id: int, scenario_data: dict = Body(...)):
+    \"\"\"Update an existing mock scenario\"\"\"
+    try:
+        name = scenario_data.get("name")
+        description = scenario_data.get("description", "")
+        config = scenario_data.get("config", {})
+        
+        if not name:
+            raise HTTPException(status_code=400, detail="Scenario name is required")
+        
+        conn = sqlite3.connect(str(DB_PATH))
+        cursor = conn.cursor()
+        
+        # Check if scenario exists
+        cursor.execute("SELECT id FROM mock_scenarios WHERE id = ?", (scenario_id,))
+        if not cursor.fetchone():
+            conn.close()
+            raise HTTPException(status_code=404, detail="Scenario not found")
+        
+        # Check if name conflicts with another scenario
+        cursor.execute("SELECT id FROM mock_scenarios WHERE name = ? AND id != ?", (name, scenario_id))
+        if cursor.fetchone():
+            conn.close()
+            raise HTTPException(status_code=400, detail="Scenario name already exists")
+        
+        # Update scenario
+        cursor.execute(\"\"\"
+            UPDATE mock_scenarios
+            SET name = ?, description = ?, config = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        \"\"\", (name, description, json.dumps(config), scenario_id))
+        
+        conn.commit()
+        conn.close()
+        
+        return {"id": scenario_id, "name": name, "description": description, "config": config}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error updating scenario: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/admin/api/mock-data/scenarios/{scenario_id}", tags=["_admin"])
+async def delete_scenario(scenario_id: int):
+    \"\"\"Delete a mock scenario\"\"\"
+    try:
+        conn = sqlite3.connect(str(DB_PATH))
+        cursor = conn.cursor()
+        
+        # Check if scenario exists
+        cursor.execute("SELECT id, is_active FROM mock_scenarios WHERE id = ?", (scenario_id,))
+        scenario = cursor.fetchone()
+        if not scenario:
+            conn.close()
+            raise HTTPException(status_code=404, detail="Scenario not found")
+        
+        # Don't allow deletion of active scenario
+        if scenario[1]:  # is_active
+            conn.close()
+            raise HTTPException(status_code=400, detail="Cannot delete active scenario. Deactivate it first.")
+        
+        # Delete scenario
+        cursor.execute("DELETE FROM mock_scenarios WHERE id = ?", (scenario_id,))
+        conn.commit()
+        conn.close()
+        
+        return {"message": "Scenario deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error deleting scenario: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/admin/api/mock-data/scenarios/{scenario_id}/activate", tags=["_admin"])
+async def activate_scenario(scenario_id: int):
+    \"\"\"Activate a mock scenario (deactivates all others)\"\"\"
+    try:
+        conn = sqlite3.connect(str(DB_PATH))
+        cursor = conn.cursor()
+        
+        # Check if scenario exists
+        cursor.execute("SELECT id, name, config FROM mock_scenarios WHERE id = ?", (scenario_id,))
+        scenario = cursor.fetchone()
+        if not scenario:
+            conn.close()
+            raise HTTPException(status_code=404, detail="Scenario not found")
+        
+        # Deactivate all scenarios first
+        cursor.execute("UPDATE mock_scenarios SET is_active = 0")
+        
+        # Activate the selected scenario
+        cursor.execute("UPDATE mock_scenarios SET is_active = 1 WHERE id = ?", (scenario_id,))
+        
+        conn.commit()
+        conn.close()
+        
+        # Update in-memory active scenario
+        global active_scenario
+        active_scenario = {
+            "id": scenario[0],
+            "name": scenario[1],
+            "config": json.loads(scenario[2]) if scenario[2] else {}
+        }
+        
+        return {"message": f"Scenario '{scenario[1]}' activated successfully", "active_scenario": active_scenario}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error activating scenario: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/admin/api/mock-data/scenarios/active", tags=["_admin"])
+async def get_active_scenario():
+    \"\"\"Get the currently active scenario\"\"\"
+    try:
+        conn = sqlite3.connect(str(DB_PATH))
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute(\"\"\"
+            SELECT id, name, description, config, created_at, updated_at
+            FROM mock_scenarios
+            WHERE is_active = 1
+        \"\"\")
+        row = cursor.fetchone()
+        
+        if row:
+            scenario = dict(row)
+            try:
+                scenario['config'] = json.loads(scenario['config']) if scenario['config'] else {}
+            except:
+                scenario['config'] = {}
+            conn.close()
+            return scenario
+        else:
+            conn.close()
+            return None
+    except Exception as e:
+        print(f"Error getting active scenario: {e}")
+        return None
+
+@app.get("/admin/api/performance/metrics", tags=["_admin"])
+async def get_performance_metrics(
+    limit: int = 100,
+    offset: int = 0,
+    time_from: str = None,
+    time_to: str = None,
+    request_id: int = None
+):
+    \"\"\"Get performance metrics data\"\"\"
+    try:
+        conn = sqlite3.connect(str(DB_PATH))
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        # Build query with filters
+        query = \"\"\"
+            SELECT pm.*, rl.method, rl.path, rl.status_code, rl.timestamp
+            FROM performance_metrics pm
+            LEFT JOIN request_logs rl ON pm.request_id = rl.id
+        \"\"\"
+        params = []
+        where_clauses = []
+        
+        if request_id:
+            where_clauses.append("pm.request_id = ?")
+            params.append(request_id)
+        
+        if time_from:
+            where_clauses.append("pm.recorded_at >= ?")
+            params.append(time_from)
+        
+        if time_to:
+            where_clauses.append("pm.recorded_at <= ?")
+            params.append(time_to)
+        
+        if where_clauses:
+            query += " WHERE " + " AND ".join(where_clauses)
+        
+        query += " ORDER BY pm.recorded_at DESC LIMIT ? OFFSET ?"
+        params.extend([limit, offset])
+        
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+        
+        metrics = [dict(row) for row in rows]
+        conn.close()
+        
+        return {
+            "metrics": metrics,
+            "count": len(metrics),
+            "limit": limit,
+            "offset": offset
+        }
+    except Exception as e:
+        print(f"Error getting performance metrics: {e}")
+        return {"error": str(e), "metrics": []}
+
+@app.get("/admin/api/performance/sessions", tags=["_admin"])
+async def get_performance_sessions(
+    limit: int = 100,
+    offset: int = 0,
+    status: str = None
+):
+    \"\"\"Get test session analytics\"\"\"
+    try:
+        conn = sqlite3.connect(str(DB_PATH))
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        # Build query with filters
+        query = "SELECT * FROM test_sessions"
+        params = []
+        where_clauses = []
+        
+        if status:
+            where_clauses.append("status = ?")
+            params.append(status)
+        
+        if where_clauses:
+            query += " WHERE " + " AND ".join(where_clauses)
+        
+        query += " ORDER BY start_time DESC LIMIT ? OFFSET ?"
+        params.extend([limit, offset])
+        
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+        
+        sessions = []
+        for row in rows:
+            session = dict(row)
+            # Parse metadata if it exists
+            if session.get('metadata'):
+                try:
+                    session['metadata'] = json.loads(session['metadata'])
+                except:
+                    session['metadata'] = {}
+            sessions.append(session)
+        
+        conn.close()
+        
+        return {
+            "sessions": sessions,
+            "count": len(sessions),
+            "limit": limit,
+            "offset": offset
+        }
+    except Exception as e:
+        print(f"Error getting test sessions: {e}")
+        return {"error": str(e), "sessions": []}
+
+@app.get("/admin/api/performance/summary", tags=["_admin"])
+async def get_performance_summary(
+    time_from: str = None,
+    time_to: str = None
+):
+    \"\"\"Get performance summary and analytics\"\"\"
+    try:
+        conn = sqlite3.connect(str(DB_PATH))
+        cursor = conn.cursor()
+        
+        # Build time filter
+        time_filter = ""
+        params = []
+        if time_from or time_to:
+            conditions = []
+            if time_from:
+                conditions.append("pm.recorded_at >= ?")
+                params.append(time_from)
+            if time_to:
+                conditions.append("pm.recorded_at <= ?")
+                params.append(time_to)
+            time_filter = " WHERE " + " AND ".join(conditions)
+        
+        # Get overall performance metrics
+        cursor.execute(f\"\"\"
+            SELECT
+                COUNT(*) as total_requests,
+                AVG(response_time_ms) as avg_response_time,
+                MIN(response_time_ms) as min_response_time,
+                MAX(response_time_ms) as max_response_time,
+                AVG(memory_usage_mb) as avg_memory_usage,
+                AVG(cpu_usage_percent) as avg_cpu_usage,
+                SUM(database_queries) as total_db_queries,
+                SUM(cache_hits) as total_cache_hits,
+                SUM(cache_misses) as total_cache_misses
+            FROM performance_metrics pm{time_filter}
+        \"\"\", params)
+        
+        summary = cursor.fetchone()
+        
+        # Get performance by endpoint
+        cursor.execute(f\"\"\"
+            SELECT
+                rl.path,
+                rl.method,
+                COUNT(*) as request_count,
+                AVG(pm.response_time_ms) as avg_response_time,
+                AVG(pm.memory_usage_mb) as avg_memory_usage
+            FROM performance_metrics pm
+            LEFT JOIN request_logs rl ON pm.request_id = rl.id{time_filter}
+            GROUP BY rl.path, rl.method
+            ORDER BY avg_response_time DESC
+            LIMIT 10
+        \"\"\", params)
+        
+        endpoint_performance = cursor.fetchall()
+        
+        # Get session summary
+        cursor.execute(\"\"\"
+            SELECT
+                COUNT(*) as total_sessions,
+                COUNT(CASE WHEN status = 'active' THEN 1 END) as active_sessions,
+                AVG(total_requests) as avg_requests_per_session,
+                AVG(avg_response_time) as avg_session_response_time
+            FROM test_sessions
+        \"\"\")
+        
+        session_summary = cursor.fetchone()
+        
+        conn.close()
+        
+        return {
+            "overall_performance": {
+                "total_requests": summary[0] or 0,
+                "avg_response_time_ms": round(summary[1] or 0, 2),
+                "min_response_time_ms": summary[2] or 0,
+                "max_response_time_ms": summary[3] or 0,
+                "avg_memory_usage_mb": round(summary[4] or 0, 2),
+                "avg_cpu_usage_percent": round(summary[5] or 0, 2),
+                "total_db_queries": summary[6] or 0,
+                "total_cache_hits": summary[7] or 0,
+                "total_cache_misses": summary[8] or 0,
+                "cache_hit_ratio": round((summary[7] or 0) / max((summary[7] or 0) + (summary[8] or 0), 1) * 100, 2)
+            },
+            "endpoint_performance": [
+                {
+                    "path": row[0],
+                    "method": row[1],
+                    "request_count": row[2],
+                    "avg_response_time_ms": round(row[3] or 0, 2),
+                    "avg_memory_usage_mb": round(row[4] or 0, 2)
+                }
+                for row in endpoint_performance
+            ],
+            "session_summary": {
+                "total_sessions": session_summary[0] or 0,
+                "active_sessions": session_summary[1] or 0,
+                "avg_requests_per_session": round(session_summary[2] or 0, 2),
+                "avg_session_response_time_ms": round(session_summary[3] or 0, 2)
+            }
+        }
+    except Exception as e:
+        print(f"Error getting performance summary: {e}")
+        return {"error": str(e)}
 """
         webhook_api_endpoints_str = ""
         if webhooks_enabled_bool and admin_ui_enabled_bool:

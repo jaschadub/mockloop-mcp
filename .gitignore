@@ -54,3 +54,7 @@ Desktop.ini
 # Memory Bank
 memory-bank/
 .clinerules
+
+# Avoid logs
+request_logs_backup*
+

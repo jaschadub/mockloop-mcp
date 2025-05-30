@@ -290,6 +290,9 @@
             <ul class="sidebar-nav">
                 <li><a href="#" class="nav-link active" data-tab="dashboard">Dashboard</a></li>
                 <li><a href="#" class="nav-link" data-tab="requests">Request Logs</a></li>
+                <li><a href="#" class="nav-link" data-tab="analytics">Log Analytics</a></li>
+                <li><a href="#" class="nav-link" data-tab="performance">Performance</a></li>
+                <li><a href="#" class="nav-link" data-tab="scenarios">Scenario Management</a></li>
                 <li><a href="#" class="nav-link" data-tab="webhooks">Webhooks</a></li>
 
                 <li><a href="#" class="nav-link" data-tab="auth">Authentication</a></li>
@@ -407,6 +410,331 @@
                         <div class="json-viewer" id="response-body"></div>
                     </div>
                 </div>
+            </div>
+            
+            <!-- Log Analytics Tab -->
+            <div id="analytics" class="tab-content">
+                <h2>Log Analytics</h2>
+                
+                <!-- Search Section -->
+                <div class="card">
+                    <h3 class="card-title">Advanced Log Search</h3>
+                    <form id="log-search-form">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                            <div class="form-group">
+                                <label for="search-query">Search Query</label>
+                                <input type="text" id="search-query" class="form-control" placeholder="Search in paths, headers, body...">
+                            </div>
+                            <div class="form-group">
+                                <label for="search-method">Method</label>
+                                <select id="search-method" class="form-control">
+                                    <option value="">All Methods</option>
+                                    <option value="GET">GET</option>
+                                    <option value="POST">POST</option>
+                                    <option value="PUT">PUT</option>
+                                    <option value="DELETE">DELETE</option>
+                                    <option value="PATCH">PATCH</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                            <div class="form-group">
+                                <label for="search-time-from">From Time</label>
+                                <input type="datetime-local" id="search-time-from" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label for="search-time-to">To Time</label>
+                                <input type="datetime-local" id="search-time-to" class="form-control">
+                            </div>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                            <div class="form-group">
+                                <label for="search-status">Status Code</label>
+                                <input type="number" id="search-status" class="form-control" placeholder="e.g., 200, 404, 500">
+                            </div>
+                            <div class="form-group">
+                                <label for="search-limit">Limit</label>
+                                <input type="number" id="search-limit" class="form-control" value="100" min="1" max="1000">
+                            </div>
+                            <div class="form-group">
+                                <label for="search-offset">Offset</label>
+                                <input type="number" id="search-offset" class="form-control" value="0" min="0">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="search-path-regex">Path Pattern (Regex)</label>
+                            <input type="text" id="search-path-regex" class="form-control" placeholder="e.g., /api/users/.*, /admin/.*">
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">Search Logs</button>
+                        <button type="button" class="btn btn-secondary" onclick="clearSearchForm()">Clear</button>
+                    </form>
+                </div>
+                
+                <!-- Search Results -->
+                <div class="card" id="search-results" style="display: none;">
+                    <h3 class="card-title">Search Results</h3>
+                    <div id="search-results-summary"></div>
+                    <table id="search-results-table">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Method</th>
+                                <th>Path</th>
+                                <th>Status</th>
+                                <th>Response Time</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Analytics Section -->
+                <div class="card">
+                    <h3 class="card-title">Log Analysis</h3>
+                    <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                        <button type="button" class="btn btn-success" onclick="analyzeAllLogs()">Analyze All Logs</button>
+                        <button type="button" class="btn btn-warning" onclick="analyzeFilteredLogs()">Analyze Search Results</button>
+                        <button type="button" class="btn btn-info" onclick="analyzeTimeRange()">Analyze Time Range</button>
+                    </div>
+                    
+                    <div id="analysis-results" style="display: none;">
+                        <div class="dashboard-grid">
+                            <div class="card">
+                                <h4 class="card-title">Request Summary</h4>
+                                <div class="stat" id="analysis-total-requests">0</div>
+                                <p id="analysis-time-range">No data</p>
+                            </div>
+                            
+                            <div class="card">
+                                <h4 class="card-title">Performance</h4>
+                                <div class="stat" id="analysis-avg-response">0ms</div>
+                                <p id="analysis-performance-details">No data</p>
+                            </div>
+                            
+                            <div class="card">
+                                <h4 class="card-title">Success Rate</h4>
+                                <div class="stat" id="analysis-success-rate">0%</div>
+                                <p id="analysis-error-details">No data</p>
+                            </div>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+                            <div class="card">
+                                <h4 class="card-title">Top Endpoints</h4>
+                                <div id="analysis-top-endpoints"></div>
+                            </div>
+                            
+                            <div class="card">
+                                <h4 class="card-title">HTTP Methods</h4>
+                                <div id="analysis-methods"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <h4 class="card-title">Insights & Recommendations</h4>
+                            <div id="analysis-insights"></div>
+                        </div>
+                        
+                        <div class="card">
+                            <h4 class="card-title">Detailed Analysis</h4>
+                            <div class="json-viewer" id="analysis-full-details"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Performance Tab -->
+            <div id="performance" class="tab-content">
+                <h2>Performance Metrics</h2>
+                
+                <!-- Performance Summary -->
+                <div class="card">
+                    <h3 class="card-title">Performance Summary</h3>
+                    <div class="dashboard-grid">
+                        <div class="card">
+                            <h4 class="card-title">Response Time</h4>
+                            <div class="stat" id="perf-avg-response-time">0ms</div>
+                            <p id="perf-response-time-details">Min: 0ms, Max: 0ms</p>
+                        </div>
+                        
+                        <div class="card">
+                            <h4 class="card-title">Memory Usage</h4>
+                            <div class="stat" id="perf-avg-memory">0MB</div>
+                            <p>Average memory consumption</p>
+                        </div>
+                        
+                        <div class="card">
+                            <h4 class="card-title">CPU Usage</h4>
+                            <div class="stat" id="perf-avg-cpu">0%</div>
+                            <p>Average CPU utilization</p>
+                        </div>
+                        
+                        <div class="card">
+                            <h4 class="card-title">Cache Performance</h4>
+                            <div class="stat" id="perf-cache-hit-ratio">0%</div>
+                            <p id="perf-cache-details">Hits: 0, Misses: 0</p>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 1rem;">
+                        <button class="btn btn-primary" onclick="loadPerformanceSummary()">Refresh Summary</button>
+                        <button class="btn btn-secondary" onclick="loadPerformanceMetrics()">View Detailed Metrics</button>
+                    </div>
+                </div>
+                
+                <!-- Endpoint Performance -->
+                <div class="card">
+                    <h3 class="card-title">Endpoint Performance</h3>
+                    <table id="endpoint-performance-table">
+                        <thead>
+                            <tr>
+                                <th>Endpoint</th>
+                                <th>Method</th>
+                                <th>Request Count</th>
+                                <th>Avg Response Time</th>
+                                <th>Avg Memory Usage</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="5">No performance data available</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Test Sessions Performance -->
+                <div class="card">
+                    <h3 class="card-title">Test Sessions</h3>
+                    <div class="dashboard-grid">
+                        <div class="card">
+                            <h4 class="card-title">Total Sessions</h4>
+                            <div class="stat" id="perf-total-sessions">0</div>
+                            <p id="perf-active-sessions">Active: 0</p>
+                        </div>
+                        
+                        <div class="card">
+                            <h4 class="card-title">Avg Requests/Session</h4>
+                            <div class="stat" id="perf-avg-requests-per-session">0</div>
+                            <p>Average requests per test session</p>
+                        </div>
+                    </div>
+                    
+                    <table id="test-sessions-table">
+                        <thead>
+                            <tr>
+                                <th>Session ID</th>
+                                <th>Scenario</th>
+                                <th>Status</th>
+                                <th>Total Requests</th>
+                                <th>Avg Response Time</th>
+                                <th>Started</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="6">No test sessions available</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Detailed Performance Metrics -->
+                <div class="card" id="detailed-performance-metrics" style="display: none;">
+                    <h3 class="card-title">Detailed Performance Metrics</h3>
+                    <div style="margin-bottom: 1rem;">
+                        <label for="perf-time-from">From:</label>
+                        <input type="datetime-local" id="perf-time-from" style="margin-right: 1rem;">
+                        <label for="perf-time-to">To:</label>
+                        <input type="datetime-local" id="perf-time-to" style="margin-right: 1rem;">
+                        <button class="btn btn-secondary" onclick="filterPerformanceMetrics()">Filter</button>
+                    </div>
+                    
+                    <table id="performance-metrics-table">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Endpoint</th>
+                                <th>Response Time</th>
+                                <th>Memory (MB)</th>
+                                <th>CPU (%)</th>
+                                <th>DB Queries</th>
+                                <th>Cache H/M</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="7">No detailed metrics available</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Scenario Management Tab -->
+            <div id="scenarios" class="tab-content">
+                <h2>Scenario Management</h2>
+                
+                <!-- Active Scenario Display -->
+                <div class="card">
+                    <h3 class="card-title">Active Scenario</h3>
+                    <div id="active-scenario-display">
+                        <p id="active-scenario-name">No active scenario</p>
+                        <p id="active-scenario-description"></p>
+                        <button id="deactivate-scenario-btn" class="btn btn-warning" style="display: none;" onclick="deactivateScenario()">Deactivate</button>
+                    </div>
+                </div>
+                
+                <!-- Create New Scenario -->
+                <div class="card">
+                    <h3 class="card-title">Create New Scenario</h3>
+                    <form id="scenario-form">
+                        <div class="form-group">
+                            <label for="scenario-name">Scenario Name</label>
+                            <input type="text" id="scenario-name" class="form-control" placeholder="e.g., Error Testing, Happy Path" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="scenario-description">Description</label>
+                            <textarea id="scenario-description" class="form-control" rows="2" placeholder="Describe what this scenario tests or simulates"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="scenario-config">Configuration (JSON)</label>
+                            <textarea id="scenario-config" class="form-control" rows="8" placeholder='{"endpoint_path": {"status": 200, "data": {...}}, "responses": {...}}'></textarea>
+                            <small>Define custom responses for specific endpoints. Use endpoint paths as keys.</small>
+                        </div>
+                        <button type="submit" class="btn btn-success">Create Scenario</button>
+                        <button type="button" class="btn btn-secondary" onclick="clearScenarioForm()">Clear</button>
+                    </form>
+                </div>
+                
+                <!-- Scenario List -->
+                <div class="card">
+                    <h3 class="card-title">All Scenarios</h3>
+                    <table id="scenarios-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Description</th>
+                                <th>Status</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="5">No scenarios created yet</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Scenario Editor Modal (will be created dynamically) -->
             </div>
             
             <!-- Webhooks Tab -->
@@ -1369,6 +1697,835 @@
                 alert('Failed to export data. Please check the console for details.');
             }
         }
+        
+        // --- Log Analytics Functions ---
+        
+        // Clear search form
+        function clearSearchForm() {
+            document.getElementById('log-search-form').reset();
+            document.getElementById('search-results').style.display = 'none';
+        }
+        
+        // Handle log search form submission
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchForm = document.getElementById('log-search-form');
+            if (searchForm) {
+                searchForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    await performLogSearch();
+                });
+            }
+        });
+        
+        // Perform log search using the new search endpoint
+        async function performLogSearch() {
+            const query = document.getElementById('search-query').value;
+            const method = document.getElementById('search-method').value;
+            const timeFrom = document.getElementById('search-time-from').value;
+            const timeTo = document.getElementById('search-time-to').value;
+            const status = document.getElementById('search-status').value;
+            const limit = document.getElementById('search-limit').value || 100;
+            const offset = document.getElementById('search-offset').value || 0;
+            const pathRegex = document.getElementById('search-path-regex').value;
+            
+            try {
+                // Build query parameters
+                const params = new URLSearchParams();
+                if (query) params.append('q', query);
+                if (method) params.append('method', method);
+                if (timeFrom) params.append('time_from', new Date(timeFrom).toISOString());
+                if (timeTo) params.append('time_to', new Date(timeTo).toISOString());
+                if (status) params.append('status', status);
+                if (pathRegex) params.append('path_regex', pathRegex);
+                params.append('limit', limit);
+                params.append('offset', offset);
+                
+                const response = await fetch(`/admin/api/logs/search?${params.toString()}`);
+                if (response.ok) {
+                    const results = await response.json();
+                    displaySearchResults(results);
+                } else {
+                    alert('Search failed. Please check your parameters.');
+                }
+            } catch (error) {
+                console.error('Search error:', error);
+                alert('Search failed. Please try again.');
+            }
+        }
+        
+        // Display search results
+        function displaySearchResults(results) {
+            const resultsDiv = document.getElementById('search-results');
+            const summaryDiv = document.getElementById('search-results-summary');
+            const tableBody = document.querySelector('#search-results-table tbody');
+            
+            // Show results section
+            resultsDiv.style.display = 'block';
+            
+            // Update summary
+            summaryDiv.innerHTML = `
+                <p><strong>Found ${results.logs ? results.logs.length : 0} results</strong></p>
+                ${results.total_count ? `<p>Total matching records: ${results.total_count}</p>` : ''}
+                ${results.search_time ? `<p>Search completed in ${results.search_time}ms</p>` : ''}
+            `;
+            
+            // Update table
+            if (results.logs && results.logs.length > 0) {
+                tableBody.innerHTML = results.logs.map(log => `
+                    <tr>
+                        <td>${log.timestamp ? new Date(log.timestamp).toLocaleString() : 'N/A'}</td>
+                        <td><span class="badge badge-info">${log.method || 'N/A'}</span></td>
+                        <td>${log.path || 'N/A'}</td>
+                        <td><span class="badge ${getStatusBadgeClass(log.status_code)}">${log.status_code || 'N/A'}</span></td>
+                        <td>${(log.process_time_ms !== undefined && log.process_time_ms !== null) ? log.process_time_ms + 'ms' : 'N/A'}</td>
+                        <td>
+                            <button class="btn btn-info btn-sm" onclick="showRequestDetails(${log.id})">View Details</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } else {
+                tableBody.innerHTML = '<tr><td colspan="6">No results found</td></tr>';
+            }
+        }
+        
+        // Analyze all logs
+        async function analyzeAllLogs() {
+            try {
+                const response = await fetch('/admin/api/logs/analyze');
+                if (response.ok) {
+                    const analysis = await response.json();
+                    displayAnalysisResults(analysis);
+                } else {
+                    alert('Analysis failed. Please try again.');
+                }
+            } catch (error) {
+                console.error('Analysis error:', error);
+                alert('Analysis failed. Please try again.');
+            }
+        }
+        
+        // Analyze filtered logs (from search results)
+        async function analyzeFilteredLogs() {
+            // Get current search parameters
+            const query = document.getElementById('search-query').value;
+            const method = document.getElementById('search-method').value;
+            const timeFrom = document.getElementById('search-time-from').value;
+            const timeTo = document.getElementById('search-time-to').value;
+            const status = document.getElementById('search-status').value;
+            const pathRegex = document.getElementById('search-path-regex').value;
+            
+            try {
+                // Build query parameters for analysis
+                const params = new URLSearchParams();
+                if (query) params.append('q', query);
+                if (method) params.append('method', method);
+                if (timeFrom) params.append('time_from', new Date(timeFrom).toISOString());
+                if (timeTo) params.append('time_to', new Date(timeTo).toISOString());
+                if (status) params.append('status', status);
+                if (pathRegex) params.append('path_regex', pathRegex);
+                
+                const response = await fetch(`/admin/api/logs/analyze?${params.toString()}`);
+                if (response.ok) {
+                    const analysis = await response.json();
+                    displayAnalysisResults(analysis);
+                } else {
+                    alert('Analysis failed. Please try again.');
+                }
+            } catch (error) {
+                console.error('Analysis error:', error);
+                alert('Analysis failed. Please try again.');
+            }
+        }
+        
+        // Analyze specific time range
+        async function analyzeTimeRange() {
+            const timeFrom = prompt('Enter start time (YYYY-MM-DD HH:MM:SS or ISO format):');
+            const timeTo = prompt('Enter end time (YYYY-MM-DD HH:MM:SS or ISO format):');
+            
+            if (!timeFrom || !timeTo) {
+                return;
+            }
+            
+            try {
+                const params = new URLSearchParams();
+                params.append('time_from', new Date(timeFrom).toISOString());
+                params.append('time_to', new Date(timeTo).toISOString());
+                
+                const response = await fetch(`/admin/api/logs/analyze?${params.toString()}`);
+                if (response.ok) {
+                    const analysis = await response.json();
+                    displayAnalysisResults(analysis);
+                } else {
+                    alert('Analysis failed. Please check your time format.');
+                }
+            } catch (error) {
+                console.error('Analysis error:', error);
+                alert('Analysis failed. Please check your time format.');
+            }
+        }
+        
+        // Display analysis results
+        function displayAnalysisResults(analysis) {
+            const resultsDiv = document.getElementById('analysis-results');
+            resultsDiv.style.display = 'block';
+            
+            // Update summary cards
+            document.getElementById('analysis-total-requests').textContent = analysis.total_requests || 0;
+            
+            if (analysis.time_range) {
+                const timeRange = analysis.time_range;
+                document.getElementById('analysis-time-range').textContent =
+                    `${timeRange.duration_human || 'Unknown duration'} (${timeRange.total_entries || 0} entries)`;
+            }
+            
+            if (analysis.performance) {
+                const perf = analysis.performance;
+                document.getElementById('analysis-avg-response').textContent = `${perf.average_ms || 0}ms`;
+                document.getElementById('analysis-performance-details').textContent =
+                    `P95: ${perf.p95_ms || 0}ms, P99: ${perf.p99_ms || 0}ms`;
+            }
+            
+            if (analysis.status_codes) {
+                const status = analysis.status_codes;
+                document.getElementById('analysis-success-rate').textContent = `${status.success_rate || 0}%`;
+                document.getElementById('analysis-error-details').textContent =
+                    `Error rate: ${status.error_rate || 0}%`;
+            }
+            
+            // Update top endpoints
+            if (analysis.endpoints && analysis.endpoints.distribution) {
+                const endpointsHtml = Object.entries(analysis.endpoints.distribution)
+                    .slice(0, 5)
+                    .map(([path, count]) => `<div>${path}: <strong>${count}</strong></div>`)
+                    .join('');
+                document.getElementById('analysis-top-endpoints').innerHTML = endpointsHtml || 'No data';
+            }
+            
+            // Update methods distribution
+            if (analysis.methods && analysis.methods.distribution) {
+                const methodsHtml = Object.entries(analysis.methods.distribution)
+                    .map(([method, count]) => `<div>${method}: <strong>${count}</strong></div>`)
+                    .join('');
+                document.getElementById('analysis-methods').innerHTML = methodsHtml || 'No data';
+            }
+            
+            // Update insights
+            if (analysis.insights && analysis.insights.length > 0) {
+                const insightsHtml = analysis.insights
+                    .map(insight => `<div class="alert alert-info">${insight}</div>`)
+                    .join('');
+                document.getElementById('analysis-insights').innerHTML = insightsHtml;
+            } else {
+                document.getElementById('analysis-insights').innerHTML = '<p>No specific insights available.</p>';
+            }
+            
+            // Update full details
+            document.getElementById('analysis-full-details').textContent = JSON.stringify(analysis, null, 2);
+        }
+        
+        // --- Scenario Management Functions ---
+        
+        // Load scenarios when the scenarios tab is clicked
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelector('.nav-link[data-tab="scenarios"]').addEventListener('click', async function() {
+                await loadScenarios();
+                await loadActiveScenario();
+            });
+            
+            // Scenario form submission
+            const scenarioForm = document.getElementById('scenario-form');
+            if (scenarioForm) {
+                scenarioForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    await createScenario();
+                });
+            }
+        });
+        
+        // Load all scenarios
+        async function loadScenarios() {
+            try {
+                const response = await fetch('/admin/api/mock-data/scenarios');
+                if (response.ok) {
+                    const scenarios = await response.json();
+                    updateScenariosTable(scenarios);
+                } else {
+                    console.error('Failed to load scenarios');
+                }
+            } catch (error) {
+                console.error('Error loading scenarios:', error);
+            }
+        }
+        
+        // Load active scenario
+        async function loadActiveScenario() {
+            try {
+                const response = await fetch('/admin/api/mock-data/scenarios/active');
+                if (response.ok) {
+                    const activeScenario = await response.json();
+                    updateActiveScenarioDisplay(activeScenario);
+                } else {
+                    updateActiveScenarioDisplay(null);
+                }
+            } catch (error) {
+                console.error('Error loading active scenario:', error);
+                updateActiveScenarioDisplay(null);
+            }
+        }
+        
+        // Update scenarios table
+        function updateScenariosTable(scenarios) {
+            const tbody = document.querySelector('#scenarios-table tbody');
+            if (!scenarios || scenarios.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5">No scenarios created yet</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = scenarios.map(scenario => `
+                <tr>
+                    <td><strong>${scenario.name}</strong></td>
+                    <td>${scenario.description || 'No description'}</td>
+                    <td><span class="badge ${scenario.is_active ? 'badge-success' : 'badge-info'}">${scenario.is_active ? 'Active' : 'Inactive'}</span></td>
+                    <td>${scenario.created_at ? new Date(scenario.created_at).toLocaleDateString() : 'N/A'}</td>
+                    <td>
+                        ${!scenario.is_active ? `<button class="btn btn-success btn-sm" onclick="activateScenario(${scenario.id})" style="margin-right: 5px;">Activate</button>` : ''}
+                        <button class="btn btn-warning btn-sm" onclick="editScenario(${scenario.id})" style="margin-right: 5px;">Edit</button>
+                        ${!scenario.is_active ? `<button class="btn btn-danger btn-sm" onclick="deleteScenario(${scenario.id})">Delete</button>` : ''}
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        // Update active scenario display
+        function updateActiveScenarioDisplay(activeScenario) {
+            const nameElement = document.getElementById('active-scenario-name');
+            const descriptionElement = document.getElementById('active-scenario-description');
+            const deactivateBtn = document.getElementById('deactivate-scenario-btn');
+            
+            if (activeScenario) {
+                nameElement.textContent = `Active: ${activeScenario.name}`;
+                descriptionElement.textContent = activeScenario.description || 'No description';
+                deactivateBtn.style.display = 'inline-block';
+            } else {
+                nameElement.textContent = 'No active scenario';
+                descriptionElement.textContent = '';
+                deactivateBtn.style.display = 'none';
+            }
+        }
+        
+        // Create new scenario
+        async function createScenario() {
+            const name = document.getElementById('scenario-name').value;
+            const description = document.getElementById('scenario-description').value;
+            const configText = document.getElementById('scenario-config').value;
+            
+            if (!name.trim()) {
+                alert('Please enter a scenario name');
+                return;
+            }
+            
+            let config = {};
+            if (configText.trim()) {
+                try {
+                    config = JSON.parse(configText);
+                } catch (e) {
+                    alert('Invalid JSON configuration. Please check your syntax.');
+                    return;
+                }
+            }
+            
+            try {
+                const response = await fetch('/admin/api/mock-data/scenarios', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: name,
+                        description: description,
+                        config: config
+                    })
+                });
+                
+                if (response.ok) {
+                    alert('Scenario created successfully!');
+                    clearScenarioForm();
+                    await loadScenarios();
+                } else {
+                    const error = await response.text();
+                    alert(`Failed to create scenario: ${error}`);
+                }
+            } catch (error) {
+                console.error('Error creating scenario:', error);
+                alert('Error creating scenario. Please check the console for details.');
+            }
+        }
+        
+        // Clear scenario form
+        function clearScenarioForm() {
+            document.getElementById('scenario-form').reset();
+        }
+        
+        // Activate scenario
+        async function activateScenario(scenarioId) {
+            if (!confirm('Are you sure you want to activate this scenario? This will deactivate any currently active scenario.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/admin/api/mock-data/scenarios/${scenarioId}/activate`, {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    alert(result.message);
+                    await loadScenarios();
+                    await loadActiveScenario();
+                } else {
+                    const error = await response.text();
+                    alert(`Failed to activate scenario: ${error}`);
+                }
+            } catch (error) {
+                console.error('Error activating scenario:', error);
+                alert('Error activating scenario. Please check the console for details.');
+            }
+        }
+        
+        // Deactivate current scenario
+        async function deactivateScenario() {
+            if (!confirm('Are you sure you want to deactivate the current scenario?')) {
+                return;
+            }
+            
+            try {
+                // Get active scenario first
+                const activeResponse = await fetch('/admin/api/mock-data/scenarios/active');
+                if (!activeResponse.ok) {
+                    alert('No active scenario found');
+                    return;
+                }
+                
+                const activeScenario = await activeResponse.json();
+                if (!activeScenario) {
+                    alert('No active scenario found');
+                    return;
+                }
+                
+                // Deactivate by updating the scenario
+                const response = await fetch(`/admin/api/mock-data/scenarios/${activeScenario.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: activeScenario.name,
+                        description: activeScenario.description,
+                        config: activeScenario.config
+                    })
+                });
+                
+                if (response.ok) {
+                    // Manually deactivate in database
+                    await fetch(`/admin/api/mock-data/scenarios/${activeScenario.id}/activate`, {
+                        method: 'DELETE'
+                    });
+                    
+                    alert('Scenario deactivated successfully!');
+                    await loadScenarios();
+                    await loadActiveScenario();
+                } else {
+                    const error = await response.text();
+                    alert(`Failed to deactivate scenario: ${error}`);
+                }
+            } catch (error) {
+                console.error('Error deactivating scenario:', error);
+                alert('Error deactivating scenario. Please check the console for details.');
+            }
+        }
+        
+        // Edit scenario
+        async function editScenario(scenarioId) {
+            try {
+                // Get scenario details
+                const response = await fetch('/admin/api/mock-data/scenarios');
+                if (!response.ok) {
+                    alert('Failed to load scenario details');
+                    return;
+                }
+                
+                const scenarios = await response.json();
+                const scenario = scenarios.find(s => s.id === scenarioId);
+                if (!scenario) {
+                    alert('Scenario not found');
+                    return;
+                }
+                
+                // Show edit modal
+                showScenarioEditModal(scenario);
+            } catch (error) {
+                console.error('Error loading scenario for edit:', error);
+                alert('Error loading scenario details.');
+            }
+        }
+        
+        // Show scenario edit modal
+        function showScenarioEditModal(scenario) {
+            // Create modal if it doesn't exist
+            let modal = document.getElementById('scenario-edit-modal');
+            if (!modal) {
+                modal = createScenarioEditModal();
+                document.body.appendChild(modal);
+            }
+            
+            // Populate modal with scenario data
+            document.getElementById('edit-scenario-id').value = scenario.id;
+            document.getElementById('edit-scenario-name').value = scenario.name;
+            document.getElementById('edit-scenario-description').value = scenario.description || '';
+            document.getElementById('edit-scenario-config').value = JSON.stringify(scenario.config, null, 2);
+            
+            // Show modal
+            modal.style.display = 'block';
+        }
+        
+        // Create scenario edit modal
+        function createScenarioEditModal() {
+            const modal = document.createElement('div');
+            modal.id = 'scenario-edit-modal';
+            modal.style.cssText = `
+                display: none;
+                position: fixed;
+                z-index: 1000;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0,0,0,0.5);
+            `;
+            
+            modal.innerHTML = `
+                <div style="
+                    background-color: white;
+                    margin: 2% auto;
+                    padding: 20px;
+                    border-radius: 5px;
+                    width: 90%;
+                    max-width: 800px;
+                    max-height: 90vh;
+                    overflow-y: auto;
+                ">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3>Edit Scenario</h3>
+                        <button onclick="closeScenarioEditModal()" style="
+                            background: none;
+                            border: none;
+                            font-size: 24px;
+                            cursor: pointer;
+                            color: #666;
+                        ">&times;</button>
+                    </div>
+                    
+                    <form id="edit-scenario-form">
+                        <input type="hidden" id="edit-scenario-id">
+                        
+                        <div class="form-group">
+                            <label for="edit-scenario-name">Scenario Name</label>
+                            <input type="text" id="edit-scenario-name" class="form-control" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="edit-scenario-description">Description</label>
+                            <textarea id="edit-scenario-description" class="form-control" rows="2"></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="edit-scenario-config">Configuration (JSON)</label>
+                            <textarea id="edit-scenario-config" class="form-control" rows="12"></textarea>
+                        </div>
+                        
+                        <div style="text-align: right; margin-top: 20px;">
+                            <button type="button" class="btn btn-secondary" onclick="closeScenarioEditModal()" style="margin-right: 10px;">Cancel</button>
+                            <button type="submit" class="btn btn-success">Update Scenario</button>
+                        </div>
+                    </form>
+                </div>
+            `;
+            
+            // Add form submission handler
+            modal.querySelector('#edit-scenario-form').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                await updateScenario();
+            });
+            
+            // Close modal when clicking outside
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    closeScenarioEditModal();
+                }
+            });
+            
+            return modal;
+        }
+        
+        // Update scenario
+        async function updateScenario() {
+            const id = document.getElementById('edit-scenario-id').value;
+            const name = document.getElementById('edit-scenario-name').value;
+            const description = document.getElementById('edit-scenario-description').value;
+            const configText = document.getElementById('edit-scenario-config').value;
+            
+            if (!name.trim()) {
+                alert('Please enter a scenario name');
+                return;
+            }
+            
+            let config = {};
+            if (configText.trim()) {
+                try {
+                    config = JSON.parse(configText);
+                } catch (e) {
+                    alert('Invalid JSON configuration. Please check your syntax.');
+                    return;
+                }
+            }
+            
+            try {
+                const response = await fetch(`/admin/api/mock-data/scenarios/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: name,
+                        description: description,
+                        config: config
+                    })
+                });
+                
+                if (response.ok) {
+                    alert('Scenario updated successfully!');
+                    closeScenarioEditModal();
+                    await loadScenarios();
+                    await loadActiveScenario();
+                } else {
+                    const error = await response.text();
+                    alert(`Failed to update scenario: ${error}`);
+                }
+            } catch (error) {
+                console.error('Error updating scenario:', error);
+                alert('Error updating scenario. Please check the console for details.');
+            }
+        }
+        
+        // Close scenario edit modal
+        function closeScenarioEditModal() {
+            const modal = document.getElementById('scenario-edit-modal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+        
+        // Delete scenario
+        async function deleteScenario(scenarioId) {
+            if (!confirm('Are you sure you want to delete this scenario? This action cannot be undone.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/admin/api/mock-data/scenarios/${scenarioId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    alert('Scenario deleted successfully!');
+                    await loadScenarios();
+                } else {
+                    const error = await response.text();
+                    alert(`Failed to delete scenario: ${error}`);
+                }
+            } catch (error) {
+                console.error('Error deleting scenario:', error);
+                alert('Error deleting scenario. Please check the console for details.');
+            }
+        }
+        
+        // --- Performance Tab Functions ---
+        
+        // Load performance summary
+        async function loadPerformanceSummary() {
+            try {
+                const response = await fetch('/admin/api/performance/summary');
+                if (response.ok) {
+                    const data = await response.json();
+                    updatePerformanceSummary(data);
+                } else {
+                    console.error('Failed to load performance summary');
+                }
+            } catch (error) {
+                console.error('Error loading performance summary:', error);
+            }
+        }
+        
+        // Update performance summary display
+        function updatePerformanceSummary(data) {
+            const overall = data.overall_performance || {};
+            const sessions = data.session_summary || {};
+            
+            // Update overall performance metrics
+            document.getElementById('perf-avg-response-time').textContent = `${overall.avg_response_time_ms || 0}ms`;
+            document.getElementById('perf-response-time-details').textContent =
+                `Min: ${overall.min_response_time_ms || 0}ms, Max: ${overall.max_response_time_ms || 0}ms`;
+            
+            document.getElementById('perf-avg-memory').textContent = `${overall.avg_memory_usage_mb || 0}MB`;
+            document.getElementById('perf-avg-cpu').textContent = `${overall.avg_cpu_usage_percent || 0}%`;
+            document.getElementById('perf-cache-hit-ratio').textContent = `${overall.cache_hit_ratio || 0}%`;
+            document.getElementById('perf-cache-details').textContent =
+                `Hits: ${overall.total_cache_hits || 0}, Misses: ${overall.total_cache_misses || 0}`;
+            
+            // Update session summary
+            document.getElementById('perf-total-sessions').textContent = sessions.total_sessions || 0;
+            document.getElementById('perf-active-sessions').textContent = `Active: ${sessions.active_sessions || 0}`;
+            document.getElementById('perf-avg-requests-per-session').textContent = sessions.avg_requests_per_session || 0;
+            
+            // Update endpoint performance table
+            updateEndpointPerformanceTable(data.endpoint_performance || []);
+        }
+        
+        // Update endpoint performance table
+        function updateEndpointPerformanceTable(endpoints) {
+            const tbody = document.querySelector('#endpoint-performance-table tbody');
+            if (!endpoints || endpoints.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5">No performance data available</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = endpoints.map(endpoint => `
+                <tr>
+                    <td>${endpoint.path || 'N/A'}</td>
+                    <td><span class="badge badge-info">${endpoint.method || 'N/A'}</span></td>
+                    <td>${endpoint.request_count || 0}</td>
+                    <td>${endpoint.avg_response_time_ms || 0}ms</td>
+                    <td>${endpoint.avg_memory_usage_mb || 0}MB</td>
+                </tr>
+            `).join('');
+        }
+        
+        // Load performance metrics
+        async function loadPerformanceMetrics() {
+            try {
+                const response = await fetch('/admin/api/performance/metrics?limit=50');
+                if (response.ok) {
+                    const data = await response.json();
+                    updatePerformanceMetricsTable(data.metrics || []);
+                    document.getElementById('detailed-performance-metrics').style.display = 'block';
+                } else {
+                    console.error('Failed to load performance metrics');
+                }
+            } catch (error) {
+                console.error('Error loading performance metrics:', error);
+            }
+        }
+        
+        // Update performance metrics table
+        function updatePerformanceMetricsTable(metrics) {
+            const tbody = document.querySelector('#performance-metrics-table tbody');
+            if (!metrics || metrics.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7">No detailed metrics available</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = metrics.map(metric => `
+                <tr>
+                    <td>${metric.recorded_at ? new Date(metric.recorded_at).toLocaleString() : 'N/A'}</td>
+                    <td>${metric.method || ''} ${metric.path || 'N/A'}</td>
+                    <td>${metric.response_time_ms || 0}ms</td>
+                    <td>${metric.memory_usage_mb || 0}</td>
+                    <td>${metric.cpu_usage_percent || 0}%</td>
+                    <td>${metric.database_queries || 0}</td>
+                    <td>${metric.cache_hits || 0}/${metric.cache_misses || 0}</td>
+                </tr>
+            `).join('');
+        }
+        
+        // Load test sessions
+        async function loadTestSessions() {
+            try {
+                const response = await fetch('/admin/api/performance/sessions');
+                if (response.ok) {
+                    const data = await response.json();
+                    updateTestSessionsTable(data.sessions || []);
+                } else {
+                    console.error('Failed to load test sessions');
+                }
+            } catch (error) {
+                console.error('Error loading test sessions:', error);
+            }
+        }
+        
+        // Update test sessions table
+        function updateTestSessionsTable(sessions) {
+            const tbody = document.querySelector('#test-sessions-table tbody');
+            if (!sessions || sessions.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6">No test sessions available</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = sessions.map(session => `
+                <tr>
+                    <td>${session.session_id || 'N/A'}</td>
+                    <td>${session.scenario_name || 'N/A'}</td>
+                    <td><span class="badge ${getSessionStatusBadgeClass(session.status)}">${session.status || 'unknown'}</span></td>
+                    <td>${session.total_requests || 0}</td>
+                    <td>${session.avg_response_time || 0}ms</td>
+                    <td>${session.start_time ? new Date(session.start_time).toLocaleString() : 'N/A'}</td>
+                </tr>
+            `).join('');
+        }
+        
+        // Get badge class for session status
+        function getSessionStatusBadgeClass(status) {
+            switch (status) {
+                case 'active': return 'badge-success';
+                case 'completed': return 'badge-info';
+                case 'failed': return 'badge-danger';
+                default: return 'badge-warning';
+            }
+        }
+        
+        // Filter performance metrics by time range
+        async function filterPerformanceMetrics() {
+            const timeFrom = document.getElementById('perf-time-from').value;
+            const timeTo = document.getElementById('perf-time-to').value;
+            
+            try {
+                const params = new URLSearchParams();
+                if (timeFrom) params.append('time_from', new Date(timeFrom).toISOString());
+                if (timeTo) params.append('time_to', new Date(timeTo).toISOString());
+                params.append('limit', '100');
+                
+                const response = await fetch(`/admin/api/performance/metrics?${params.toString()}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    updatePerformanceMetricsTable(data.metrics || []);
+                } else {
+                    alert('Failed to filter performance metrics');
+                }
+            } catch (error) {
+                console.error('Error filtering performance metrics:', error);
+                alert('Error filtering performance metrics');
+            }
+        }
+        
+        // Load performance tab when clicked
+        document.addEventListener('DOMContentLoaded', function() {
+            const perfTab = document.querySelector('.nav-link[data-tab="performance"]');
+            if (perfTab) {
+                perfTab.addEventListener('click', async function() {
+                    await loadPerformanceSummary();
+                    await loadTestSessions();
+                });
+            }
+        });
     </script>
 </body>
 </html>

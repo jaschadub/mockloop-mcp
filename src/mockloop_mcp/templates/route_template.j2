@@ -5,13 +5,31 @@ async def mock_{{ method | lower }}_{{ path.strip('/').replace('/', '_').replace
     Mock endpoint for {{ method | upper }} {{ path }}
     Summary: {{ summary }}
     """
-    {% if example_response %}
-    # Response based on schema example
-    response_data = {{ example_response }}
-    {% else %}
-    # No example available in schema
-    response_data = {"message": "mock response for {{ method | upper }} {{ path }}"}
-    {% endif %}
+    # Check for active scenario override
+    global active_scenario
+    response_data = None
+    
+    if active_scenario and active_scenario.get("config"):
+        # Look for scenario-specific response for this endpoint
+        endpoint_key = "{{ method | lower }}_{{ path.strip('/').replace('/', '_').replace('{', '').replace('}', '').replace('-', '_') }}"
+        scenario_config = active_scenario.get("config", {})
+        
+        if endpoint_key in scenario_config:
+            response_data = scenario_config[endpoint_key]
+        elif "{{ path }}" in scenario_config:
+            response_data = scenario_config["{{ path }}"]
+        elif "responses" in scenario_config and "{{ path }}" in scenario_config["responses"]:
+            response_data = scenario_config["responses"]["{{ path }}"]
+    
+    # Fall back to default response if no scenario override
+    if response_data is None:
+        {% if example_response %}
+        # Response based on schema example
+        response_data = {{ example_response }}
+        {% else %}
+        # No example available in schema
+        response_data = {"message": "mock response for {{ method | upper }} {{ path }}"}
+        {% endif %}
     
     # Trigger webhooks if enabled
     {% if webhooks_enabled %}

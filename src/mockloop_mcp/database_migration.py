@@ -1,0 +1,430 @@
+"""
+Database migration utilities for MockLoop MCP servers.
+Provides schema versioning and migration capabilities.
+"""
+import sqlite3
+import json
+from pathlib import Path
+from typing import Dict, List, Optional, Any
+from datetime import datetime
+
+
+class DatabaseMigrator:
+    """Handles database schema migrations for MockLoop servers."""
+    
+    def __init__(self, db_path: str):
+        """Initialize the migrator with a database path."""
+        self.db_path = Path(db_path)
+        self.migrations = self._get_migrations()
+    
+    def _get_migrations(self) -> Dict[int, Dict[str, Any]]:
+        """Define all available migrations."""
+        return {
+            0: {
+                "description": "Create base request_logs table",
+                "sql": [
+                    """CREATE TABLE IF NOT EXISTS request_logs (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        timestamp TEXT,
+                        type TEXT,
+                        method TEXT,
+                        path TEXT,
+                        status_code INTEGER,
+                        process_time_ms INTEGER,
+                        client_host TEXT,
+                        client_port TEXT,
+                        headers TEXT,
+                        query_params TEXT,
+                        request_body TEXT,
+                        response_body TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )"""
+                ]
+            },
+            1: {
+                "description": "Add Phase 1 enhancement columns",
+                "sql": [
+                    "ALTER TABLE request_logs ADD COLUMN session_id TEXT",
+                    "ALTER TABLE request_logs ADD COLUMN test_scenario TEXT",
+                    "ALTER TABLE request_logs ADD COLUMN correlation_id TEXT",
+                    "ALTER TABLE request_logs ADD COLUMN user_agent TEXT",
+                    "ALTER TABLE request_logs ADD COLUMN response_size INTEGER",
+                    "ALTER TABLE request_logs ADD COLUMN is_admin BOOLEAN DEFAULT 0"
+                ]
+            },
+            2: {
+                "description": "Create test sessions table",
+                "sql": [
+                    """CREATE TABLE IF NOT EXISTS test_sessions (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        session_id TEXT UNIQUE NOT NULL,
+                        name TEXT,
+                        description TEXT,
+                        started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        ended_at TIMESTAMP,
+                        metadata TEXT,
+                        total_requests INTEGER DEFAULT 0,
+                        success_rate REAL DEFAULT 0.0
+                    )"""
+                ]
+            },
+            3: {
+                "description": "Create performance metrics table",
+                "sql": [
+                    """CREATE TABLE IF NOT EXISTS performance_metrics (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        endpoint TEXT NOT NULL,
+                        method TEXT NOT NULL,
+                        avg_response_time REAL,
+                        min_response_time REAL,
+                        max_response_time REAL,
+                        request_count INTEGER,
+                        error_count INTEGER,
+                        time_window TEXT
+                    )"""
+                ]
+            },
+            4: {
+                "description": "Create mock scenarios table (Phase 2 preparation)",
+                "sql": [
+                    """CREATE TABLE IF NOT EXISTS mock_scenarios (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        name TEXT UNIQUE NOT NULL,
+                        description TEXT,
+                        config TEXT NOT NULL,
+                        is_active BOOLEAN DEFAULT 0,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )"""
+                ]
+            },
+            5: {
+                "description": "Create enhanced performance metrics table (Phase 2 Part 4)",
+                "sql": [
+                    """CREATE TABLE IF NOT EXISTS performance_metrics (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        request_id INTEGER,
+                        response_time_ms REAL NOT NULL,
+                        memory_usage_mb REAL,
+                        cpu_usage_percent REAL,
+                        database_queries INTEGER DEFAULT 0,
+                        cache_hits INTEGER DEFAULT 0,
+                        cache_misses INTEGER DEFAULT 0,
+                        request_size_bytes INTEGER DEFAULT 0,
+                        response_size_bytes INTEGER DEFAULT 0,
+                        recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (request_id) REFERENCES request_logs (id)
+                    )"""
+                ]
+            },
+            6: {
+                "description": "Create enhanced test sessions table (Phase 2 Part 4)",
+                "sql": [
+                    """CREATE TABLE IF NOT EXISTS test_sessions (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        session_id TEXT UNIQUE NOT NULL,
+                        scenario_name TEXT,
+                        start_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        end_time TIMESTAMP,
+                        total_requests INTEGER DEFAULT 0,
+                        avg_response_time REAL DEFAULT 0.0,
+                        status TEXT DEFAULT 'active',
+                        metadata TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )"""
+                ]
+            }
+        }
+    
+    def get_current_version(self) -> int:
+        """Get the current database schema version."""
+        try:
+            conn = sqlite3.connect(str(self.db_path))
+            cursor = conn.cursor()
+            
+            # Check if schema_version table exists
+            cursor.execute("""
+                SELECT name FROM sqlite_master 
+                WHERE type='table' AND name='schema_version'
+            """)
+            
+            if not cursor.fetchone():
+                # Schema version table doesn't exist, create it
+                cursor.execute("""
+                    CREATE TABLE schema_version (
+                        version INTEGER PRIMARY KEY,
+                        applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        description TEXT
+                    )
+                """)
+                conn.commit()
+                conn.close()
+                return 0
+            
+            # Get the latest version
+            cursor.execute("SELECT MAX(version) FROM schema_version")
+            result = cursor.fetchone()
+            version = result[0] if result and result[0] is not None else 0
+            
+            conn.close()
+            return version
+            
+        except Exception as e:
+            print(f"Error getting schema version: {e}")
+            return 0
+    
+    def apply_migrations(self, target_version: Optional[int] = None) -> bool:
+        """
+        Apply migrations up to the target version.
+        
+        Args:
+            target_version: Version to migrate to. If None, applies all available migrations.
+            
+        Returns:
+            True if successful, False otherwise.
+        """
+        current_version = self.get_current_version()
+        
+        if target_version is None:
+            target_version = max(self.migrations.keys()) if self.migrations else 0
+        
+        if current_version >= target_version:
+            print(f"Database is already at version {current_version}")
+            return True
+        
+        try:
+            conn = sqlite3.connect(str(self.db_path))
+            cursor = conn.cursor()
+            
+            # Apply migrations in order, starting from current version
+            # If current_version is 0 and we have migration 0, apply it
+            start_version = current_version if current_version > 0 else 0
+            for version in range(start_version, target_version + 1):
+                if version not in self.migrations:
+                    print(f"Warning: Migration {version} not found, skipping")
+                    continue
+                
+                migration = self.migrations[version]
+                print(f"Applying migration {version}: {migration['description']}")
+                
+                try:
+                    # Execute all SQL statements for this migration
+                    for sql_statement in migration['sql']:
+                        # Special handling for ALTER TABLE statements
+                        if sql_statement.strip().upper().startswith('ALTER TABLE'):
+                            # Check if table exists before altering
+                            table_name = sql_statement.split()[2]  # Extract table name
+                            cursor.execute("""
+                                SELECT name FROM sqlite_master
+                                WHERE type='table' AND name=?
+                            """, (table_name,))
+                            
+                            if not cursor.fetchone():
+                                print(f"Warning: Table {table_name} doesn't exist, skipping ALTER statement")
+                                continue
+                            
+                            # Check if column already exists
+                            if 'ADD COLUMN' in sql_statement.upper():
+                                column_name = sql_statement.split('ADD COLUMN')[1].strip().split()[0]
+                                cursor.execute(f"PRAGMA table_info({table_name})")
+                                existing_columns = {col[1] for col in cursor.fetchall()}
+                                
+                                if column_name in existing_columns:
+                                    print(f"Column {column_name} already exists, skipping")
+                                    continue
+                        
+                        cursor.execute(sql_statement)
+                    
+                    # Record the migration
+                    cursor.execute(
+                        "INSERT INTO schema_version (version, description) VALUES (?, ?)",
+                        (version, migration['description'])
+                    )
+                    
+                    conn.commit()
+                    print(f"Migration {version} applied successfully")
+                    
+                except Exception as e:
+                    print(f"Error applying migration {version}: {e}")
+                    conn.rollback()
+                    conn.close()
+                    return False
+            
+            conn.close()
+            print(f"Database migrated to version {target_version}")
+            return True
+            
+        except Exception as e:
+            print(f"Error during migration: {e}")
+            return False
+    
+    def rollback_migration(self, target_version: int) -> bool:
+        """
+        Rollback to a specific version (limited support).
+        
+        Note: This is a basic implementation. Complex rollbacks may require
+        manual intervention or data backup/restore.
+        """
+        current_version = self.get_current_version()
+        
+        if target_version >= current_version:
+            print(f"Cannot rollback to version {target_version} from {current_version}")
+            return False
+        
+        print("Warning: Rollback functionality is limited. Consider backing up your data.")
+        
+        try:
+            conn = sqlite3.connect(str(self.db_path))
+            cursor = conn.cursor()
+            
+            # Remove migration records for versions above target
+            cursor.execute(
+                "DELETE FROM schema_version WHERE version > ?",
+                (target_version,)
+            )
+            
+            conn.commit()
+            conn.close()
+            
+            print(f"Rolled back migration records to version {target_version}")
+            print("Note: Schema changes may still be present. Manual cleanup may be required.")
+            return True
+            
+        except Exception as e:
+            print(f"Error during rollback: {e}")
+            return False
+    
+    def get_migration_status(self) -> Dict[str, Any]:
+        """Get detailed migration status information."""
+        current_version = self.get_current_version()
+        available_migrations = list(self.migrations.keys())
+        latest_available = max(available_migrations) if available_migrations else 0
+        
+        try:
+            conn = sqlite3.connect(str(self.db_path))
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            
+            # Get applied migrations
+            cursor.execute(
+                "SELECT version, applied_at, description FROM schema_version ORDER BY version"
+            )
+            applied_migrations = [dict(row) for row in cursor.fetchall()]
+            
+            conn.close()
+            
+        except Exception as e:
+            applied_migrations = []
+        
+        return {
+            "current_version": current_version,
+            "latest_available": latest_available,
+            "needs_migration": current_version < latest_available,
+            "applied_migrations": applied_migrations,
+            "available_migrations": [
+                {
+                    "version": v,
+                    "description": self.migrations[v]["description"],
+                    "applied": v <= current_version
+                }
+                for v in sorted(available_migrations)
+            ]
+        }
+    
+    def backup_database(self, backup_path: Optional[str] = None) -> str:
+        """Create a backup of the database before migration."""
+        if backup_path is None:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            backup_path = f"{self.db_path.stem}_backup_{timestamp}.db"
+        
+        backup_path = Path(backup_path)
+        
+        try:
+            # Simple file copy for SQLite
+            import shutil
+            shutil.copy2(self.db_path, backup_path)
+            print(f"Database backed up to: {backup_path}")
+            return str(backup_path)
+            
+        except Exception as e:
+            print(f"Error creating backup: {e}")
+            raise
+
+
+def migrate_database(db_path: str, target_version: Optional[int] = None) -> bool:
+    """
+    Convenience function to migrate a database.
+    
+    Args:
+        db_path: Path to the SQLite database
+        target_version: Version to migrate to (None for latest)
+        
+    Returns:
+        True if successful, False otherwise
+    """
+    migrator = DatabaseMigrator(db_path)
+    return migrator.apply_migrations(target_version)
+
+
+def get_database_status(db_path: str) -> Dict[str, Any]:
+    """
+    Get migration status for a database.
+    
+    Args:
+        db_path: Path to the SQLite database
+        
+    Returns:
+        Dictionary with migration status information
+    """
+    migrator = DatabaseMigrator(db_path)
+    return migrator.get_migration_status()
+
+
+if __name__ == "__main__":
+    import sys
+    
+    if len(sys.argv) < 2:
+        print("Usage: python database_migration.py <db_path> [command] [args]")
+        print("Commands:")
+        print("  status - Show migration status")
+        print("  migrate [version] - Apply migrations")
+        print("  rollback <version> - Rollback to version")
+        print("  backup [path] - Create database backup")
+        sys.exit(1)
+    
+    db_path = sys.argv[1]
+    command = sys.argv[2] if len(sys.argv) > 2 else "status"
+    
+    migrator = DatabaseMigrator(db_path)
+    
+    if command == "status":
+        status = migrator.get_migration_status()
+        print(json.dumps(status, indent=2, default=str))
+        
+    elif command == "migrate":
+        target_version = int(sys.argv[3]) if len(sys.argv) > 3 else None
+        success = migrator.apply_migrations(target_version)
+        sys.exit(0 if success else 1)
+        
+    elif command == "rollback":
+        if len(sys.argv) < 4:
+            print("Error: rollback requires target version")
+            sys.exit(1)
+        target_version = int(sys.argv[3])
+        success = migrator.rollback_migration(target_version)
+        sys.exit(0 if success else 1)
+        
+    elif command == "backup":
+        backup_path = sys.argv[3] if len(sys.argv) > 3 else None
+        try:
+            result_path = migrator.backup_database(backup_path)
+            print(f"Backup created: {result_path}")
+        except Exception as e:
+            print(f"Backup failed: {e}")
+            sys.exit(1)
+            
+    else:
+        print(f"Unknown command: {command}")
+        sys.exit(1)

@@ -69,6 +69,22 @@ class DiscoverMockServersOutput(TypedDict):
     total_generated: int
     message: str
 
+class ManageMockDataInput(TypedDict):
+    server_url: str
+    operation: str  # "update_response", "create_scenario", "switch_scenario", "list_scenarios"
+    endpoint_path: Optional[str]
+    response_data: Optional[Dict[str, Any]]
+    scenario_name: Optional[str]
+    scenario_config: Optional[Dict[str, Any]]
+
+class ManageMockDataOutput(TypedDict):
+    status: str
+    operation: str
+    result: Dict[str, Any]
+    server_url: str
+    message: str
+    performance_metrics: Optional[Dict[str, Any]]
+
 # Create an MCP server instance
 # The name "MockLoop" will be visible in MCP clients like Claude Desktop.
 server = FastMCP(
@@ -348,6 +364,220 @@ async def discover_mock_servers_tool(
             "total_running": 0,
             "total_generated": 0,
             "message": f"Error discovering servers: {str(e)}"
+        }
+
+@server.tool(
+    name="manage_mock_data",
+    description="Manage dynamic response data and scenarios for MockLoop servers. "
+                "Supports updating responses, creating scenarios, switching scenarios, and listing scenarios.",
+)
+async def manage_mock_data_tool(
+    server_url: str,
+    operation: str,
+    endpoint_path: Optional[str] = None,
+    response_data: Optional[Dict[str, Any]] = None,
+    scenario_name: Optional[str] = None,
+    scenario_config: Optional[Dict[str, Any]] = None
+) -> ManageMockDataOutput:
+    """
+    Manage mock data and scenarios for dynamic response management.
+    
+    Args:
+        server_url: URL of the mock server (e.g., "http://localhost:8000")
+        operation: Operation to perform ("update_response", "create_scenario", "switch_scenario", "list_scenarios")
+        endpoint_path: Specific endpoint to modify (required for update_response)
+        response_data: New response data for updates (required for update_response)
+        scenario_name: Scenario identifier (required for create_scenario, switch_scenario)
+        scenario_config: Complete scenario configuration (required for create_scenario)
+    """
+    import time
+    # Handle imports for different execution contexts
+    if __package__ is None or __package__ == '':
+        from utils.http_client import MockServerClient, test_server_connectivity
+    else:
+        from .utils.http_client import MockServerClient, test_server_connectivity
+    
+    start_time = time.time()
+    
+    try:
+        print(f"Tool: Managing mock data for {server_url}, operation: {operation}")
+        
+        # Validate server accessibility first
+        connectivity_result = await test_server_connectivity(server_url)
+        if connectivity_result.get("status") != "healthy":
+            return {
+                "status": "error",
+                "operation": operation,
+                "result": {},
+                "server_url": server_url,
+                "message": f"Server not accessible: {connectivity_result.get('error', 'Unknown error')}",
+                "performance_metrics": None
+            }
+        
+        # Initialize the mock server manager for server validation
+        manager = MockServerManager()
+        
+        # Validate that this is a MockLoop server
+        server_status = await manager.get_server_status(server_url)
+        if not server_status.get("is_mockloop_server", False):
+            return {
+                "status": "error",
+                "operation": operation,
+                "result": {},
+                "server_url": server_url,
+                "message": "Target server is not a MockLoop server or does not support admin operations",
+                "performance_metrics": None
+            }
+        
+        # Initialize HTTP client
+        client = MockServerClient(server_url)
+        
+        # Perform the requested operation
+        if operation == "update_response":
+            if not endpoint_path or response_data is None:
+                return {
+                    "status": "error",
+                    "operation": operation,
+                    "result": {},
+                    "server_url": server_url,
+                    "message": "update_response operation requires endpoint_path and response_data parameters",
+                    "performance_metrics": None
+                }
+            
+            # Get current response for before/after comparison
+            before_state = {}
+            try:
+                # Try to get current endpoint info (this would need to be implemented in the server)
+                debug_info = await client.get_debug_info()
+                if debug_info.get("status") == "success":
+                    before_state = debug_info.get("debug_info", {}).get("endpoints", {}).get(endpoint_path, {})
+            except Exception:
+                pass  # Continue without before state if not available
+            
+            result = await client.update_response(endpoint_path, response_data)
+            
+            if result.get("status") == "success":
+                # Get after state
+                after_state = {}
+                try:
+                    debug_info = await client.get_debug_info()
+                    if debug_info.get("status") == "success":
+                        after_state = debug_info.get("debug_info", {}).get("endpoints", {}).get(endpoint_path, {})
+                except Exception:
+                    pass
+                
+                result["before_state"] = before_state
+                result["after_state"] = after_state
+                
+                message = f"Successfully updated response for {endpoint_path}"
+            else:
+                message = f"Failed to update response for {endpoint_path}: {result.get('error', 'Unknown error')}"
+        
+        elif operation == "create_scenario":
+            if not scenario_name or not scenario_config:
+                return {
+                    "status": "error",
+                    "operation": operation,
+                    "result": {},
+                    "server_url": server_url,
+                    "message": "create_scenario operation requires scenario_name and scenario_config parameters",
+                    "performance_metrics": None
+                }
+            
+            result = await client.create_scenario(scenario_name, scenario_config)
+            
+            if result.get("status") == "success":
+                message = f"Successfully created scenario '{scenario_name}'"
+            else:
+                message = f"Failed to create scenario '{scenario_name}': {result.get('error', 'Unknown error')}"
+        
+        elif operation == "switch_scenario":
+            if not scenario_name:
+                return {
+                    "status": "error",
+                    "operation": operation,
+                    "result": {},
+                    "server_url": server_url,
+                    "message": "switch_scenario operation requires scenario_name parameter",
+                    "performance_metrics": None
+                }
+            
+            # Get current scenario before switching
+            current_result = await client.get_current_scenario()
+            before_scenario = current_result.get("current_scenario", {}) if current_result.get("status") == "success" else {}
+            
+            result = await client.switch_scenario(scenario_name)
+            
+            if result.get("status") == "success":
+                result["before_scenario"] = before_scenario
+                message = f"Successfully switched to scenario '{scenario_name}'"
+                if result.get("previous_scenario"):
+                    message += f" (from '{result['previous_scenario']}')"
+            else:
+                message = f"Failed to switch to scenario '{scenario_name}': {result.get('error', 'Unknown error')}"
+        
+        elif operation == "list_scenarios":
+            result = await client.list_scenarios()
+            
+            if result.get("status") == "success":
+                scenarios = result.get("scenarios", [])
+                # Get current scenario info
+                current_result = await client.get_current_scenario()
+                if current_result.get("status") == "success":
+                    result["current_scenario"] = current_result.get("current_scenario")
+                
+                message = f"Successfully retrieved {len(scenarios)} scenarios"
+            else:
+                message = f"Failed to list scenarios: {result.get('error', 'Unknown error')}"
+        
+        else:
+            return {
+                "status": "error",
+                "operation": operation,
+                "result": {},
+                "server_url": server_url,
+                "message": f"Unknown operation '{operation}'. Supported operations: update_response, create_scenario, switch_scenario, list_scenarios",
+                "performance_metrics": None
+            }
+        
+        # Calculate performance metrics
+        end_time = time.time()
+        performance_metrics = {
+            "operation_time_ms": round((end_time - start_time) * 1000, 2),
+            "server_response_time": connectivity_result.get("response_time_ms", "unknown"),
+            "timestamp": time.time()
+        }
+        
+        print(f"Tool: {operation} completed in {performance_metrics['operation_time_ms']}ms")
+        
+        return {
+            "status": result.get("status", "unknown"),
+            "operation": operation,
+            "result": result,
+            "server_url": server_url,
+            "message": message,
+            "performance_metrics": performance_metrics
+        }
+        
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"Tool Error: Failed to manage mock data: {error_details}")
+        
+        end_time = time.time()
+        performance_metrics = {
+            "operation_time_ms": round((end_time - start_time) * 1000, 2),
+            "error": True,
+            "timestamp": time.time()
+        }
+        
+        return {
+            "status": "error",
+            "operation": operation,
+            "result": {},
+            "server_url": server_url,
+            "message": f"Error managing mock data: {str(e)}",
+            "performance_metrics": performance_metrics
         }
 
 # --- CLI for local testing of the tool logic ---
