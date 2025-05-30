@@ -51,6 +51,11 @@ Desktop.ini
 # Pytest
 .pytest_cache/
 
+# Security scanning
+bandit-report.json
+bandit-report.xml
+.bandit
+
 # Memory Bank
 memory-bank/
 .clinerules

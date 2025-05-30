@@ -21,7 +21,7 @@ if not TEMPLATE_DIR.is_dir():
     if not TEMPLATE_DIR.is_dir():
          raise APIGenerationError(f"Template directory not found at expected locations.")
 
-jinja_env = Environment(loader=FileSystemLoader(TEMPLATE_DIR), autoescape=False)
+jinja_env = Environment(loader=FileSystemLoader(TEMPLATE_DIR), autoescape=True)
 
 def _to_bool(value: Any) -> bool:
     if isinstance(value, bool):
