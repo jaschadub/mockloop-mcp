@@ -322,7 +322,7 @@ The documentation is automatically deployed to GitHub Pages using GitHub Actions
    - Source: "GitHub Actions"
    - No need to select a branch when using GitHub Actions
 
-2. **Workflow Configuration**: The workflow is defined in [`../.github/workflows/docs.yml`](../.github/workflows/docs.yml)
+2. **Workflow Configuration**: The workflow is defined in `.github/workflows/docs.yml`
 
 3. **Automatic Deployment**:
    ```bash

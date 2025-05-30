@@ -684,7 +684,7 @@ We're excited to announce the release of MockLoop MCP v1.2.0! This release inclu
 - Performance tuning documentation
 
 ### 🔄 Migration Guide
-For users upgrading from v1.1.x, please see our [migration guide](docs/migration/v1.2.0.md).
+For users upgrading from v1.1.x, please see our migration guide (to be created for actual releases).
 
 ### 📦 Installation
 ```bash
@@ -697,7 +697,7 @@ Special thanks to our contributors and community members who helped make this re
 ### 🔗 Links
 - [Release Notes](https://github.com/mockloop/mockloop-mcp/releases/tag/v1.2.0)
 - [Documentation](https://mockloop.github.io/mockloop-mcp/)
-- [Migration Guide](docs/migration/v1.2.0.md)
+- Migration Guide (to be created for actual releases)
 ```
 
 ### Monitoring and Support
