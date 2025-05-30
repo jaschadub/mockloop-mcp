@@ -161,6 +161,7 @@ ignore = [
     "S113",   # probable use of requests call without timeout
     "S603",   # subprocess call: check for execution of untrusted input
     "S607",   # starting a process with a partial executable path
+    "T201",   # print found
     "ARG001", # unused function argument
     "PLR0911", # too many return statements
     "PLR0912", # too many branches
@@ -196,7 +197,7 @@ warn_unused_ignores = true
 warn_no_return = true
 warn_unreachable = true
 strict_equality = true
-strict_concatenate = true
+extra_checks = true
 check_untyped_defs = true
 disallow_any_generics = true
 disallow_incomplete_defs = true

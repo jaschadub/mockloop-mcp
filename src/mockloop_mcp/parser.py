@@ -129,83 +129,15 @@ def load_api_specification(spec_source: str | Path) -> dict[str, Any]:
 
 if __name__ == "__main__":
     # Example Usage (for testing the parser directly)
-    # Create dummy spec files for testing:
-    # dummy_openapi.yaml:
-    # openapi: 3.0.0
-    # info:
-    #   title: Dummy API
-    #   version: 1.0.0
-    # paths:
-    #   /hello:
-    #     get:
-    #       summary: Says hello
-    #       responses:
-    #         '200':
-    #           description: A successful response
-    #           content:
-    #             application/json:
-    #               schema:
-    #                 type: object
-    #                 properties:
-    #                   message:
-    #                     type: string
-    #
-    # dummy_openapi.json:
-    # {
-    #   "openapi": "3.0.0",
-    #   "info": {
-    #     "title": "Dummy API JSON",
-    #     "version": "1.0.0"
-    #   },
-    #   "paths": {
-    #     "/hello_json": {
-    #       "get": {
-    #         "summary": "Says hello in JSON",
-    #         "responses": {
-    #           "200": {
-    #             "description": "A successful response",
-    #             "content": {
-    #               "application/json": {
-    #                 "schema": {
-    #                   "type": "object",
-    #                   "properties": {
-    #                     "message": {
-    #                       "type": "string"
-    #                     }
-    #                   }
-    #                 }
-    #               }
-    #             }
-    #           }
-    #         }
-    #       }
-    #     }
-    #   }
-    # }
-
     test_specs = [
         "https://petstore3.swagger.io/api/v3/openapi.json",  # URL JSON
-        # "https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/examples/v3.0/petstore.yaml", # URL YAML
-        # Create local dummy_openapi.yaml and dummy_openapi.json for these to work
-        # "dummy_openapi.yaml",
-        # Path("dummy_openapi.json"),
-        # "non_existent_file.yaml",
-        # "http://invalid-url-that-does-not-exist.com/spec.json"
     ]
 
     for spec_source in test_specs:
         try:
             spec_data = load_api_specification(spec_source)
-            # print(json.dumps(spec_data, indent=2)) # Print full spec
+            print(f"Successfully loaded spec from {spec_source}")
         except APIParsingError as e:
             logger.debug(f"API parsing error for {spec_source}: {e}")
         except Exception as e:
             logger.debug(f"Unexpected error for {spec_source}: {e}")
-
-    # Test with a non-spec file (e.g., this parser.py file itself)
-    try:
-        spec_data = load_api_specification(__file__)
-    except APIParsingError as e:
-        logger.debug(f"API parsing error for {__file__}: {e}")
-    except Exception as e:
-        logger.debug(f"Unexpected error for {__file__}: {e}")
