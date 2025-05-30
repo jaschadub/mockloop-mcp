@@ -203,6 +203,24 @@ def generate_mock_api(
             ) as f:
                 f.write("jinja2\n")
 
+            # Copy favicon.ico to prevent 404s in admin UI
+            import shutil
+            favicon_source_paths = [
+                Path(__file__).parent.parent.parent / "favicon.ico",  # Project root
+                Path(__file__).parent / "favicon.ico",  # Template directory
+                Path("favicon.ico"),  # Current directory
+            ]
+
+            for favicon_source in favicon_source_paths:
+                if favicon_source.exists():
+                    try:
+                        shutil.copy2(favicon_source, mock_server_dir / "favicon.ico")
+                        break
+                    except Exception as e:
+                        # Log the error and continue to next path if copy fails
+                        print(f"Failed to copy favicon from {favicon_source}: {e}")
+                        continue
+
         routes_code_parts: list[str] = []
         paths = spec_data.get("paths", {})
         for path_url, methods in paths.items():
@@ -285,6 +303,36 @@ def generate_mock_api(
                     webhooks_enabled=webhooks_enabled_bool,
                 )
                 routes_code_parts.append(route_code)
+
+        # Add favicon route when admin UI is enabled to prevent 404s
+        if admin_ui_enabled_bool:
+            favicon_route = '''@app.get("/favicon.ico", summary="Favicon", tags=["_system"])
+async def favicon():
+    """Serve favicon to prevent 404 errors in admin UI"""
+    from fastapi.responses import FileResponse
+    import os
+
+    # Try to find favicon.ico in common locations
+    favicon_paths = [
+        "favicon.ico",
+        "../favicon.ico",
+        "../../favicon.ico",
+        os.path.join(os.path.dirname(__file__), "favicon.ico"),
+        os.path.join(os.path.dirname(__file__), "..", "favicon.ico"),
+        os.path.join(os.path.dirname(__file__), "..", "..", "favicon.ico")
+    ]
+
+    for favicon_path in favicon_paths:
+        if os.path.exists(favicon_path):
+            return FileResponse(favicon_path, media_type="image/x-icon")
+
+    # If no favicon found, return a simple 1x1 transparent PNG as fallback
+    from fastapi.responses import Response
+    # 1x1 transparent PNG in base64
+    transparent_png = b'\\x89PNG\\r\\n\\x1a\\n\\x00\\x00\\x00\\rIHDR\\x00\\x00\\x00\\x01\\x00\\x00\\x00\\x01\\x08\\x06\\x00\\x00\\x00\\x1f\\x15\\xc4\\x89\\x00\\x00\\x00\\rIDATx\\x9cc\\xf8\\x0f\\x00\\x00\\x01\\x00\\x01\\x00\\x18\\xdd\\x8d\\xb4\\x00\\x00\\x00\\x00IEND\\xaeB`\\x82'
+    return Response(content=transparent_png, media_type="image/png")'''
+            routes_code_parts.append(favicon_route)
+
         all_routes_code = "\n\n".join(routes_code_parts)
         middleware_template = jinja_env.get_template("middleware_log_template.j2")
         logging_middleware_code = middleware_template.render()
