@@ -1,6 +1,7 @@
 """
 HTTP client utilities for communicating with mock servers.
 """
+
 import logging
 import socket
 from typing import Any
@@ -23,7 +24,7 @@ class MockServerClient:
             base_url: Base URL of the mock server (e.g., "http://localhost:8000")
             timeout: Request timeout in seconds
         """
-        self.base_url = base_url.rstrip('/')
+        self.base_url = base_url.rstrip("/")
         self.timeout = aiohttp.ClientTimeout(total=timeout)
 
     async def health_check(self) -> dict[str, Any]:
@@ -41,19 +42,18 @@ class MockServerClient:
                         return {
                             "status": "healthy",
                             "server_info": data,
-                            "response_time_ms": response.headers.get("X-Process-Time", "unknown")
+                            "response_time_ms": response.headers.get(
+                                "X-Process-Time", "unknown"
+                            ),
                         }
                     else:
                         return {
                             "status": "unhealthy",
                             "status_code": response.status,
-                            "error": f"Health check returned {response.status}"
+                            "error": f"Health check returned {response.status}",
                         }
         except Exception as e:
-            return {
-                "status": "unreachable",
-                "error": str(e)
-            }
+            return {"status": "unreachable", "error": str(e)}
 
     async def query_logs(
         self,
@@ -62,7 +62,7 @@ class MockServerClient:
         method: str | None = None,
         path: str | None = None,
         include_admin: bool = False,
-        log_id: int | None = None
+        log_id: int | None = None,
     ) -> dict[str, Any]:
         """
         Query request logs from the mock server.
@@ -79,11 +79,7 @@ class MockServerClient:
             Dict containing logs and metadata
         """
         try:
-            params = {
-                "limit": limit,
-                "offset": offset,
-                "include_admin": include_admin
-            }
+            params = {"limit": limit, "offset": offset, "include_admin": include_admin}
 
             if method:
                 params["method"] = method
@@ -94,8 +90,7 @@ class MockServerClient:
 
             async with aiohttp.ClientSession(timeout=self.timeout) as session:
                 async with session.get(
-                    f"{self.base_url}/admin/api/requests",
-                    params=params
+                    f"{self.base_url}/admin/api/requests", params=params
                 ) as response:
                     if response.status == 200:
                         logs = await response.json()
@@ -107,22 +102,18 @@ class MockServerClient:
                                 "method": method,
                                 "path": path,
                                 "include_admin": include_admin,
-                                "log_id": log_id
-                            }
+                                "log_id": log_id,
+                            },
                         }
                     else:
                         error_text = await response.text()
                         return {
                             "status": "error",
                             "error": f"Request failed with status {response.status}: {error_text}",
-                            "logs": []
+                            "logs": [],
                         }
         except Exception as e:
-            return {
-                "status": "error",
-                "error": str(e),
-                "logs": []
-            }
+            return {"status": "error", "error": str(e), "logs": []}
 
     async def get_stats(self) -> dict[str, Any]:
         """
@@ -133,24 +124,20 @@ class MockServerClient:
         """
         try:
             async with aiohttp.ClientSession(timeout=self.timeout) as session:
-                async with session.get(f"{self.base_url}/admin/api/requests/stats") as response:
+                async with session.get(
+                    f"{self.base_url}/admin/api/requests/stats"
+                ) as response:
                     if response.status == 200:
                         stats = await response.json()
-                        return {
-                            "status": "success",
-                            "stats": stats
-                        }
+                        return {"status": "success", "stats": stats}
                     else:
                         error_text = await response.text()
                         return {
                             "status": "error",
-                            "error": f"Stats request failed with status {response.status}: {error_text}"
+                            "error": f"Stats request failed with status {response.status}: {error_text}",
                         }
         except Exception as e:
-            return {
-                "status": "error",
-                "error": str(e)
-            }
+            return {"status": "error", "error": str(e)}
 
     async def get_debug_info(self) -> dict[str, Any]:
         """
@@ -164,27 +151,18 @@ class MockServerClient:
                 async with session.get(f"{self.base_url}/admin/api/debug") as response:
                     if response.status == 200:
                         debug_info = await response.json()
-                        return {
-                            "status": "success",
-                            "debug_info": debug_info
-                        }
+                        return {"status": "success", "debug_info": debug_info}
                     else:
                         error_text = await response.text()
                         return {
                             "status": "error",
-                            "error": f"Debug request failed with status {response.status}: {error_text}"
+                            "error": f"Debug request failed with status {response.status}: {error_text}",
                         }
         except Exception as e:
-            return {
-                "status": "error",
-                "error": str(e)
-            }
+            return {"status": "error", "error": str(e)}
 
     async def update_response(
-        self,
-        endpoint_path: str,
-        response_data: dict[str, Any],
-        method: str = "GET"
+        self, endpoint_path: str, response_data: dict[str, Any], method: str = "GET"
     ) -> dict[str, Any]:
         """
         Update response data for a specific endpoint.
@@ -201,13 +179,12 @@ class MockServerClient:
             payload = {
                 "endpoint_path": endpoint_path,
                 "method": method,
-                "response_data": response_data
+                "response_data": response_data,
             }
 
             async with aiohttp.ClientSession(timeout=self.timeout) as session:
                 async with session.post(
-                    f"{self.base_url}/admin/api/responses/update",
-                    json=payload
+                    f"{self.base_url}/admin/api/responses/update", json=payload
                 ) as response:
                     if response.status == 200:
                         result = await response.json()
@@ -215,26 +192,20 @@ class MockServerClient:
                             "status": "success",
                             "result": result,
                             "endpoint_path": endpoint_path,
-                            "method": method
+                            "method": method,
                         }
                     else:
                         error_text = await response.text()
                         return {
                             "status": "error",
                             "error": f"Update failed with status {response.status}: {error_text}",
-                            "endpoint_path": endpoint_path
+                            "endpoint_path": endpoint_path,
                         }
         except Exception as e:
-            return {
-                "status": "error",
-                "error": str(e),
-                "endpoint_path": endpoint_path
-            }
+            return {"status": "error", "error": str(e), "endpoint_path": endpoint_path}
 
     async def create_scenario(
-        self,
-        scenario_name: str,
-        scenario_config: dict[str, Any]
+        self, scenario_name: str, scenario_config: dict[str, Any]
     ) -> dict[str, Any]:
         """
         Create a new test scenario.
@@ -249,39 +220,31 @@ class MockServerClient:
         try:
             payload = {
                 "scenario_name": scenario_name,
-                "scenario_config": scenario_config
+                "scenario_config": scenario_config,
             }
 
             async with aiohttp.ClientSession(timeout=self.timeout) as session:
                 async with session.post(
-                    f"{self.base_url}/admin/api/scenarios/create",
-                    json=payload
+                    f"{self.base_url}/admin/api/scenarios/create", json=payload
                 ) as response:
                     if response.status == 201:
                         result = await response.json()
                         return {
                             "status": "success",
                             "result": result,
-                            "scenario_name": scenario_name
+                            "scenario_name": scenario_name,
                         }
                     else:
                         error_text = await response.text()
                         return {
                             "status": "error",
                             "error": f"Scenario creation failed with status {response.status}: {error_text}",
-                            "scenario_name": scenario_name
+                            "scenario_name": scenario_name,
                         }
         except Exception as e:
-            return {
-                "status": "error",
-                "error": str(e),
-                "scenario_name": scenario_name
-            }
+            return {"status": "error", "error": str(e), "scenario_name": scenario_name}
 
-    async def switch_scenario(
-        self,
-        scenario_name: str
-    ) -> dict[str, Any]:
+    async def switch_scenario(self, scenario_name: str) -> dict[str, Any]:
         """
         Switch to a different test scenario.
 
@@ -292,14 +255,11 @@ class MockServerClient:
             Dict containing scenario switch result
         """
         try:
-            payload = {
-                "scenario_name": scenario_name
-            }
+            payload = {"scenario_name": scenario_name}
 
             async with aiohttp.ClientSession(timeout=self.timeout) as session:
                 async with session.post(
-                    f"{self.base_url}/admin/api/scenarios/switch",
-                    json=payload
+                    f"{self.base_url}/admin/api/scenarios/switch", json=payload
                 ) as response:
                     if response.status == 200:
                         result = await response.json()
@@ -307,21 +267,17 @@ class MockServerClient:
                             "status": "success",
                             "result": result,
                             "scenario_name": scenario_name,
-                            "previous_scenario": result.get("previous_scenario")
+                            "previous_scenario": result.get("previous_scenario"),
                         }
                     else:
                         error_text = await response.text()
                         return {
                             "status": "error",
                             "error": f"Scenario switch failed with status {response.status}: {error_text}",
-                            "scenario_name": scenario_name
+                            "scenario_name": scenario_name,
                         }
         except Exception as e:
-            return {
-                "status": "error",
-                "error": str(e),
-                "scenario_name": scenario_name
-            }
+            return {"status": "error", "error": str(e), "scenario_name": scenario_name}
 
     async def list_scenarios(self) -> dict[str, Any]:
         """
@@ -332,27 +288,27 @@ class MockServerClient:
         """
         try:
             async with aiohttp.ClientSession(timeout=self.timeout) as session:
-                async with session.get(f"{self.base_url}/admin/api/scenarios") as response:
+                async with session.get(
+                    f"{self.base_url}/admin/api/scenarios"
+                ) as response:
                     if response.status == 200:
                         scenarios = await response.json()
                         return {
                             "status": "success",
                             "scenarios": scenarios,
-                            "total_count": len(scenarios) if isinstance(scenarios, list) else 0
+                            "total_count": len(scenarios)
+                            if isinstance(scenarios, list)
+                            else 0,
                         }
                     else:
                         error_text = await response.text()
                         return {
                             "status": "error",
                             "error": f"Scenario list failed with status {response.status}: {error_text}",
-                            "scenarios": []
+                            "scenarios": [],
                         }
         except Exception as e:
-            return {
-                "status": "error",
-                "error": str(e),
-                "scenarios": []
-            }
+            return {"status": "error", "error": str(e), "scenarios": []}
 
     async def get_current_scenario(self) -> dict[str, Any]:
         """
@@ -363,24 +319,23 @@ class MockServerClient:
         """
         try:
             async with aiohttp.ClientSession(timeout=self.timeout) as session:
-                async with session.get(f"{self.base_url}/admin/api/scenarios/current") as response:
+                async with session.get(
+                    f"{self.base_url}/admin/api/scenarios/current"
+                ) as response:
                     if response.status == 200:
                         current_scenario = await response.json()
                         return {
                             "status": "success",
-                            "current_scenario": current_scenario
+                            "current_scenario": current_scenario,
                         }
                     else:
                         error_text = await response.text()
                         return {
                             "status": "error",
-                            "error": f"Current scenario request failed with status {response.status}: {error_text}"
+                            "error": f"Current scenario request failed with status {response.status}: {error_text}",
                         }
         except Exception as e:
-            return {
-                "status": "error",
-                "error": str(e)
-            }
+            return {"status": "error", "error": str(e)}
 
     async def get_logs(
         self,
@@ -389,7 +344,7 @@ class MockServerClient:
         method: str | None = None,
         path: str | None = None,
         include_admin: bool = False,
-        log_id: int | None = None
+        log_id: int | None = None,
     ) -> dict[str, Any]:
         """
         Alias for query_logs method for backward compatibility.
@@ -409,8 +364,7 @@ class MockServerClient:
 
 
 async def discover_running_servers(
-    ports: list[int] | None = None,
-    check_health: bool = True
+    ports: list[int] | None = None, check_health: bool = True
 ) -> list[dict[str, Any]]:
     """
     Discover running MockLoop servers by scanning common ports.
@@ -432,16 +386,12 @@ async def discover_running_servers(
             # Quick port check
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(1)
-            result = sock.connect_ex(('localhost', port))
+            result = sock.connect_ex(("localhost", port))
             sock.close()
 
             if result == 0:  # Port is open
                 server_url = f"http://localhost:{port}"
-                server_info = {
-                    "url": server_url,
-                    "port": port,
-                    "status": "discovered"
-                }
+                server_info = {"url": server_url, "port": port, "status": "discovered"}
 
                 if check_health:
                     client = MockServerClient(server_url, timeout=5)
@@ -453,7 +403,9 @@ async def discover_running_servers(
                         debug_result = await client.get_debug_info()
                         if debug_result.get("status") == "success":
                             server_info["is_mockloop_server"] = True
-                            server_info["debug_info"] = debug_result.get("debug_info", {})
+                            server_info["debug_info"] = debug_result.get(
+                                "debug_info", {}
+                            )
                         else:
                             server_info["is_mockloop_server"] = False
 
@@ -496,10 +448,7 @@ async def check_server_connectivity(url: str, timeout: int = 10) -> dict[str, An
         Dict containing connectivity test results
     """
     if not is_valid_url(url):
-        return {
-            "status": "error",
-            "error": "Invalid URL format"
-        }
+        return {"status": "error", "error": "Invalid URL format"}
 
     client = MockServerClient(url, timeout=timeout)
     return await client.health_check()

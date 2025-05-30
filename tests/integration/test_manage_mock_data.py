@@ -36,8 +36,7 @@ async def test_manage_mock_data_tool():
 
     try:
         result = await manage_mock_data_tool(
-            server_url=test_server_url,
-            operation="list_scenarios"
+            server_url=test_server_url, operation="list_scenarios"
         )
         assert result["operation"] == "list_scenarios"
         assert "status" in result
@@ -48,14 +47,14 @@ async def test_manage_mock_data_tool():
         test_response_data = {
             "message": "Updated response from MCP tool",
             "timestamp": "2024-01-01T00:00:00Z",
-            "data": {"test": True}
+            "data": {"test": True},
         }
 
         result = await manage_mock_data_tool(
             server_url=test_server_url,
             operation="update_response",
             endpoint_path="/api/test",
-            response_data=test_response_data
+            response_data=test_response_data,
         )
         assert result["operation"] == "update_response"
         assert "status" in result
@@ -70,14 +69,14 @@ async def test_manage_mock_data_tool():
                 "/api/users": {
                     "GET": {"status": 200, "data": [{"id": 1, "name": "Test User"}]}
                 }
-            }
+            },
         }
 
         result = await manage_mock_data_tool(
             server_url=test_server_url,
             operation="create_scenario",
             scenario_name="test-scenario-mcp",
-            scenario_config=test_scenario_config
+            scenario_config=test_scenario_config,
         )
         assert result["operation"] == "create_scenario"
         assert "status" in result
@@ -88,7 +87,7 @@ async def test_manage_mock_data_tool():
         result = await manage_mock_data_tool(
             server_url=test_server_url,
             operation="switch_scenario",
-            scenario_name="test-scenario-mcp"
+            scenario_name="test-scenario-mcp",
         )
         assert result["operation"] == "switch_scenario"
         assert "status" in result
@@ -101,8 +100,7 @@ async def test_tool_validation():
 
     try:
         result = await manage_mock_data_tool(
-            server_url="http://invalid-server:9999",
-            operation="list_scenarios"
+            server_url="http://invalid-server:9999", operation="list_scenarios"
         )
         assert result["status"] == "error"
         assert "not accessible" in result["message"]
@@ -112,7 +110,7 @@ async def test_tool_validation():
     try:
         result = await manage_mock_data_tool(
             server_url="http://localhost:8000",
-            operation="update_response"
+            operation="update_response",
             # Missing endpoint_path and response_data
         )
         assert result["status"] == "error"
@@ -122,8 +120,7 @@ async def test_tool_validation():
 
     try:
         result = await manage_mock_data_tool(
-            server_url="http://localhost:8000",
-            operation="invalid_operation"
+            server_url="http://localhost:8000", operation="invalid_operation"
         )
         assert result["status"] == "error"
         assert "Unknown operation" in result["message"]
@@ -136,8 +133,7 @@ async def test_tool_with_mock_server():
 
     try:
         result = await manage_mock_data_tool(
-            server_url="http://localhost:8000",
-            operation="list_scenarios"
+            server_url="http://localhost:8000", operation="list_scenarios"
         )
         # Should handle server unavailability gracefully
         assert result["status"] == "error"
@@ -153,8 +149,7 @@ async def test_http_client_extensions():
 
     try:
         result = await client.update_response(
-            endpoint_path="/api/test",
-            response_data={"test": "data"}
+            endpoint_path="/api/test", response_data={"test": "data"}
         )
         assert "status" in result
         assert "endpoint_path" in result
@@ -163,8 +158,7 @@ async def test_http_client_extensions():
 
     try:
         result = await client.create_scenario(
-            scenario_name="test",
-            scenario_config={"test": "config"}
+            scenario_name="test", scenario_config={"test": "config"}
         )
         assert "status" in result
         assert "scenario_name" in result
@@ -205,11 +199,9 @@ async def test_mock_server_manager_integration():
 def test_type_definitions():
     """Test that TypedDict definitions are properly structured."""
 
-
     # Test input structure
 
     # Test output structure
-
 
 
 async def main():
@@ -229,7 +221,6 @@ async def main():
 
     # Test with actual server (if available)
     await test_manage_mock_data_tool()
-
 
 
 if __name__ == "__main__":

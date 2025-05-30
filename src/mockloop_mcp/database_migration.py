@@ -2,6 +2,7 @@
 Database migration utilities for MockLoop MCP servers.
 Provides schema versioning and migration capabilities.
 """
+
 from datetime import datetime
 from pathlib import Path
 import sqlite3
@@ -38,7 +39,7 @@ class DatabaseMigrator:
                         response_body TEXT,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )"""
-                ]
+                ],
             },
             1: {
                 "description": "Add Phase 1 enhancement columns",
@@ -48,8 +49,8 @@ class DatabaseMigrator:
                     "ALTER TABLE request_logs ADD COLUMN correlation_id TEXT",
                     "ALTER TABLE request_logs ADD COLUMN user_agent TEXT",
                     "ALTER TABLE request_logs ADD COLUMN response_size INTEGER",
-                    "ALTER TABLE request_logs ADD COLUMN is_admin BOOLEAN DEFAULT 0"
-                ]
+                    "ALTER TABLE request_logs ADD COLUMN is_admin BOOLEAN DEFAULT 0",
+                ],
             },
             2: {
                 "description": "Create test sessions table",
@@ -65,7 +66,7 @@ class DatabaseMigrator:
                         total_requests INTEGER DEFAULT 0,
                         success_rate REAL DEFAULT 0.0
                     )"""
-                ]
+                ],
             },
             3: {
                 "description": "Create performance metrics table",
@@ -82,7 +83,7 @@ class DatabaseMigrator:
                         error_count INTEGER,
                         time_window TEXT
                     )"""
-                ]
+                ],
             },
             4: {
                 "description": "Create mock scenarios table (Phase 2 preparation)",
@@ -96,7 +97,7 @@ class DatabaseMigrator:
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )"""
-                ]
+                ],
             },
             5: {
                 "description": "Create enhanced performance metrics table (Phase 2 Part 4)",
@@ -115,7 +116,7 @@ class DatabaseMigrator:
                         recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         FOREIGN KEY (request_id) REFERENCES request_logs (id)
                     )"""
-                ]
+                ],
             },
             6: {
                 "description": "Create enhanced test sessions table (Phase 2 Part 4)",
@@ -133,8 +134,8 @@ class DatabaseMigrator:
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )"""
-                ]
-            }
+                ],
+            },
         }
 
     def get_current_version(self) -> int:
@@ -206,22 +207,29 @@ class DatabaseMigrator:
 
                 try:
                     # Execute all SQL statements for this migration
-                    for sql_statement in migration['sql']:
+                    for sql_statement in migration["sql"]:
                         # Special handling for ALTER TABLE statements
-                        if sql_statement.strip().upper().startswith('ALTER TABLE'):
+                        if sql_statement.strip().upper().startswith("ALTER TABLE"):
                             # Check if table exists before altering
                             table_name = sql_statement.split()[2]  # Extract table name
-                            cursor.execute("""
+                            cursor.execute(
+                                """
                                 SELECT name FROM sqlite_master
                                 WHERE type='table' AND name=?
-                            """, (table_name,))
+                            """,
+                                (table_name,),
+                            )
 
                             if not cursor.fetchone():
                                 continue
 
                             # Check if column already exists
-                            if 'ADD COLUMN' in sql_statement.upper():
-                                column_name = sql_statement.split('ADD COLUMN')[1].strip().split()[0]
+                            if "ADD COLUMN" in sql_statement.upper():
+                                column_name = (
+                                    sql_statement.split("ADD COLUMN")[1]
+                                    .strip()
+                                    .split()[0]
+                                )
                                 cursor.execute(f"PRAGMA table_info({table_name})")
                                 existing_columns = {col[1] for col in cursor.fetchall()}
 
@@ -233,7 +241,7 @@ class DatabaseMigrator:
                     # Record the migration
                     cursor.execute(
                         "INSERT INTO schema_version (version, description) VALUES (?, ?)",
-                        (version, migration['description'])
+                        (version, migration["description"]),
                     )
 
                     conn.commit()
@@ -261,15 +269,13 @@ class DatabaseMigrator:
         if target_version >= current_version:
             return False
 
-
         try:
             conn = sqlite3.connect(str(self.db_path))
             cursor = conn.cursor()
 
             # Remove migration records for versions above target
             cursor.execute(
-                "DELETE FROM schema_version WHERE version > ?",
-                (target_version,)
+                "DELETE FROM schema_version WHERE version > ?", (target_version,)
             )
 
             conn.commit()
@@ -311,10 +317,10 @@ class DatabaseMigrator:
                 {
                     "version": v,
                     "description": self.migrations[v]["description"],
-                    "applied": v <= current_version
+                    "applied": v <= current_version,
                 }
                 for v in sorted(available_migrations)
-            ]
+            ],
         }
 
     def backup_database(self, backup_path: str | None = None) -> str:
@@ -328,6 +334,7 @@ class DatabaseMigrator:
         try:
             # Simple file copy for SQLite
             import shutil
+
             shutil.copy2(self.db_path, backup_path)
             return str(backup_path)
 

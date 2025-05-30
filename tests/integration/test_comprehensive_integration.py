@@ -61,7 +61,7 @@ class ComprehensiveIntegrationTester:
             "info": {
                 "title": "Comprehensive Integration Test API",
                 "version": "1.0.0",
-                "description": "API for testing all MockLoop MCP enhancement features"
+                "description": "API for testing all MockLoop MCP enhancement features",
             },
             "paths": {
                 "/users": {
@@ -79,14 +79,14 @@ class ComprehensiveIntegrationTester:
                                                 "properties": {
                                                     "id": {"type": "integer"},
                                                     "name": {"type": "string"},
-                                                    "email": {"type": "string"}
-                                                }
-                                            }
+                                                    "email": {"type": "string"},
+                                                },
+                                            },
                                         }
                                     }
-                                }
+                                },
                             }
-                        }
+                        },
                     },
                     "post": {
                         "summary": "Create a user",
@@ -97,8 +97,8 @@ class ComprehensiveIntegrationTester:
                                         "type": "object",
                                         "properties": {
                                             "name": {"type": "string"},
-                                            "email": {"type": "string"}
-                                        }
+                                            "email": {"type": "string"},
+                                        },
                                     }
                                 }
                             }
@@ -113,14 +113,14 @@ class ComprehensiveIntegrationTester:
                                             "properties": {
                                                 "id": {"type": "integer"},
                                                 "name": {"type": "string"},
-                                                "email": {"type": "string"}
-                                            }
+                                                "email": {"type": "string"},
+                                            },
                                         }
                                     }
-                                }
+                                },
                             }
-                        }
-                    }
+                        },
+                    },
                 },
                 "/users/{user_id}": {
                     "get": {
@@ -130,7 +130,7 @@ class ComprehensiveIntegrationTester:
                                 "name": "user_id",
                                 "in": "path",
                                 "required": True,
-                                "schema": {"type": "integer"}
+                                "schema": {"type": "integer"},
                             }
                         ],
                         "responses": {
@@ -143,13 +143,13 @@ class ComprehensiveIntegrationTester:
                                             "properties": {
                                                 "id": {"type": "integer"},
                                                 "name": {"type": "string"},
-                                                "email": {"type": "string"}
-                                            }
+                                                "email": {"type": "string"},
+                                            },
                                         }
                                     }
-                                }
+                                },
                             }
-                        }
+                        },
                     }
                 },
                 "/products": {
@@ -167,17 +167,17 @@ class ComprehensiveIntegrationTester:
                                                 "properties": {
                                                     "id": {"type": "integer"},
                                                     "name": {"type": "string"},
-                                                    "price": {"type": "number"}
-                                                }
-                                            }
+                                                    "price": {"type": "number"},
+                                                },
+                                            },
                                         }
                                     }
-                                }
+                                },
                             }
-                        }
+                        },
                     }
-                }
-            }
+                },
+            },
         }
 
     async def test_complete_workflow(self) -> bool:
@@ -193,7 +193,7 @@ class ComprehensiveIntegrationTester:
                 auth_enabled=True,
                 webhooks_enabled=True,
                 admin_ui_enabled=True,
-                storage_enabled=True
+                storage_enabled=True,
             )
 
             if result["status"] != "success":
@@ -213,7 +213,6 @@ class ComprehensiveIntegrationTester:
                 if not success:
                     return False
 
-
             # Step 3: Start the mock server (simulate)
 
             # Check for enhanced files
@@ -221,26 +220,22 @@ class ComprehensiveIntegrationTester:
                 "main.py",
                 "logging_middleware.py",
                 "templates/admin.html",
-                "requirements_mock.txt"
+                "requirements_mock.txt",
             ]
 
             for file_path in required_files:
                 if not (self.mock_server_dir / file_path).exists():
                     return False
 
-
             # Step 4: Test MCP tools integration (without running server)
 
             # Test discover_mock_servers
             discovery_result = await discover_mock_servers_tool(
-                ports=[8000, 8001, 8002],
-                check_health=False,
-                include_generated=True
+                ports=[8000, 8001, 8002], check_health=False, include_generated=True
             )
 
             if discovery_result["status"] != "success":
                 return False
-
 
             # Step 5: Test database operations
 
@@ -249,30 +244,83 @@ class ComprehensiveIntegrationTester:
             cursor = conn.cursor()
 
             test_logs = [
-                ("2024-01-01T10:00:00", "request", "GET", "/users", 200, 45, "127.0.0.1", "8080",
-                 '{"user-agent": "test-client"}', '{}', '{}', '[{"id": 1, "name": "Test User"}]',
-                 "test-session-1", "user-list-scenario", "req-001", "test-client", 1024, 0),
-                ("2024-01-01T10:01:00", "request", "POST", "/users", 201, 67, "127.0.0.1", "8080",
-                 '{"user-agent": "test-client"}', '{}', '{"name": "New User"}', '{"id": 2, "name": "New User"}',
-                 "test-session-1", "user-create-scenario", "req-002", "test-client", 512, 0),
-                ("2024-01-01T10:02:00", "request", "GET", "/products", 200, 32, "127.0.0.1", "8080",
-                 '{"user-agent": "test-client"}', '{}', '{}', '[{"id": 1, "name": "Product 1"}]',
-                 "test-session-2", "product-list-scenario", "req-003", "test-client", 2048, 0)
+                (
+                    "2024-01-01T10:00:00",
+                    "request",
+                    "GET",
+                    "/users",
+                    200,
+                    45,
+                    "127.0.0.1",
+                    "8080",
+                    '{"user-agent": "test-client"}',
+                    "{}",
+                    "{}",
+                    '[{"id": 1, "name": "Test User"}]',
+                    "test-session-1",
+                    "user-list-scenario",
+                    "req-001",
+                    "test-client",
+                    1024,
+                    0,
+                ),
+                (
+                    "2024-01-01T10:01:00",
+                    "request",
+                    "POST",
+                    "/users",
+                    201,
+                    67,
+                    "127.0.0.1",
+                    "8080",
+                    '{"user-agent": "test-client"}',
+                    "{}",
+                    '{"name": "New User"}',
+                    '{"id": 2, "name": "New User"}',
+                    "test-session-1",
+                    "user-create-scenario",
+                    "req-002",
+                    "test-client",
+                    512,
+                    0,
+                ),
+                (
+                    "2024-01-01T10:02:00",
+                    "request",
+                    "GET",
+                    "/products",
+                    200,
+                    32,
+                    "127.0.0.1",
+                    "8080",
+                    '{"user-agent": "test-client"}',
+                    "{}",
+                    "{}",
+                    '[{"id": 1, "name": "Product 1"}]',
+                    "test-session-2",
+                    "product-list-scenario",
+                    "req-003",
+                    "test-client",
+                    2048,
+                    0,
+                ),
             ]
 
             for log_data in test_logs:
-                cursor.execute("""
+                cursor.execute(
+                    """
                     INSERT INTO request_logs (
                         timestamp, type, method, path, status_code, process_time_ms,
                         client_host, client_port, headers, query_params, request_body,
                         response_body, session_id, test_scenario, correlation_id,
                         user_agent, response_size, is_admin
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, log_data)
+                """,
+                    log_data,
+                )
 
             conn.commit()
             conn.close()
-
 
             # Step 6: Test log analysis
 
@@ -290,7 +338,6 @@ class ComprehensiveIntegrationTester:
 
             if not analysis or "total_requests" not in analysis:
                 return False
-
 
             # Step 7: Test scenario management (structure validation)
 
@@ -312,24 +359,35 @@ class ComprehensiveIntegrationTester:
                 "description": "Test scenario for integration testing",
                 "endpoints": {
                     "/users": {
-                        "GET": {"status": 200, "data": [{"id": 999, "name": "Integration Test User"}]}
+                        "GET": {
+                            "status": 200,
+                            "data": [{"id": 999, "name": "Integration Test User"}],
+                        }
                     }
-                }
+                },
             }
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO mock_scenarios (name, description, config, is_active)
                 VALUES (?, ?, ?, ?)
-            """, ("integration-test", "Integration test scenario", json.dumps(test_scenario), 1))
+            """,
+                (
+                    "integration-test",
+                    "Integration test scenario",
+                    json.dumps(test_scenario),
+                    1,
+                ),
+            )
 
             conn.commit()
             conn.close()
-
 
             return True
 
         except Exception:
             import traceback
+
             traceback.print_exc()
             return False
 
@@ -340,29 +398,25 @@ class ComprehensiveIntegrationTester:
             # Test 1: generate_mock_api_tool
             result = await generate_mock_api_tool(
                 spec_url_or_path=json.dumps(self.create_test_api_spec()),
-                output_dir_name="mcp_tools_test_server"
+                output_dir_name="mcp_tools_test_server",
             )
 
             if result["status"] != "success":
                 return False
 
-
             # Test 2: discover_mock_servers_tool
             discovery_result = await discover_mock_servers_tool(
-                check_health=False,
-                include_generated=True
+                check_health=False, include_generated=True
             )
 
             if discovery_result["status"] != "success":
                 return False
 
-
             # Test 3: manage_mock_data_tool (validation only)
 
             # Test invalid server
             result = await manage_mock_data_tool(
-                server_url="http://invalid-server:9999",
-                operation="list_scenarios"
+                server_url="http://invalid-server:9999", operation="list_scenarios"
             )
 
             if result["status"] != "error":
@@ -370,20 +424,20 @@ class ComprehensiveIntegrationTester:
 
             # Test invalid operation
             result = await manage_mock_data_tool(
-                server_url="http://localhost:8000",
-                operation="invalid_operation"
+                server_url="http://localhost:8000", operation="invalid_operation"
             )
 
-            if result["status"] != "error" or "Unknown operation" not in result["message"]:
+            if (
+                result["status"] != "error"
+                or "Unknown operation" not in result["message"]
+            ):
                 return False
-
 
             # Test 4: query_mock_logs_tool (without server)
 
             # This will fail without a server, but we test the structure
             result = await query_mock_logs_tool(
-                server_url="http://localhost:8000",
-                limit=10
+                server_url="http://localhost:8000", limit=10
             )
 
             # Should have proper error handling
@@ -406,7 +460,6 @@ class ComprehensiveIntegrationTester:
             if initial_status["current_version"] != 0:
                 return False
 
-
             # Test 2: Apply all migrations
             success = migrator.apply_migrations()
 
@@ -418,7 +471,6 @@ class ComprehensiveIntegrationTester:
             if final_status["needs_migration"]:
                 return False
 
-
             # Test 3: Verify all tables exist
             conn = sqlite3.connect(str(test_db_path))
             cursor = conn.cursor()
@@ -428,14 +480,17 @@ class ComprehensiveIntegrationTester:
                 "test_sessions",
                 "performance_metrics",
                 "mock_scenarios",
-                "schema_version"
+                "schema_version",
             ]
 
             for table in expected_tables:
-                cursor.execute("""
+                cursor.execute(
+                    """
                     SELECT name FROM sqlite_master
                     WHERE type='table' AND name=?
-                """, (table,))
+                """,
+                    (table,),
+                )
 
                 if not cursor.fetchone():
                     conn.close()
@@ -449,7 +504,6 @@ class ComprehensiveIntegrationTester:
             if not Path(backup_path).exists():
                 return False
 
-
             # Test 5: Rollback functionality
             current_version = migrator.get_current_version()
 
@@ -457,7 +511,6 @@ class ComprehensiveIntegrationTester:
                 rollback_success = migrator.rollback_migration(current_version - 1)
                 if not rollback_success:
                     return False
-
 
             return True
 
@@ -478,7 +531,7 @@ class ComprehensiveIntegrationTester:
 
                 result = await generate_mock_api_tool(
                     spec_url_or_path=json.dumps(test_spec),
-                    output_dir_name=f"perf_test_server_{i}"
+                    output_dir_name=f"perf_test_server_{i}",
                 )
 
                 if result["status"] != "success":
@@ -486,7 +539,6 @@ class ComprehensiveIntegrationTester:
 
             generation_time = time.time() - start_time
             avg_time = generation_time / 5
-
 
             if avg_time > 10:  # Should be under 10 seconds per generation
                 pass
@@ -500,7 +552,6 @@ class ComprehensiveIntegrationTester:
             migrator.apply_migrations()
             time.time() - start_time
 
-
             # Test 3: Log analysis performance
 
             # Generate large log dataset
@@ -511,20 +562,36 @@ class ComprehensiveIntegrationTester:
 
             # Insert 1000 test log entries
             for i in range(1000):
-                cursor.execute("""
+                cursor.execute(
+                    """
                     INSERT INTO request_logs (
                         timestamp, type, method, path, status_code, process_time_ms,
                         client_host, client_port, headers, query_params, request_body,
                         response_body, session_id, test_scenario, correlation_id,
                         user_agent, response_size, is_admin
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    f"2024-01-01T10:{i//60:02d}:{i%60:02d}",
-                    "request", "GET", f"/test/{i}", 200, 50 + (i % 100),
-                    "127.0.0.1", "8080", '{"user-agent": "test"}', '{}', '{}', '{}',
-                    f"session-{i//100}", f"scenario-{i%10}", f"req-{i:04d}",
-                    "test-client", 1024, 0
-                ))
+                """,
+                    (
+                        f"2024-01-01T10:{i // 60:02d}:{i % 60:02d}",
+                        "request",
+                        "GET",
+                        f"/test/{i}",
+                        200,
+                        50 + (i % 100),
+                        "127.0.0.1",
+                        "8080",
+                        '{"user-agent": "test"}',
+                        "{}",
+                        "{}",
+                        "{}",
+                        f"session-{i // 100}",
+                        f"scenario-{i % 10}",
+                        f"req-{i:04d}",
+                        "test-client",
+                        1024,
+                        0,
+                    ),
+                )
 
             conn.commit()
 
@@ -539,7 +606,6 @@ class ComprehensiveIntegrationTester:
             analyzer.analyze_logs(logs)
 
             analysis_time = time.time() - start_time
-
 
             if analysis_time > 5:  # Should analyze 1000 logs in under 5 seconds
                 pass
@@ -604,8 +670,10 @@ class ComprehensiveIntegrationTester:
             for i, invalid_spec in enumerate(invalid_specs):
                 try:
                     result = await generate_mock_api_tool(
-                        spec_url_or_path=json.dumps(invalid_spec) if isinstance(invalid_spec, dict) else invalid_spec,
-                        output_dir_name=f"invalid_test_{i}"
+                        spec_url_or_path=json.dumps(invalid_spec)
+                        if isinstance(invalid_spec, dict)
+                        else invalid_spec,
+                        output_dir_name=f"invalid_test_{i}",
                     )
 
                     if result["status"] != "error":
@@ -614,12 +682,11 @@ class ComprehensiveIntegrationTester:
                 except Exception:
                     pass  # Expected to fail
 
-
             # Test 2: Database corruption handling
 
             # Create corrupted database
             corrupted_db_path = self.temp_dir / "corrupted.db"
-            with open(corrupted_db_path, 'w') as f:
+            with open(corrupted_db_path, "w") as f:
                 f.write("This is not a valid SQLite database")
 
             try:
@@ -634,12 +701,11 @@ class ComprehensiveIntegrationTester:
             # Test with unreachable server
             result = await manage_mock_data_tool(
                 server_url="http://192.0.2.1:9999",  # RFC 5737 test address
-                operation="list_scenarios"
+                operation="list_scenarios",
             )
 
             if result["status"] != "error":
                 return False
-
 
             # Test 4: Concurrent access
 
@@ -653,20 +719,36 @@ class ComprehensiveIntegrationTester:
                     conn = sqlite3.connect(str(test_db_path))
                     cursor = conn.cursor()
 
-                    cursor.execute("""
+                    cursor.execute(
+                        """
                         INSERT INTO request_logs (
                             timestamp, type, method, path, status_code, process_time_ms,
                             client_host, client_port, headers, query_params, request_body,
                             response_body, session_id, test_scenario, correlation_id,
                             user_agent, response_size, is_admin
                         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """, (
-                        f"2024-01-01T10:00:{operation_id:02d}",
-                        "request", "GET", f"/concurrent/{operation_id}", 200, 50,
-                        "127.0.0.1", "8080", '{}', '{}', '{}', '{}',
-                        f"session-{operation_id}", "concurrent-test", f"req-{operation_id}",
-                        "test-client", 1024, 0
-                    ))
+                    """,
+                        (
+                            f"2024-01-01T10:00:{operation_id:02d}",
+                            "request",
+                            "GET",
+                            f"/concurrent/{operation_id}",
+                            200,
+                            50,
+                            "127.0.0.1",
+                            "8080",
+                            "{}",
+                            "{}",
+                            "{}",
+                            "{}",
+                            f"session-{operation_id}",
+                            "concurrent-test",
+                            f"req-{operation_id}",
+                            "test-client",
+                            1024,
+                            0,
+                        ),
+                    )
 
                     conn.commit()
                     conn.close()
@@ -683,7 +765,6 @@ class ComprehensiveIntegrationTester:
             if successful_ops < 8:  # Allow some failures due to locking
                 return False
 
-
             return True
 
         except Exception:
@@ -699,14 +780,16 @@ class ComprehensiveIntegrationTester:
                 "total_tests": total_tests,
                 "passed_tests": passed_tests,
                 "failed_tests": total_tests - passed_tests,
-                "success_rate": (passed_tests / total_tests * 100) if total_tests > 0 else 0
+                "success_rate": (passed_tests / total_tests * 100)
+                if total_tests > 0
+                else 0,
             },
             "test_results": self.test_results,
             "timestamp": datetime.now().isoformat(),
             "environment": {
                 "python_version": sys.version,
-                "test_directory": str(self.temp_dir) if self.temp_dir else None
-            }
+                "test_directory": str(self.temp_dir) if self.temp_dir else None,
+            },
         }
 
     async def run_all_tests(self) -> bool:
@@ -719,35 +802,45 @@ class ComprehensiveIntegrationTester:
             self.test_results["complete_workflow"] = await self.test_complete_workflow()
 
             # Test 2: MCP tools integration
-            self.test_results["mcp_tools_integration"] = await self.test_mcp_tools_integration()
+            self.test_results[
+                "mcp_tools_integration"
+            ] = await self.test_mcp_tools_integration()
 
             # Test 3: Database migration system
-            self.test_results["database_migration"] = await self.test_database_migration_system()
+            self.test_results[
+                "database_migration"
+            ] = await self.test_database_migration_system()
 
             # Test 4: Performance and compatibility
-            self.test_results["performance_compatibility"] = await self.test_performance_and_compatibility()
+            self.test_results[
+                "performance_compatibility"
+            ] = await self.test_performance_and_compatibility()
 
             # Test 5: Error handling and resilience
-            self.test_results["error_handling"] = await self.test_error_handling_and_resilience()
+            self.test_results[
+                "error_handling"
+            ] = await self.test_error_handling_and_resilience()
 
             # Generate final report
             report = self.generate_test_report()
 
-
             for _test_name, _result in self.test_results.items():
                 pass
 
-
             # Save detailed report
-            report_path = self.temp_dir / "integration_test_report.json" if self.temp_dir else Path("integration_test_report.json")
-            with open(report_path, 'w') as f:
+            report_path = (
+                self.temp_dir / "integration_test_report.json"
+                if self.temp_dir
+                else Path("integration_test_report.json")
+            )
+            with open(report_path, "w") as f:
                 json.dump(report, f, indent=2)
-
 
             return all(self.test_results.values())
 
         except Exception:
             import traceback
+
             traceback.print_exc()
             return False
 

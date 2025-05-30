@@ -1,6 +1,7 @@
 """
 Mock server management utilities for discovering and managing MockLoop servers.
 """
+
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -80,7 +81,7 @@ class MockServerManager:
             "has_main_py": True,
             "has_docker_compose": docker_compose.exists(),
             "created_at": datetime.fromtimestamp(mock_dir.stat().st_ctime).isoformat(),
-            "modified_at": datetime.fromtimestamp(mock_dir.stat().st_mtime).isoformat()
+            "modified_at": datetime.fromtimestamp(mock_dir.stat().st_mtime).isoformat(),
         }
 
         # Try to extract port from docker-compose.yml
@@ -88,14 +89,14 @@ class MockServerManager:
             try:
                 with open(docker_compose) as f:
                     compose_data = yaml.safe_load(f)
-                    services = compose_data.get('services', {})
+                    services = compose_data.get("services", {})
                     for service_config in services.values():
-                        ports = service_config.get('ports', [])
+                        ports = service_config.get("ports", [])
                         if ports:
                             # Extract host port from port mapping like "8000:8000"
                             port_mapping = ports[0]
-                            if isinstance(port_mapping, str) and ':' in port_mapping:
-                                host_port = port_mapping.split(':')[0]
+                            if isinstance(port_mapping, str) and ":" in port_mapping:
+                                host_port = port_mapping.split(":")[0]
                                 mock_info["default_port"] = int(host_port)
                             elif isinstance(port_mapping, int):
                                 mock_info["default_port"] = port_mapping
@@ -108,22 +109,24 @@ class MockServerManager:
             with open(main_py) as f:
                 main_content = f.read()
                 # Look for FastAPI app title and version
-                if 'FastAPI(' in main_content:
+                if "FastAPI(" in main_content:
                     # Simple regex-like extraction (could be improved)
-                    lines = main_content.split('\n')
+                    lines = main_content.split("\n")
                     for line in lines:
-                        if 'title=' in line and 'FastAPI(' in line:
+                        if "title=" in line and "FastAPI(" in line:
                             # Extract title
                             title_start = line.find('title="') + 7
                             title_end = line.find('"', title_start)
                             if title_start > 6 and title_end > title_start:
                                 mock_info["api_title"] = line[title_start:title_end]
-                        if 'version=' in line and 'FastAPI(' in line:
+                        if "version=" in line and "FastAPI(" in line:
                             # Extract version
                             version_start = line.find('version="') + 9
                             version_end = line.find('"', version_start)
                             if version_start > 8 and version_end > version_start:
-                                mock_info["api_version"] = line[version_start:version_end]
+                                mock_info["api_version"] = line[
+                                    version_start:version_end
+                                ]
         except Exception as e:
             mock_info["main_py_analysis_error"] = str(e)
 
@@ -148,9 +151,7 @@ class MockServerManager:
         return mock_info
 
     async def discover_running_servers(
-        self,
-        ports: list[int] | None = None,
-        check_health: bool = True
+        self, ports: list[int] | None = None, check_health: bool = True
     ) -> list[dict[str, Any]]:
         """
         Discover running mock servers.
@@ -189,20 +190,16 @@ class MockServerManager:
                 "health": health_result,
                 "stats": stats_result.get("stats", {}),
                 "debug_info": debug_result.get("debug_info", {}),
-                "is_mockloop_server": True
+                "is_mockloop_server": True,
             }
         else:
             return {
                 "url": server_url,
                 "health": health_result,
-                "is_mockloop_server": False
+                "is_mockloop_server": False,
             }
 
-    async def query_server_logs(
-        self,
-        server_url: str,
-        **kwargs
-    ) -> dict[str, Any]:
+    async def query_server_logs(self, server_url: str, **kwargs) -> dict[str, Any]:
         """
         Query logs from a specific mock server.
 
@@ -242,7 +239,8 @@ class MockServerManager:
             return []
 
         return [
-            d.name for d in self.generated_mocks_dir.iterdir()
+            d.name
+            for d in self.generated_mocks_dir.iterdir()
             if d.is_dir() and (d / "main.py").exists()
         ]
 
@@ -267,13 +265,16 @@ class MockServerManager:
             matched = False
             for generated in generated_mocks:
                 # Try to match by port
-                if (generated.get("default_port") == running.get("port") and
-                    running.get("is_mockloop_server", False)):
-                    matched_servers.append({
-                        "generated_mock": generated,
-                        "running_server": running,
-                        "status": "running"
-                    })
+                if generated.get("default_port") == running.get("port") and running.get(
+                    "is_mockloop_server", False
+                ):
+                    matched_servers.append(
+                        {
+                            "generated_mock": generated,
+                            "running_server": running,
+                            "status": "running",
+                        }
+                    )
                     matched = True
                     break
 
@@ -288,10 +289,9 @@ class MockServerManager:
                 for match in matched_servers
             )
             if not is_running:
-                not_running.append({
-                    "generated_mock": generated,
-                    "status": "not_running"
-                })
+                not_running.append(
+                    {"generated_mock": generated, "status": "not_running"}
+                )
 
         return {
             "discovery_timestamp": datetime.now().isoformat(),
@@ -300,7 +300,7 @@ class MockServerManager:
             "matched_servers": matched_servers,
             "not_running_mocks": not_running,
             "unmatched_running_servers": unmatched_running,
-            "generated_mocks_directory": str(self.generated_mocks_dir)
+            "generated_mocks_directory": str(self.generated_mocks_dir),
         }
 
 
@@ -333,9 +333,6 @@ async def find_server_by_name(name: str) -> dict[str, Any] | None:
         server_url = f"http://localhost:{mock_info['default_port']}"
         status = await manager.get_server_status(server_url)
         if status.get("health", {}).get("status") == "healthy":
-            return {
-                "mock_info": mock_info,
-                "server_status": status
-            }
+            return {"mock_info": mock_info, "server_status": status}
 
     return None

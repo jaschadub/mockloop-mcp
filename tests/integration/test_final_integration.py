@@ -49,7 +49,7 @@ class FinalIntegrationTester:
             "info": {
                 "title": "Final Integration Test API",
                 "version": "2.0.0",
-                "description": "Comprehensive API for testing all MockLoop MCP enhancement features"
+                "description": "Comprehensive API for testing all MockLoop MCP enhancement features",
             },
             "servers": [
                 {"url": "http://localhost:8000", "description": "Development server"}
@@ -72,14 +72,17 @@ class FinalIntegrationTester:
                                                     "id": {"type": "integer"},
                                                     "name": {"type": "string"},
                                                     "email": {"type": "string"},
-                                                    "created_at": {"type": "string", "format": "date-time"}
-                                                }
-                                            }
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "format": "date-time",
+                                                    },
+                                                },
+                                            },
                                         }
                                     }
-                                }
+                                },
                             }
-                        }
+                        },
                     },
                     "post": {
                         "summary": "Create a user",
@@ -93,11 +96,14 @@ class FinalIntegrationTester:
                                         "required": ["name", "email"],
                                         "properties": {
                                             "name": {"type": "string"},
-                                            "email": {"type": "string", "format": "email"}
-                                        }
+                                            "email": {
+                                                "type": "string",
+                                                "format": "email",
+                                            },
+                                        },
                                     }
                                 }
-                            }
+                            },
                         },
                         "responses": {
                             "201": {
@@ -110,14 +116,17 @@ class FinalIntegrationTester:
                                                 "id": {"type": "integer"},
                                                 "name": {"type": "string"},
                                                 "email": {"type": "string"},
-                                                "created_at": {"type": "string", "format": "date-time"}
-                                            }
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                },
+                                            },
                                         }
                                     }
-                                }
+                                },
                             }
-                        }
-                    }
+                        },
+                    },
                 },
                 "/users/{user_id}": {
                     "get": {
@@ -128,7 +137,7 @@ class FinalIntegrationTester:
                                 "name": "user_id",
                                 "in": "path",
                                 "required": True,
-                                "schema": {"type": "integer"}
+                                "schema": {"type": "integer"},
                             }
                         ],
                         "responses": {
@@ -142,16 +151,17 @@ class FinalIntegrationTester:
                                                 "id": {"type": "integer"},
                                                 "name": {"type": "string"},
                                                 "email": {"type": "string"},
-                                                "created_at": {"type": "string", "format": "date-time"}
-                                            }
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                },
+                                            },
                                         }
                                     }
-                                }
+                                },
                             },
-                            "404": {
-                                "description": "User not found"
-                            }
-                        }
+                            "404": {"description": "User not found"},
+                        },
                     },
                     "put": {
                         "summary": "Update user",
@@ -161,7 +171,7 @@ class FinalIntegrationTester:
                                 "name": "user_id",
                                 "in": "path",
                                 "required": True,
-                                "schema": {"type": "integer"}
+                                "schema": {"type": "integer"},
                             }
                         ],
                         "requestBody": {
@@ -172,20 +182,19 @@ class FinalIntegrationTester:
                                         "type": "object",
                                         "properties": {
                                             "name": {"type": "string"},
-                                            "email": {"type": "string", "format": "email"}
-                                        }
+                                            "email": {
+                                                "type": "string",
+                                                "format": "email",
+                                            },
+                                        },
                                     }
                                 }
-                            }
+                            },
                         },
                         "responses": {
-                            "200": {
-                                "description": "User updated"
-                            },
-                            "404": {
-                                "description": "User not found"
-                            }
-                        }
+                            "200": {"description": "User updated"},
+                            "404": {"description": "User not found"},
+                        },
                     },
                     "delete": {
                         "summary": "Delete user",
@@ -195,18 +204,14 @@ class FinalIntegrationTester:
                                 "name": "user_id",
                                 "in": "path",
                                 "required": True,
-                                "schema": {"type": "integer"}
+                                "schema": {"type": "integer"},
                             }
                         ],
                         "responses": {
-                            "204": {
-                                "description": "User deleted"
-                            },
-                            "404": {
-                                "description": "User not found"
-                            }
-                        }
-                    }
+                            "204": {"description": "User deleted"},
+                            "404": {"description": "User not found"},
+                        },
+                    },
                 },
                 "/products": {
                     "get": {
@@ -216,13 +221,13 @@ class FinalIntegrationTester:
                             {
                                 "name": "category",
                                 "in": "query",
-                                "schema": {"type": "string"}
+                                "schema": {"type": "string"},
                             },
                             {
                                 "name": "limit",
                                 "in": "query",
-                                "schema": {"type": "integer", "default": 10}
-                            }
+                                "schema": {"type": "integer", "default": 10},
+                            },
                         ],
                         "responses": {
                             "200": {
@@ -240,18 +245,20 @@ class FinalIntegrationTester:
                                                             "id": {"type": "integer"},
                                                             "name": {"type": "string"},
                                                             "price": {"type": "number"},
-                                                            "category": {"type": "string"}
-                                                        }
-                                                    }
+                                                            "category": {
+                                                                "type": "string"
+                                                            },
+                                                        },
+                                                    },
                                                 },
                                                 "total": {"type": "integer"},
-                                                "page": {"type": "integer"}
-                                            }
+                                                "page": {"type": "integer"},
+                                            },
                                         }
                                     }
-                                }
+                                },
                             }
-                        }
+                        },
                     }
                 },
                 "/orders": {
@@ -272,15 +279,17 @@ class FinalIntegrationTester:
                                                 "items": {
                                                     "type": "object",
                                                     "properties": {
-                                                        "product_id": {"type": "integer"},
-                                                        "quantity": {"type": "integer"}
-                                                    }
-                                                }
-                                            }
-                                        }
+                                                        "product_id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "quantity": {"type": "integer"},
+                                                    },
+                                                },
+                                            },
+                                        },
                                     }
                                 }
-                            }
+                            },
                         },
                         "responses": {
                             "201": {
@@ -294,15 +303,18 @@ class FinalIntegrationTester:
                                                 "user_id": {"type": "integer"},
                                                 "total": {"type": "number"},
                                                 "status": {"type": "string"},
-                                                "created_at": {"type": "string", "format": "date-time"}
-                                            }
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                },
+                                            },
                                         }
                                     }
-                                }
+                                },
                             }
-                        }
+                        },
                     }
-                }
+                },
             },
             "components": {
                 "schemas": {
@@ -312,8 +324,8 @@ class FinalIntegrationTester:
                             "id": {"type": "integer"},
                             "name": {"type": "string"},
                             "email": {"type": "string"},
-                            "created_at": {"type": "string", "format": "date-time"}
-                        }
+                            "created_at": {"type": "string", "format": "date-time"},
+                        },
                     },
                     "Product": {
                         "type": "object",
@@ -321,11 +333,11 @@ class FinalIntegrationTester:
                             "id": {"type": "integer"},
                             "name": {"type": "string"},
                             "price": {"type": "number"},
-                            "category": {"type": "string"}
-                        }
-                    }
+                            "category": {"type": "string"},
+                        },
+                    },
                 }
-            }
+            },
         }
 
     def test_enhanced_mock_generation(self) -> bool:
@@ -341,7 +353,7 @@ class FinalIntegrationTester:
                 auth_enabled=True,
                 webhooks_enabled=True,
                 admin_ui_enabled=True,
-                storage_enabled=True
+                storage_enabled=True,
             )
 
             self.mock_server_dir = output_dir
@@ -356,7 +368,7 @@ class FinalIntegrationTester:
                 "docker-compose.yml",
                 "auth_middleware.py",
                 "webhook_handler.py",
-                "storage_manager.py"
+                "storage_manager.py",
             ]
 
             missing_files = []
@@ -368,14 +380,13 @@ class FinalIntegrationTester:
             if missing_files:
                 return False
 
-
             # Check for Phase 1 enhancements in main.py
             main_py_content = (output_dir / "main.py").read_text()
 
             phase1_features = [
                 "/admin/api/logs/search",
                 "/admin/api/logs/analyze",
-                "LogAnalyzer"
+                "LogAnalyzer",
             ]
 
             missing_features = []
@@ -386,7 +397,6 @@ class FinalIntegrationTester:
             if missing_features:
                 return False
 
-
             # Check for enhanced admin UI
             admin_html_content = (output_dir / "templates" / "admin.html").read_text()
 
@@ -396,7 +406,7 @@ class FinalIntegrationTester:
                 "Advanced Log Search",
                 "performLogSearch",
                 "analyzeAllLogs",
-                "displayAnalysisResults"
+                "displayAnalysisResults",
             ]
 
             missing_ui_features = []
@@ -406,7 +416,6 @@ class FinalIntegrationTester:
 
             if missing_ui_features:
                 return False
-
 
             # Check for enhanced middleware
             middleware_content = (output_dir / "logging_middleware.py").read_text()
@@ -418,7 +427,7 @@ class FinalIntegrationTester:
                 "user_agent",
                 "response_size",
                 "extract_session_info",
-                "migrate_database"
+                "migrate_database",
             ]
 
             missing_middleware_features = []
@@ -430,6 +439,7 @@ class FinalIntegrationTester:
 
         except Exception:
             import traceback
+
             traceback.print_exc()
             return False
 
@@ -465,15 +475,18 @@ class FinalIntegrationTester:
                 "test_sessions",
                 "performance_metrics",
                 "mock_scenarios",
-                "schema_version"
+                "schema_version",
             ]
 
             missing_tables = []
             for table in expected_tables:
-                cursor.execute("""
+                cursor.execute(
+                    """
                     SELECT name FROM sqlite_master
                     WHERE type='table' AND name=?
-                """, (table,))
+                """,
+                    (table,),
+                )
 
                 if not cursor.fetchone():
                     missing_tables.append(table)
@@ -482,17 +495,31 @@ class FinalIntegrationTester:
                 conn.close()
                 return False
 
-
             # Test enhanced request_logs schema
             cursor.execute("PRAGMA table_info(request_logs)")
             columns = {col[1] for col in cursor.fetchall()}
 
             expected_columns = {
-                "id", "timestamp", "type", "method", "path", "status_code",
-                "process_time_ms", "client_host", "client_port", "headers",
-                "query_params", "request_body", "response_body", "created_at",
-                "session_id", "test_scenario", "correlation_id", "user_agent",
-                "response_size", "is_admin"
+                "id",
+                "timestamp",
+                "type",
+                "method",
+                "path",
+                "status_code",
+                "process_time_ms",
+                "client_host",
+                "client_port",
+                "headers",
+                "query_params",
+                "request_body",
+                "response_body",
+                "created_at",
+                "session_id",
+                "test_scenario",
+                "correlation_id",
+                "user_agent",
+                "response_size",
+                "is_admin",
             }
 
             missing_columns = expected_columns - columns
@@ -500,33 +527,83 @@ class FinalIntegrationTester:
                 conn.close()
                 return False
 
-
             # Test data insertion with enhanced schema
 
             test_data = [
-                ("2024-01-01T10:00:00", "request", "GET", "/users", 200, 45, "127.0.0.1", "8080",
-                 '{"user-agent": "test-client", "x-session-id": "session-1"}', '{}', '{}',
-                 '[{"id": 1, "name": "Test User"}]', "session-1", "user-list-test", "req-001",
-                 "test-client", 1024, 0),
-                ("2024-01-01T10:01:00", "request", "POST", "/users", 201, 67, "127.0.0.1", "8080",
-                 '{"user-agent": "test-client", "x-session-id": "session-1"}', '{}',
-                 '{"name": "New User", "email": "new@example.com"}',
-                 '{"id": 2, "name": "New User", "email": "new@example.com"}', "session-1",
-                 "user-create-test", "req-002", "test-client", 512, 0),
-                ("2024-01-01T10:02:00", "request", "GET", "/admin/logs", 200, 23, "127.0.0.1", "8080",
-                 '{"user-agent": "admin-client"}', '{}', '{}', '{"logs": []}', None, None,
-                 "req-003", "admin-client", 256, 1)
+                (
+                    "2024-01-01T10:00:00",
+                    "request",
+                    "GET",
+                    "/users",
+                    200,
+                    45,
+                    "127.0.0.1",
+                    "8080",
+                    '{"user-agent": "test-client", "x-session-id": "session-1"}',
+                    "{}",
+                    "{}",
+                    '[{"id": 1, "name": "Test User"}]',
+                    "session-1",
+                    "user-list-test",
+                    "req-001",
+                    "test-client",
+                    1024,
+                    0,
+                ),
+                (
+                    "2024-01-01T10:01:00",
+                    "request",
+                    "POST",
+                    "/users",
+                    201,
+                    67,
+                    "127.0.0.1",
+                    "8080",
+                    '{"user-agent": "test-client", "x-session-id": "session-1"}',
+                    "{}",
+                    '{"name": "New User", "email": "new@example.com"}',
+                    '{"id": 2, "name": "New User", "email": "new@example.com"}',
+                    "session-1",
+                    "user-create-test",
+                    "req-002",
+                    "test-client",
+                    512,
+                    0,
+                ),
+                (
+                    "2024-01-01T10:02:00",
+                    "request",
+                    "GET",
+                    "/admin/logs",
+                    200,
+                    23,
+                    "127.0.0.1",
+                    "8080",
+                    '{"user-agent": "admin-client"}',
+                    "{}",
+                    "{}",
+                    '{"logs": []}',
+                    None,
+                    None,
+                    "req-003",
+                    "admin-client",
+                    256,
+                    1,
+                ),
             ]
 
             for data in test_data:
-                cursor.execute("""
+                cursor.execute(
+                    """
                     INSERT INTO request_logs (
                         timestamp, type, method, path, status_code, process_time_ms,
                         client_host, client_port, headers, query_params, request_body,
                         response_body, session_id, test_scenario, correlation_id,
                         user_agent, response_size, is_admin
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, data)
+                """,
+                    data,
+                )
 
             conn.commit()
 
@@ -538,22 +615,37 @@ class FinalIntegrationTester:
                 conn.close()
                 return False
 
-
             # Test scenario management
 
             test_scenarios = [
-                ("default", "Default scenario", '{"name": "default", "endpoints": {}}', 1),
-                ("user-registration", "User registration flow",
-                 '{"name": "user-registration", "endpoints": {"/users": {"POST": {"status": 201}}}}', 0),
-                ("error-testing", "Error testing scenario",
-                 '{"name": "error-testing", "endpoints": {"/users": {"GET": {"status": 500}}}}', 0)
+                (
+                    "default",
+                    "Default scenario",
+                    '{"name": "default", "endpoints": {}}',
+                    1,
+                ),
+                (
+                    "user-registration",
+                    "User registration flow",
+                    '{"name": "user-registration", "endpoints": {"/users": {"POST": {"status": 201}}}}',
+                    0,
+                ),
+                (
+                    "error-testing",
+                    "Error testing scenario",
+                    '{"name": "error-testing", "endpoints": {"/users": {"GET": {"status": 500}}}}',
+                    0,
+                ),
             ]
 
             for scenario in test_scenarios:
-                cursor.execute("""
+                cursor.execute(
+                    """
                     INSERT INTO mock_scenarios (name, description, config, is_active)
                     VALUES (?, ?, ?, ?)
-                """, scenario)
+                """,
+                    scenario,
+                )
 
             conn.commit()
 
@@ -565,7 +657,6 @@ class FinalIntegrationTester:
                 conn.close()
                 return False
 
-
             conn.close()
 
             # Test backup functionality
@@ -575,6 +666,7 @@ class FinalIntegrationTester:
 
         except Exception:
             import traceback
+
             traceback.print_exc()
             return False
 
@@ -602,7 +694,6 @@ class FinalIntegrationTester:
             if not logs:
                 return False
 
-
             # Test LogAnalyzer
             analyzer = LogAnalyzer()
 
@@ -614,8 +705,15 @@ class FinalIntegrationTester:
 
             # Verify analysis structure
             expected_keys = [
-                "total_requests", "time_range", "methods", "status_codes",
-                "endpoints", "performance", "errors", "patterns", "insights"
+                "total_requests",
+                "time_range",
+                "methods",
+                "status_codes",
+                "endpoints",
+                "performance",
+                "errors",
+                "patterns",
+                "insights",
             ]
 
             missing_keys = []
@@ -625,7 +723,6 @@ class FinalIntegrationTester:
 
             if missing_keys:
                 return False
-
 
             # Test filtering
 
@@ -637,11 +734,9 @@ class FinalIntegrationTester:
             if total_filtered > len(logs):
                 return False
 
-
             # Filter by admin requests
             analyzer.filter_logs(logs, include_admin=True)
             analyzer.filter_logs(logs, include_admin=False)
-
 
             # Test session-based analysis
 
@@ -649,7 +744,10 @@ class FinalIntegrationTester:
             if session_logs:
                 session_analysis = analyzer.analyze_logs(session_logs)
 
-                if "patterns" in session_analysis and "sessions" in session_analysis["patterns"]:
+                if (
+                    "patterns" in session_analysis
+                    and "sessions" in session_analysis["patterns"]
+                ):
                     pass
                 else:
                     pass
@@ -668,7 +766,6 @@ class FinalIntegrationTester:
                 if missing_perf_keys:
                     return False
 
-
             # Test insights generation
 
             if analysis.get("insights"):
@@ -684,6 +781,7 @@ class FinalIntegrationTester:
 
         except Exception:
             import traceback
+
             traceback.print_exc()
             return False
 
@@ -697,9 +795,13 @@ class FinalIntegrationTester:
 
             # Verify client has all required methods
             required_methods = [
-                "get_debug_info", "get_logs", "update_response",
-                "create_scenario", "switch_scenario", "list_scenarios",
-                "get_current_scenario"
+                "get_debug_info",
+                "get_logs",
+                "update_response",
+                "create_scenario",
+                "switch_scenario",
+                "list_scenarios",
+                "get_current_scenario",
             ]
 
             missing_methods = []
@@ -710,7 +812,6 @@ class FinalIntegrationTester:
             if missing_methods:
                 return False
 
-
             # Test connectivity function structure
 
             try:
@@ -720,7 +821,6 @@ class FinalIntegrationTester:
                 if not isinstance(result, dict) or "status" not in result:
                     return False
 
-
             except Exception:
                 pass
 
@@ -729,7 +829,11 @@ class FinalIntegrationTester:
             manager = MockServerManager()
 
             # Test discovery methods exist
-            discovery_methods = ["discover_running_servers", "comprehensive_discovery", "get_server_status"]
+            discovery_methods = [
+                "discover_running_servers",
+                "comprehensive_discovery",
+                "get_server_status",
+            ]
 
             missing_discovery_methods = []
             for method in discovery_methods:
@@ -738,7 +842,6 @@ class FinalIntegrationTester:
 
             if missing_discovery_methods:
                 return False
-
 
             # Test discovery functionality (structure only)
 
@@ -756,7 +859,6 @@ class FinalIntegrationTester:
 
                 if missing_keys:
                     return False
-
 
             except Exception:
                 pass
@@ -778,42 +880,46 @@ class FinalIntegrationTester:
                 {
                     "file": "main.py",
                     "required_content": [
-                        "FastAPI", "logging_middleware", "/admin/api/logs/search",
-                        "/admin/api/logs/analyze", "LogAnalyzer"
-                    ]
+                        "FastAPI",
+                        "logging_middleware",
+                        "/admin/api/logs/search",
+                        "/admin/api/logs/analyze",
+                        "LogAnalyzer",
+                    ],
                 },
                 {
                     "file": "logging_middleware.py",
                     "required_content": [
-                        "extract_session_info", "migrate_database", "session_id",
-                        "test_scenario", "correlation_id", "response_size"
-                    ]
+                        "extract_session_info",
+                        "migrate_database",
+                        "session_id",
+                        "test_scenario",
+                        "correlation_id",
+                        "response_size",
+                    ],
                 },
                 {
                     "file": "templates/admin.html",
                     "required_content": [
-                        "Log Analytics", "performLogSearch", "analyzeAllLogs",
-                        "data-tab=\"analytics\"", "Advanced Log Search"
-                    ]
+                        "Log Analytics",
+                        "performLogSearch",
+                        "analyzeAllLogs",
+                        'data-tab="analytics"',
+                        "Advanced Log Search",
+                    ],
                 },
                 {
                     "file": "auth_middleware.py",
-                    "required_content": [
-                        "authenticate", "token", "authorization"
-                    ]
+                    "required_content": ["authenticate", "token", "authorization"],
                 },
                 {
                     "file": "webhook_handler.py",
-                    "required_content": [
-                        "webhook", "trigger", "payload"
-                    ]
+                    "required_content": ["webhook", "trigger", "payload"],
                 },
                 {
                     "file": "storage.py",
-                    "required_content": [
-                        "storage", "data", "persistence"
-                    ]
-                }
+                    "required_content": ["storage", "data", "persistence"],
+                },
             ]
 
             for test in template_tests:
@@ -834,7 +940,6 @@ class FinalIntegrationTester:
                     if missing_content:
                         return False
 
-
                 except Exception:
                     return False
 
@@ -851,7 +956,12 @@ class FinalIntegrationTester:
 
             # Check Dockerfile content
             dockerfile_content = dockerfile_path.read_text()
-            required_dockerfile_content = ["FROM python:", "COPY requirements_mock.txt", "RUN pip install", "CMD"]
+            required_dockerfile_content = [
+                "FROM python:",
+                "COPY requirements_mock.txt",
+                "RUN pip install",
+                "CMD",
+            ]
 
             missing_dockerfile_content = []
             for required in required_dockerfile_content:
@@ -860,7 +970,6 @@ class FinalIntegrationTester:
 
             if missing_dockerfile_content:
                 return False
-
 
             # Test requirements file
             requirements_path = self.mock_server_dir / "requirements_mock.txt"
@@ -899,7 +1008,7 @@ class FinalIntegrationTester:
                     auth_enabled=True,
                     webhooks_enabled=True,
                     admin_ui_enabled=True,
-                    storage_enabled=True
+                    storage_enabled=True,
                 )
 
                 if not output_dir.exists():
@@ -907,7 +1016,6 @@ class FinalIntegrationTester:
 
             generation_time = time.time() - start_time
             avg_time = generation_time / 3
-
 
             if avg_time > 15:  # Should be reasonable
                 pass
@@ -930,25 +1038,40 @@ class FinalIntegrationTester:
 
             # Insert 1000 test records
             for i in range(1000):
-                cursor.execute("""
+                cursor.execute(
+                    """
                     INSERT INTO request_logs (
                         timestamp, type, method, path, status_code, process_time_ms,
                         client_host, client_port, headers, query_params, request_body,
                         response_body, session_id, test_scenario, correlation_id,
                         user_agent, response_size, is_admin
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    f"2024-01-01T{i//3600:02d}:{(i//60)%60:02d}:{i%60:02d}",
-                    "request", "GET", f"/perf/test/{i}", 200, 50 + (i % 100),
-                    "127.0.0.1", "8080", '{"user-agent": "perf-test"}', '{}', '{}',
-                    f'{{"result": "test-{i}"}}', f"session-{i//100}", f"scenario-{i%10}",
-                    f"req-{i:04d}", "perf-test-client", 1024 + (i % 512), 0
-                ))
+                """,
+                    (
+                        f"2024-01-01T{i // 3600:02d}:{(i // 60) % 60:02d}:{i % 60:02d}",
+                        "request",
+                        "GET",
+                        f"/perf/test/{i}",
+                        200,
+                        50 + (i % 100),
+                        "127.0.0.1",
+                        "8080",
+                        '{"user-agent": "perf-test"}',
+                        "{}",
+                        "{}",
+                        f'{{"result": "test-{i}"}}',
+                        f"session-{i // 100}",
+                        f"scenario-{i % 10}",
+                        f"req-{i:04d}",
+                        "perf-test-client",
+                        1024 + (i % 512),
+                        0,
+                    ),
+                )
 
             conn.commit()
 
             time.time() - start_time
-
 
             # Test query performance
             start_time = time.time()
@@ -965,7 +1088,6 @@ class FinalIntegrationTester:
 
             time.time() - start_time
 
-
             # Test analysis performance
             start_time = time.time()
 
@@ -978,7 +1100,6 @@ class FinalIntegrationTester:
             analyzer.analyze_logs(logs)
 
             analysis_time = time.time() - start_time
-
 
             conn.close()
 
@@ -1000,22 +1121,32 @@ class FinalIntegrationTester:
                 "total_tests": total_tests,
                 "passed_tests": passed_tests,
                 "failed_tests": total_tests - passed_tests,
-                "success_rate": (passed_tests / total_tests * 100) if total_tests > 0 else 0
+                "success_rate": (passed_tests / total_tests * 100)
+                if total_tests > 0
+                else 0,
             },
             "test_results": self.test_results,
             "timestamp": datetime.now().isoformat(),
             "environment": {
                 "python_version": sys.version,
                 "test_directory": str(self.temp_dir) if self.temp_dir else None,
-                "mock_server_directory": str(self.mock_server_dir) if self.mock_server_dir else None
+                "mock_server_directory": str(self.mock_server_dir)
+                if self.mock_server_dir
+                else None,
             },
             "enhancement_plan_validation": {
-                "phase_1_complete": self.test_results.get("enhanced_mock_generation", False) and
-                                   self.test_results.get("complete_database_system", False),
-                "phase_2_part_1_complete": self.test_results.get("http_client_system", False),
+                "phase_1_complete": self.test_results.get(
+                    "enhanced_mock_generation", False
+                )
+                and self.test_results.get("complete_database_system", False),
+                "phase_2_part_1_complete": self.test_results.get(
+                    "http_client_system", False
+                ),
                 "integration_validated": all(self.test_results.values()),
-                "performance_acceptable": self.test_results.get("performance_metrics", False)
-            }
+                "performance_acceptable": self.test_results.get(
+                    "performance_metrics", False
+                ),
+            },
         }
 
     def run_all_tests(self) -> bool:
@@ -1025,16 +1156,22 @@ class FinalIntegrationTester:
 
         try:
             # Test 1: Enhanced mock generation
-            self.test_results["enhanced_mock_generation"] = self.test_enhanced_mock_generation()
+            self.test_results["enhanced_mock_generation"] = (
+                self.test_enhanced_mock_generation()
+            )
 
             # Test 2: Complete database system
-            self.test_results["complete_database_system"] = self.test_complete_database_system()
+            self.test_results["complete_database_system"] = (
+                self.test_complete_database_system()
+            )
 
             # Test 3: Log analysis system
             self.test_results["log_analysis_system"] = self.test_log_analysis_system()
 
             # Test 4: HTTP client system
-            self.test_results["http_client_system"] = asyncio.run(self.test_http_client_system())
+            self.test_results["http_client_system"] = asyncio.run(
+                self.test_http_client_system()
+            )
 
             # Test 5: Template system
             self.test_results["template_system"] = self.test_template_system()
@@ -1045,24 +1182,26 @@ class FinalIntegrationTester:
             # Generate final report
             report = self.generate_final_report()
 
-
             for _test_name, _result in self.test_results.items():
                 pass
-
 
             # Enhancement plan validation
             report["enhancement_plan_validation"]
 
             # Save detailed report
-            report_path = self.temp_dir / "final_integration_report.json" if self.temp_dir else Path("final_integration_report.json")
-            with open(report_path, 'w') as f:
+            report_path = (
+                self.temp_dir / "final_integration_report.json"
+                if self.temp_dir
+                else Path("final_integration_report.json")
+            )
+            with open(report_path, "w") as f:
                 json.dump(report, f, indent=2)
-
 
             return all(self.test_results.values())
 
         except Exception:
             import traceback
+
             traceback.print_exc()
             return False
 

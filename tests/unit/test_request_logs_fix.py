@@ -95,7 +95,7 @@ def update_existing_mock(mock_dir):
                 # Add the id parameter
                 main_content = main_content.replace(
                     "async def get_request_logs(limit: int = 100, offset: int = 0, method: str = None, path: str = None, include_admin: bool = False):",
-                    "async def get_request_logs(limit: int = 100, offset: int = 0, method: str = None, path: str = None, include_admin: bool = False, id: int = None):"
+                    "async def get_request_logs(limit: int = 100, offset: int = 0, method: str = None, path: str = None, include_admin: bool = False, id: int = None):",
                 )
 
             # Check for the id filter in the query
@@ -123,14 +123,20 @@ def update_existing_mock(mock_dir):
                 main_content = main_content.replace(old_filter_code, new_filter_code)
 
             # Update the admin requests filter to respect id parameter
-            if "if not include_admin:" in main_content and "if not include_admin and id is None:" not in main_content:
+            if (
+                "if not include_admin:" in main_content
+                and "if not include_admin and id is None:" not in main_content
+            ):
                 main_content = main_content.replace(
                     "        # Filter out admin requests by default\n        if not include_admin:",
-                    "        # Filter out admin requests by default, but only if not querying by specific ID\n        if not include_admin and id is None:"
+                    "        # Filter out admin requests by default, but only if not querying by specific ID\n        if not include_admin and id is None:",
                 )
 
             # Update the limit/offset to be skipped when querying by id
-            if "query += \" ORDER BY id DESC LIMIT ? OFFSET ?\"" in main_content and "# Skip limit/offset when querying by exact ID" not in main_content:
+            if (
+                'query += " ORDER BY id DESC LIMIT ? OFFSET ?"' in main_content
+                and "# Skip limit/offset when querying by exact ID" not in main_content
+            ):
                 old_limit_code = """        if where_clauses:
             query += " WHERE " + " AND ".join(where_clauses)
 
@@ -150,7 +156,10 @@ def update_existing_mock(mock_dir):
                 main_content = main_content.replace(old_limit_code, new_limit_code)
 
             # Add the return of a single object when querying by ID
-            if "return logs" in main_content and "# If we're querying by ID and have a result" not in main_content:
+            if (
+                "return logs" in main_content
+                and "# If we're querying by ID and have a result" not in main_content
+            ):
                 old_return_code = """        conn.close()
         return logs"""
 
@@ -172,6 +181,7 @@ def update_existing_mock(mock_dir):
     except Exception:
         return False
 
+
 def test_request_logs(base_url="http://localhost:8001"):
     """
     Test the request logs API to verify the fix.
@@ -192,7 +202,6 @@ def test_request_logs(base_url="http://localhost:8001"):
         if not logs or not isinstance(logs, list):
             return False
 
-
         # Get a specific log by ID
         log_id = logs[0]["id"]
         detail_response = requests.get(f"{base_url}/admin/api/requests?id={log_id}")
@@ -205,16 +214,27 @@ def test_request_logs(base_url="http://localhost:8001"):
         if isinstance(log_detail, list):
             log_detail = log_detail[0] if log_detail else None
 
-        return not (not log_detail or not isinstance(log_detail, dict) or "id" not in log_detail)
+        return not (
+            not log_detail or not isinstance(log_detail, dict) or "id" not in log_detail
+        )
 
     except Exception:
         return False
 
+
 def main():
-    parser = argparse.ArgumentParser(description="Test and fix the request logs in MockLoop mock APIs")
+    parser = argparse.ArgumentParser(
+        description="Test and fix the request logs in MockLoop mock APIs"
+    )
     parser.add_argument("--mock-dir", help="Path to the mock API directory to update")
-    parser.add_argument("--base-url", default="http://localhost:8001", help="Base URL of the running mock API to test")
-    parser.add_argument("--test-only", action="store_true", help="Only run the test without updating")
+    parser.add_argument(
+        "--base-url",
+        default="http://localhost:8001",
+        help="Base URL of the running mock API to test",
+    )
+    parser.add_argument(
+        "--test-only", action="store_true", help="Only run the test without updating"
+    )
 
     args = parser.parse_args()
 
@@ -230,6 +250,7 @@ def main():
         return 1
 
     return 0
+
 
 if __name__ == "__main__":
     sys.exit(main())

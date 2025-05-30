@@ -3,6 +3,7 @@
 Test script to validate Phase 1 MockLoop MCP enhancements.
 This script tests the new admin API endpoints and database schema migration.
 """
+
 from pathlib import Path
 import sys
 
@@ -22,7 +23,7 @@ def test_mock_generation():
         "info": {
             "title": "Phase 1 Test API",
             "version": "1.0.0",
-            "description": "Test API for Phase 1 enhancements"
+            "description": "Test API for Phase 1 enhancements",
         },
         "paths": {
             "/users": {
@@ -40,14 +41,14 @@ def test_mock_generation():
                                             "properties": {
                                                 "id": {"type": "integer"},
                                                 "name": {"type": "string"},
-                                                "email": {"type": "string"}
-                                            }
-                                        }
+                                                "email": {"type": "string"},
+                                            },
+                                        },
                                     }
                                 }
-                            }
+                            },
                         }
-                    }
+                    },
                 }
             },
             "/users/{user_id}": {
@@ -58,7 +59,7 @@ def test_mock_generation():
                             "name": "user_id",
                             "in": "path",
                             "required": True,
-                            "schema": {"type": "integer"}
+                            "schema": {"type": "integer"},
                         }
                     ],
                     "responses": {
@@ -71,16 +72,16 @@ def test_mock_generation():
                                         "properties": {
                                             "id": {"type": "integer"},
                                             "name": {"type": "string"},
-                                            "email": {"type": "string"}
-                                        }
+                                            "email": {"type": "string"},
+                                        },
                                     }
                                 }
-                            }
+                            },
                         }
-                    }
+                    },
                 }
-            }
-        }
+            },
+        },
     }
 
     try:
@@ -91,9 +92,8 @@ def test_mock_generation():
             auth_enabled=True,
             webhooks_enabled=True,
             admin_ui_enabled=True,
-            storage_enabled=True
+            storage_enabled=True,
         )
-
 
         # Verify key files exist
         expected_files = [
@@ -102,7 +102,7 @@ def test_mock_generation():
             "templates/admin.html",
             "requirements_mock.txt",
             "Dockerfile",
-            "docker-compose.yml"
+            "docker-compose.yml",
         ]
 
         for file_path in expected_files:
@@ -118,7 +118,7 @@ def test_mock_generation():
         required_endpoints = [
             "/admin/api/logs/search",
             "/admin/api/logs/analyze",
-            "LogAnalyzer"
+            "LogAnalyzer",
         ]
 
         for endpoint in required_endpoints:
@@ -135,7 +135,7 @@ def test_mock_generation():
             "Log Analytics",
             "Advanced Log Search",
             "performLogSearch",
-            "analyzeAllLogs"
+            "analyzeAllLogs",
         ]
 
         for element in required_ui_elements:
@@ -154,7 +154,7 @@ def test_mock_generation():
             "user_agent",
             "response_size",
             "extract_session_info",
-            "migrate_database"
+            "migrate_database",
         ]
 
         for feature in required_middleware_features:
@@ -189,7 +189,7 @@ def test_database_migration():
         status = migrator.get_migration_status()
 
         # Apply migrations
-        if status['needs_migration']:
+        if status["needs_migration"]:
             success = migrator.apply_migrations()
             if success:
                 pass
@@ -230,7 +230,7 @@ def test_log_analyzer_integration():
                 "client_host": "127.0.0.1",
                 "headers": {"user-agent": "test-client"},
                 "session_id": "test-session-1",
-                "test_scenario": "user_list_test"
+                "test_scenario": "user_list_test",
             },
             {
                 "id": 2,
@@ -242,7 +242,7 @@ def test_log_analyzer_integration():
                 "client_host": "127.0.0.1",
                 "headers": {"user-agent": "test-client"},
                 "session_id": "test-session-1",
-                "test_scenario": "user_detail_test"
+                "test_scenario": "user_detail_test",
             },
             {
                 "id": 3,
@@ -254,8 +254,8 @@ def test_log_analyzer_integration():
                 "client_host": "127.0.0.1",
                 "headers": {"user-agent": "test-client"},
                 "session_id": "test-session-2",
-                "test_scenario": "user_create_error_test"
-            }
+                "test_scenario": "user_create_error_test",
+            },
         ]
 
         # Test analysis
@@ -272,7 +272,7 @@ def test_log_analyzer_integration():
             "performance",
             "errors",
             "patterns",
-            "insights"
+            "insights",
         ]
 
         for key in expected_keys:
@@ -283,9 +283,7 @@ def test_log_analyzer_integration():
 
         # Test filtering
         filtered_logs = analyzer.filter_logs(
-            sample_logs,
-            method="GET",
-            include_admin=False
+            sample_logs, method="GET", include_admin=False
         )
 
         if len(filtered_logs) == 2:  # Should filter to only GET requests

@@ -33,8 +33,10 @@ def test_admin_toggle_functionality(base_url="http://localhost:8000"):
         response = requests.get(f"{base_url}/admin/api/requests?include_admin=false")
         if response.status_code == 200:
             logs = response.json()
-            admin_logs = [log for log in logs if log.get('path', '').startswith('/admin')]
-            [log for log in logs if not log.get('path', '').startswith('/admin')]
+            admin_logs = [
+                log for log in logs if log.get("path", "").startswith("/admin")
+            ]
+            [log for log in logs if not log.get("path", "").startswith("/admin")]
 
             if admin_logs:
                 pass
@@ -47,8 +49,10 @@ def test_admin_toggle_functionality(base_url="http://localhost:8000"):
         response = requests.get(f"{base_url}/admin/api/requests?include_admin=true")
         if response.status_code == 200:
             logs = response.json()
-            admin_logs = [log for log in logs if log.get('path', '').startswith('/admin')]
-            [log for log in logs if not log.get('path', '').startswith('/admin')]
+            admin_logs = [
+                log for log in logs if log.get("path", "").startswith("/admin")
+            ]
+            [log for log in logs if not log.get("path", "").startswith("/admin")]
 
             if admin_logs:
                 pass
@@ -61,8 +65,10 @@ def test_admin_toggle_functionality(base_url="http://localhost:8000"):
         response = requests.get(f"{base_url}/admin/api/requests")
         if response.status_code == 200:
             logs = response.json()
-            admin_logs = [log for log in logs if log.get('path', '').startswith('/admin')]
-            [log for log in logs if not log.get('path', '').startswith('/admin')]
+            admin_logs = [
+                log for log in logs if log.get("path", "").startswith("/admin")
+            ]
+            [log for log in logs if not log.get("path", "").startswith("/admin")]
 
             if admin_logs:
                 pass
@@ -74,12 +80,14 @@ def test_admin_toggle_functionality(base_url="http://localhost:8000"):
         # Step 6: Check database directly if possible
         try:
             # Try to get a specific log to see its structure
-            response = requests.get(f"{base_url}/admin/api/requests?limit=1&include_admin=true")
+            response = requests.get(
+                f"{base_url}/admin/api/requests?limit=1&include_admin=true"
+            )
             if response.status_code == 200:
                 logs = response.json()
                 if logs:
                     sample_log = logs[0]
-                    if 'is_admin' in sample_log:
+                    if "is_admin" in sample_log:
                         pass
                     else:
                         pass
@@ -93,9 +101,9 @@ def test_admin_toggle_functionality(base_url="http://localhost:8000"):
     except Exception:
         return False
 
+
 def main():
     base_url = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8000"
-
 
     input("Press Enter to continue...")
 
@@ -105,6 +113,7 @@ def main():
         return 0
     else:
         return 1
+
 
 if __name__ == "__main__":
     sys.exit(main())

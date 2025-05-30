@@ -6,8 +6,7 @@ def test_mock_api_generation():
     spec_data = load_api_specification("tests/fixtures/test_spec.json")
 
     output_dir = generate_mock_api(
-        spec_data=spec_data,
-        mock_server_name="test_api_mock"
+        spec_data=spec_data, mock_server_name="test_api_mock"
     )
 
     for _item in output_dir.iterdir():

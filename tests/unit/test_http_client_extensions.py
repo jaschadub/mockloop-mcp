@@ -26,7 +26,7 @@ async def test_http_client_extensions():
         result = await client.update_response(
             endpoint_path="/api/test",
             response_data={"message": "Updated response", "test": True},
-            method="GET"
+            method="GET",
         )
 
         # Verify expected structure
@@ -46,12 +46,11 @@ async def test_http_client_extensions():
                 "/api/users": {
                     "GET": {"status": 200, "data": [{"id": 1, "name": "Test User"}]}
                 }
-            }
+            },
         }
 
         result = await client.create_scenario(
-            scenario_name="test-scenario",
-            scenario_config=test_scenario_config
+            scenario_name="test-scenario", scenario_config=test_scenario_config
         )
 
         # Verify expected structure
@@ -97,7 +96,9 @@ async def test_mock_server_manager_integration():
     manager = MockServerManager()
 
     try:
-        servers = await manager.discover_running_servers(ports=[8000, 8001, 8002], check_health=False)
+        servers = await manager.discover_running_servers(
+            ports=[8000, 8001, 8002], check_health=False
+        )
         for _server in servers:
             pass
     except Exception:
@@ -140,18 +141,17 @@ def test_method_signatures():
 
     # Check that methods exist and are callable
     methods_to_check = [
-        'update_response',
-        'create_scenario',
-        'switch_scenario',
-        'list_scenarios',
-        'get_current_scenario'
+        "update_response",
+        "create_scenario",
+        "switch_scenario",
+        "list_scenarios",
+        "get_current_scenario",
     ]
 
     for method_name in methods_to_check:
         assert hasattr(client, method_name), f"Method {method_name} not found"
         method = getattr(client, method_name)
         assert callable(method), f"Method {method_name} is not callable"
-
 
 
 async def main():
@@ -168,7 +168,6 @@ async def main():
 
     # Test MockServerManager integration
     await test_mock_server_manager_integration()
-
 
 
 if __name__ == "__main__":

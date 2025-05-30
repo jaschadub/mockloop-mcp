@@ -6,14 +6,11 @@ def test_auth_mock_api_generation():
     spec_data = load_api_specification("tests/fixtures/test_spec.json")
 
     output_dir = generate_mock_api(
-        spec_data=spec_data,
-        mock_server_name="test_api_auth_mock",
-        auth_enabled=True
+        spec_data=spec_data, mock_server_name="test_api_auth_mock", auth_enabled=True
     )
 
     for _item in output_dir.iterdir():
         pass
-
 
 
 if __name__ == "__main__":

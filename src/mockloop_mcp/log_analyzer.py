@@ -1,6 +1,7 @@
 """
 Log analysis utilities for MockLoop servers.
 """
+
 from collections import Counter, defaultdict
 from datetime import datetime
 import logging
@@ -33,7 +34,7 @@ class LogAnalyzer:
             return {
                 "total_requests": 0,
                 "analysis_timestamp": datetime.now().isoformat(),
-                "error": "No logs provided for analysis"
+                "error": "No logs provided for analysis",
             }
 
         analysis = {
@@ -46,7 +47,7 @@ class LogAnalyzer:
             "performance": self._analyze_performance(logs),
             "errors": self._analyze_errors(logs),
             "patterns": self._detect_patterns(logs),
-            "insights": []
+            "insights": [],
         }
 
         # Generate insights based on analysis
@@ -62,12 +63,16 @@ class LogAnalyzer:
                 try:
                     # Handle different timestamp formats
                     timestamp_str = log["timestamp"]
-                    if 'T' in timestamp_str:
+                    if "T" in timestamp_str:
                         # ISO format
-                        timestamp = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
+                        timestamp = datetime.fromisoformat(
+                            timestamp_str.replace("Z", "+00:00")
+                        )
                     else:
                         # Try parsing as standard format
-                        timestamp = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S")
+                        timestamp = datetime.strptime(
+                            timestamp_str, "%Y-%m-%d %H:%M:%S"
+                        )
                     timestamps.append(timestamp)
                 except Exception as e:
                     logger.debug(f"Failed to parse timestamp '{timestamp_str}': {e}")
@@ -84,7 +89,7 @@ class LogAnalyzer:
             "latest": timestamps[-1].isoformat(),
             "duration_seconds": duration.total_seconds(),
             "duration_human": str(duration),
-            "total_entries": len(timestamps)
+            "total_entries": len(timestamps),
         }
 
     def _analyze_methods(self, logs: list[dict[str, Any]]) -> dict[str, Any]:
@@ -98,7 +103,7 @@ class LogAnalyzer:
                 method: round((count / total) * 100, 2)
                 for method, count in methods.items()
             },
-            "most_common": methods.most_common(1)[0] if methods else None
+            "most_common": methods.most_common(1)[0] if methods else None,
         }
 
     def _analyze_status_codes(self, logs: list[dict[str, Any]]) -> dict[str, Any]:
@@ -107,9 +112,15 @@ class LogAnalyzer:
         total = sum(status_codes.values())
 
         # Categorize status codes
-        success_codes = sum(count for code, count in status_codes.items() if 200 <= code < 300)
-        client_errors = sum(count for code, count in status_codes.items() if 400 <= code < 500)
-        server_errors = sum(count for code, count in status_codes.items() if 500 <= code < 600)
+        success_codes = sum(
+            count for code, count in status_codes.items() if 200 <= code < 300
+        )
+        client_errors = sum(
+            count for code, count in status_codes.items() if 400 <= code < 500
+        )
+        server_errors = sum(
+            count for code, count in status_codes.items() if 500 <= code < 600
+        )
 
         return {
             "distribution": dict(status_codes),
@@ -120,10 +131,12 @@ class LogAnalyzer:
             "categories": {
                 "success_2xx": success_codes,
                 "client_error_4xx": client_errors,
-                "server_error_5xx": server_errors
+                "server_error_5xx": server_errors,
             },
             "success_rate": round((success_codes / total) * 100, 2) if total > 0 else 0,
-            "error_rate": round(((client_errors + server_errors) / total) * 100, 2) if total > 0 else 0
+            "error_rate": round(((client_errors + server_errors) / total) * 100, 2)
+            if total > 0
+            else 0,
         }
 
     def _analyze_endpoints(self, logs: list[dict[str, Any]]) -> dict[str, Any]:
@@ -135,8 +148,8 @@ class LogAnalyzer:
         endpoint_patterns = defaultdict(int)
         for path, count in endpoints.items():
             # Simple pattern detection - replace numbers with {id}
-            pattern = re.sub(r'/\d+', '/{id}', path)
-            pattern = re.sub(r'/[a-f0-9-]{36}', '/{uuid}', pattern)  # UUIDs
+            pattern = re.sub(r"/\d+", "/{id}", path)
+            pattern = re.sub(r"/[a-f0-9-]{36}", "/{uuid}", pattern)  # UUIDs
             endpoint_patterns[pattern] += count
 
         return {
@@ -147,7 +160,7 @@ class LogAnalyzer:
             "percentages": {
                 path: round((count / total) * 100, 2)
                 for path, count in endpoints.most_common(10)
-            }
+            },
         }
 
     def _analyze_performance(self, logs: list[dict[str, Any]]) -> dict[str, Any]:
@@ -189,9 +202,9 @@ class LogAnalyzer:
             "performance_distribution": {
                 "fast_under_100ms": fast_requests,
                 "medium_100_500ms": medium_requests,
-                "slow_over_500ms": slow_requests
+                "slow_over_500ms": slow_requests,
             },
-            "total_measured": len(response_times)
+            "total_measured": len(response_times),
         }
 
     def _analyze_errors(self, logs: list[dict[str, Any]]) -> dict[str, Any]:
@@ -212,13 +225,19 @@ class LogAnalyzer:
             if log.get("timestamp"):
                 try:
                     timestamp_str = log["timestamp"]
-                    if 'T' in timestamp_str:
-                        timestamp = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
+                    if "T" in timestamp_str:
+                        timestamp = datetime.fromisoformat(
+                            timestamp_str.replace("Z", "+00:00")
+                        )
                     else:
-                        timestamp = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S")
+                        timestamp = datetime.strptime(
+                            timestamp_str, "%Y-%m-%d %H:%M:%S"
+                        )
                     error_times.append(timestamp)
                 except Exception as e:
-                    logger.debug(f"Failed to parse error timestamp '{timestamp_str}': {e}")
+                    logger.debug(
+                        f"Failed to parse error timestamp '{timestamp_str}': {e}"
+                    )
                     continue
 
         return {
@@ -227,10 +246,14 @@ class LogAnalyzer:
             "by_status_code": dict(error_codes),
             "by_endpoint": dict(error_endpoints.most_common(5)),
             "by_method": dict(error_methods),
-            "time_distribution": self._analyze_error_time_distribution(error_times) if error_times else {}
+            "time_distribution": self._analyze_error_time_distribution(error_times)
+            if error_times
+            else {},
         }
 
-    def _analyze_error_time_distribution(self, error_times: list[datetime]) -> dict[str, Any]:
+    def _analyze_error_time_distribution(
+        self, error_times: list[datetime]
+    ) -> dict[str, Any]:
         """Analyze when errors occur over time."""
         if not error_times:
             return {}
@@ -247,7 +270,9 @@ class LogAnalyzer:
             "first_error": error_times[0].isoformat(),
             "last_error": error_times[-1].isoformat(),
             "hourly_distribution": dict(hourly_errors),
-            "peak_error_hour": max(hourly_errors.items(), key=lambda x: x[1]) if hourly_errors else None
+            "peak_error_hour": max(hourly_errors.items(), key=lambda x: x[1])
+            if hourly_errors
+            else None,
         }
 
     def _detect_patterns(self, logs: list[dict[str, Any]]) -> dict[str, Any]:
@@ -255,33 +280,44 @@ class LogAnalyzer:
         patterns = {}
 
         # Detect potential bot traffic
-        user_agents = [log.get("headers", {}).get("user-agent", "") for log in logs if log.get("headers")]
+        user_agents = [
+            log.get("headers", {}).get("user-agent", "")
+            for log in logs
+            if log.get("headers")
+        ]
         bot_indicators = ["bot", "crawler", "spider", "scraper"]
         potential_bot_requests = sum(
-            1 for ua in user_agents
+            1
+            for ua in user_agents
             if any(indicator.lower() in ua.lower() for indicator in bot_indicators)
         )
 
         if potential_bot_requests > 0:
             patterns["potential_bot_traffic"] = {
                 "count": potential_bot_requests,
-                "percentage": round((potential_bot_requests / len(logs)) * 100, 2)
+                "percentage": round((potential_bot_requests / len(logs)) * 100, 2),
             }
 
         # Detect repeated requests from same client
         client_ips = Counter(log.get("client_host", "unknown") for log in logs)
-        high_volume_clients = {ip: count for ip, count in client_ips.items() if count > len(logs) * 0.1}
+        high_volume_clients = {
+            ip: count for ip, count in client_ips.items() if count > len(logs) * 0.1
+        }
 
         if high_volume_clients:
             patterns["high_volume_clients"] = high_volume_clients
 
         # Detect admin endpoint usage
-        admin_requests = [log for log in logs if log.get("path", "").startswith("/admin")]
+        admin_requests = [
+            log for log in logs if log.get("path", "").startswith("/admin")
+        ]
         if admin_requests:
             patterns["admin_usage"] = {
                 "count": len(admin_requests),
                 "percentage": round((len(admin_requests) / len(logs)) * 100, 2),
-                "unique_admin_endpoints": len({log.get("path") for log in admin_requests})
+                "unique_admin_endpoints": len(
+                    {log.get("path") for log in admin_requests}
+                ),
             }
 
         return patterns
@@ -295,7 +331,9 @@ class LogAnalyzer:
         if perf.get("average_ms", 0) > 1000:
             insights.append(f"⚠️ High average response time: {perf['average_ms']}ms")
         elif perf.get("average_ms", 0) < 50:
-            insights.append(f"✅ Excellent performance: {perf['average_ms']}ms average response time")
+            insights.append(
+                f"✅ Excellent performance: {perf['average_ms']}ms average response time"
+            )
 
         # Error rate insights
         status = analysis.get("status_codes", {})
@@ -310,7 +348,9 @@ class LogAnalyzer:
         if methods.get("most_common"):
             method, count = methods["most_common"]
             percentage = methods.get("percentages", {}).get(method, 0)
-            insights.append(f"📊 Most common method: {method} ({percentage}% of requests)")
+            insights.append(
+                f"📊 Most common method: {method} ({percentage}% of requests)"
+            )
 
         # Endpoint usage
         endpoints = analysis.get("endpoints", {})
@@ -322,7 +362,9 @@ class LogAnalyzer:
         patterns = analysis.get("patterns", {})
         if patterns.get("potential_bot_traffic"):
             bot_percentage = patterns["potential_bot_traffic"]["percentage"]
-            insights.append(f"🤖 Potential bot traffic detected: {bot_percentage}% of requests")
+            insights.append(
+                f"🤖 Potential bot traffic detected: {bot_percentage}% of requests"
+            )
 
         if patterns.get("high_volume_clients"):
             client_count = len(patterns["high_volume_clients"])
@@ -345,7 +387,7 @@ class LogAnalyzer:
         path_pattern: str | None = None,
         time_from: str | None = None,
         time_to: str | None = None,
-        include_admin: bool = True
+        include_admin: bool = True,
     ) -> list[dict[str, Any]]:
         """
         Filter logs based on various criteria.
@@ -366,19 +408,22 @@ class LogAnalyzer:
 
         # Filter by method
         if method:
-            filtered_logs = [log for log in filtered_logs if log.get("method") == method.upper()]
+            filtered_logs = [
+                log for log in filtered_logs if log.get("method") == method.upper()
+            ]
 
         # Filter by status code
         if status_code:
-            filtered_logs = [log for log in filtered_logs if log.get("status_code") == status_code]
+            filtered_logs = [
+                log for log in filtered_logs if log.get("status_code") == status_code
+            ]
 
         # Filter by path pattern
         if path_pattern:
             try:
                 pattern = re.compile(path_pattern)
                 filtered_logs = [
-                    log for log in filtered_logs
-                    if pattern.search(log.get("path", ""))
+                    log for log in filtered_logs if pattern.search(log.get("path", ""))
                 ]
             except re.error:
                 # Invalid regex, skip pattern filtering
@@ -393,18 +438,22 @@ class LogAnalyzer:
 
                 try:
                     timestamp_str = log["timestamp"]
-                    if 'T' in timestamp_str:
-                        log_time = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
+                    if "T" in timestamp_str:
+                        log_time = datetime.fromisoformat(
+                            timestamp_str.replace("Z", "+00:00")
+                        )
                     else:
                         log_time = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S")
 
                     if time_from:
-                        from_time = datetime.fromisoformat(time_from.replace('Z', '+00:00'))
+                        from_time = datetime.fromisoformat(
+                            time_from.replace("Z", "+00:00")
+                        )
                         if log_time < from_time:
                             continue
 
                     if time_to:
-                        to_time = datetime.fromisoformat(time_to.replace('Z', '+00:00'))
+                        to_time = datetime.fromisoformat(time_to.replace("Z", "+00:00"))
                         if log_time > to_time:
                             continue
 
@@ -418,7 +467,8 @@ class LogAnalyzer:
         # Filter admin requests
         if not include_admin:
             filtered_logs = [
-                log for log in filtered_logs
+                log
+                for log in filtered_logs
                 if not log.get("path", "").startswith("/admin")
             ]
 
@@ -440,10 +490,7 @@ def quick_analyze(logs: list[dict[str, Any]]) -> dict[str, Any]:
     return analyzer.analyze_logs(logs)
 
 
-def filter_and_analyze(
-    logs: list[dict[str, Any]],
-    **filter_kwargs
-) -> dict[str, Any]:
+def filter_and_analyze(logs: list[dict[str, Any]], **filter_kwargs) -> dict[str, Any]:
     """
     Filter logs and perform analysis.
 

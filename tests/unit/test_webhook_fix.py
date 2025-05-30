@@ -19,7 +19,6 @@ from mockloop_mcp.parser import load_api_specification
 async def test_webhook_functionality():
     """Test webhook functionality by generating a mock server and testing webhook registration."""
 
-
     # Use the existing test API spec
     spec_path = "test_api_spec.json"
 
@@ -35,9 +34,8 @@ async def test_webhook_functionality():
             auth_enabled=True,
             webhooks_enabled=True,
             admin_ui_enabled=True,
-            storage_enabled=True
+            storage_enabled=True,
         )
-
 
         # Check that the webhook handler was created
         webhook_handler_path = generated_path / "webhook_handler.py"
@@ -82,13 +80,14 @@ async def test_webhook_functionality():
         else:
             return False
 
-
         return True
 
     except Exception:
         import traceback
+
         traceback.print_exc()
         return False
+
 
 if __name__ == "__main__":
     success = asyncio.run(test_webhook_functionality())
