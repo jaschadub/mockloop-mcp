@@ -282,7 +282,7 @@ markers =
 
 ```bash
 # Install documentation dependencies
-pip install -e ".[docs]"
+pip install -r docs-requirements.txt
 
 # Serve documentation locally
 mkdocs serve
@@ -290,8 +290,8 @@ mkdocs serve
 # Build documentation
 mkdocs build
 
-# Deploy to GitHub Pages (maintainers only)
-mkdocs gh-deploy
+# Check for issues and broken links
+mkdocs build --strict
 ```
 
 #### Documentation Writing
@@ -300,12 +300,59 @@ mkdocs gh-deploy
 # Watch for changes and auto-reload
 mkdocs serve --dev-addr=0.0.0.0:8000
 
-# Check for broken links
+# Check for issues
 mkdocs build --strict
 
 # Generate API documentation
 python scripts/generate_api_docs.py
 ```
+
+#### GitHub Pages Deployment
+
+The documentation is automatically deployed to GitHub Pages using GitHub Actions. The workflow is triggered on:
+
+- **Push to main/master**: Automatically builds and deploys documentation
+- **Pull requests**: Builds documentation to check for errors (no deployment)
+- **Manual trigger**: Can be triggered manually from GitHub Actions tab
+
+##### Setting Up GitHub Pages
+
+1. **Enable GitHub Pages** in repository settings:
+   - Go to Settings → Pages
+   - Source: "GitHub Actions"
+   - No need to select a branch when using GitHub Actions
+
+2. **Workflow Configuration**: The workflow is defined in [`../.github/workflows/docs.yml`](../.github/workflows/docs.yml)
+
+3. **Automatic Deployment**:
+   ```bash
+   # Documentation is automatically deployed when you:
+   git push origin main  # Push to main branch
+   
+   # Or when a PR is merged that changes documentation files
+   ```
+
+4. **Manual Deployment** (if needed):
+   - Go to GitHub → Actions → "Build and Deploy Documentation"
+   - Click "Run workflow" → "Run workflow"
+
+##### Local Testing Before Deployment
+
+```bash
+# Test the exact build process used in CI
+pip install -r docs-requirements.txt
+mkdocs build --clean --strict
+
+# Serve the built site locally
+cd site && python -m http.server 8080
+```
+
+##### Troubleshooting Deployment
+
+- **Check GitHub Actions**: Go to Actions tab to see build logs
+- **Verify dependencies**: Ensure `docs-requirements.txt` includes all needed packages
+- **Test locally**: Always test `mkdocs build --strict` before pushing
+- **Check permissions**: Ensure repository has Pages and Actions enabled
 
 ## IDE Configuration
 

@@ -62,3 +62,4 @@ request_logs_backup*
 site/
 .mkdocs_cache/
 
+PYPI_DISTRIBUTION_PLAN.md
