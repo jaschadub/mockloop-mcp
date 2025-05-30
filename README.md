@@ -3,6 +3,8 @@
 
 `mockloop-mcp` is a comprehensive Model Context Protocol (MCP) server designed to generate and run sophisticated mock API servers from API documentation (e.g., OpenAPI/Swagger specifications). This allows developers and AI assistants to quickly spin up mock backends for development, testing, and integration purposes with advanced logging, dynamic response management, scenario testing, and comprehensive performance analytics.
 
+Docs: https://docs.mockloop.com
+
 ## Features
 
 ### Core Features
