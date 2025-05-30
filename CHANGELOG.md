@@ -22,15 +22,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.2.0] - 2025-05-30
 
 ### Added
-- Automated release workflow with GitHub Actions
-- Version bumping script for semantic versioning
-- Release preparation script for guided release process
-- Comprehensive changelog following Keep a Changelog format
+- GitHub Actions CI/CD pipeline for automated testing and PyPI publishing
+- Automated release workflow with PyPI trusted publishing
+- Comprehensive test matrix for Python 3.10, 3.11, and 3.12
+- Security scanning with ruff and bandit in CI pipeline
+- Code coverage reporting with Codecov integration
+- Package build validation and distribution checks
 
 ### Changed
-- Enhanced documentation with release process guidelines
+- Updated project version to 2.2.0 for major release
+- Enhanced release automation and deployment process
+- Improved development workflow with automated quality checks
 
-## [0.2.1] - 2025-05-30
+### Fixed
+- Version consistency across all project files
+- Configuration file formatting and validation
+
+## [0.1.0] - 2025-05-30
 
 ### Added
 - Initial release of MockLoop MCP server
@@ -60,5 +68,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [Unreleased]: https://github.com/mockloop/mockloop-mcp/compare/v2.2.0...HEAD
 [2.2.0]: https://github.com/mockloop/mockloop-mcp/releases/tag/v2.2.0
-v0.1.0...HEAD
 [0.1.0]: https://github.com/mockloop/mockloop-mcp/releases/tag/v0.1.0
