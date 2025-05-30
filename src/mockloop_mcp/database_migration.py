@@ -212,6 +212,11 @@ class DatabaseMigrator:
                         if sql_statement.strip().upper().startswith("ALTER TABLE"):
                             # Check if table exists before altering
                             table_name = sql_statement.split()[2]  # Extract table name
+
+                            # Validate table name to prevent SQL injection
+                            if not table_name.isidentifier():
+                                raise ValueError(f"Invalid table name: {table_name}")
+
                             cursor.execute(
                                 """
                                 SELECT name FROM sqlite_master
@@ -230,6 +235,12 @@ class DatabaseMigrator:
                                     .strip()
                                     .split()[0]
                                 )
+
+                                # Validate column name to prevent SQL injection
+                                if not column_name.isidentifier():
+                                    raise ValueError(f"Invalid column name: {column_name}")
+
+                                # Use safe PRAGMA query with validated table name
                                 cursor.execute(f"PRAGMA table_info({table_name})")
                                 existing_columns = {col[1] for col in cursor.fetchall()}
 
