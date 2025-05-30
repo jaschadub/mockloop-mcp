@@ -19,19 +19,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [2.2.2] - 2025-05-30
+
+### Security
+- Fixed critical SQL injection vulnerability in database migration module
+- Added input validation using `isidentifier()` for table and column names
+- Prevented malicious SQL injection through PRAGMA table_info queries
+- Added proper error handling for invalid database identifiers
+
 ## [2.2.1] - 2025-05-30
 
 ### Added
-
-### Changed
-
-### Deprecated
-
-### Removed
+- GitHub Actions CI/CD pipeline with comprehensive OIDC permissions
+- Workflow-level permissions for trusted publishing to PyPI
+- Tag-based release triggers for automated deployment
 
 ### Fixed
+- OIDC token permission issues in GitHub Actions workflows
+- pyproject.toml configuration errors for ruff, mypy, and pytest
+- Updated to current stable action versions (v4/v5)
+- Resolved TOML parse errors in CI/CD pipeline
 
 ### Security
+- Enhanced CI/CD security with proper permission scoping
 
 ## [2.2.0] - 2025-05-30
 
@@ -80,8 +90,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Integrated multiple security analysis tools (Bandit, Safety, Semgrep, pip-audit)
 - Configured secure coding practices and validation
 
-[Unreleased]: https://github.com/mockloop/mockloop-mcp/compare/v2.2.1...HEAD
+[Unreleased]: https://github.com/mockloop/mockloop-mcp/compare/v2.2.2...HEAD
+[2.2.2]: https://github.com/mockloop/mockloop-mcp/releases/tag/v2.2.2
 [2.2.1]: https://github.com/mockloop/mockloop-mcp/releases/tag/v2.2.1
-v2.2.0...HEAD
 [2.2.0]: https://github.com/mockloop/mockloop-mcp/releases/tag/v2.2.0
 [0.1.0]: https://github.com/mockloop/mockloop-mcp/releases/tag/v0.1.0
