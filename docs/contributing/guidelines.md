@@ -10,7 +10,56 @@ We welcome contributions from the community! Whether you're fixing bugs, adding 
 - **Development Process**: Workflow for contributing changes
 - **Pull Request Guidelines**: How to submit and review changes
 - **Issue Management**: Reporting bugs and requesting features
+- **PyPI Distribution**: Guidelines for package distribution
 - **Community Standards**: Code of conduct and communication
+
+## PyPI Distribution Guidelines
+
+MockLoop MCP is distributed via PyPI, which requires special attention to certain aspects:
+
+### Package Quality Standards
+
+- **Version Compatibility**: Ensure compatibility with supported Python versions (3.9+)
+- **Dependency Management**: Keep dependencies minimal and well-tested
+- **Documentation**: Maintain comprehensive documentation for PyPI users
+- **Testing**: Ensure all tests pass across supported environments
+- **Security**: Follow security best practices for package distribution
+
+### PyPI-Related Issues
+
+When reporting issues related to PyPI installation or distribution:
+
+1. **Installation Issues**: Use the [PyPI Installation Issue template](.github/ISSUE_TEMPLATE/pypi-installation.md)
+2. **Version Problems**: Include specific version numbers and Python environment details
+3. **Dependency Conflicts**: Provide complete pip freeze output
+4. **Distribution Issues**: Tag issues with `pypi` and `distribution` labels
+
+### Testing PyPI Changes
+
+Before submitting changes that affect PyPI distribution:
+
+```bash
+# Test local installation
+pip install -e .
+
+# Test package building
+python -m build
+
+# Test with different Python versions
+tox
+
+# Verify package metadata
+python setup.py check --metadata --strict
+```
+
+### Release Process Contributions
+
+Contributors can help with the release process by:
+
+- **Testing Release Candidates**: Install and test pre-release versions
+- **Documentation Updates**: Ensure documentation reflects latest changes
+- **Changelog Maintenance**: Help maintain accurate changelog entries
+- **Version Testing**: Test across different Python versions and platforms
 
 ## Code Standards
 

@@ -1,0 +1,212 @@
+name: 🐛 Bug Report
+description: Report a bug or unexpected behavior in MockLoop MCP
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill out the information below to help us diagnose and fix the issue.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      description: Please verify these items before submitting your bug report
+      options:
+        - label: I have searched existing issues to ensure this bug hasn't been reported already
+          required: true
+        - label: I have read the documentation and troubleshooting guides
+          required: true
+        - label: I can reproduce this issue consistently
+          required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is
+      placeholder: Describe what happened and what you expected to happen
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Detailed steps to reproduce the behavior
+      placeholder: |
+        1. Install mockloop-mcp with `pip install mockloop-mcp`
+        2. Run command `mockloop-mcp generate-mock spec.json`
+        3. See error...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What you expected to happen
+      placeholder: Describe the expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened
+      placeholder: Describe what actually happened instead
+    validations:
+      required: true
+
+  - type: dropdown
+    id: installation
+    attributes:
+      label: Installation Method
+      description: How did you install MockLoop MCP?
+      options:
+        - PyPI (pip install mockloop-mcp)
+        - TestPyPI (pip install --index-url https://test.pypi.org/simple/ mockloop-mcp)
+        - Source (git clone + pip install -e .)
+        - Docker
+        - Other (please specify in additional context)
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: MockLoop MCP Version
+      description: What version of MockLoop MCP are you using?
+      placeholder: "e.g., 1.2.0 (run `mockloop-mcp --version` to check)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: python-version
+    attributes:
+      label: Python Version
+      description: What version of Python are you using?
+      options:
+        - "3.10"
+        - "3.11"
+        - "3.12"
+        - "Other (please specify in additional context)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      description: What operating system are you using?
+      options:
+        - Ubuntu/Debian
+        - CentOS/RHEL/Fedora
+        - macOS
+        - Windows
+        - Docker Container
+        - Other (please specify in additional context)
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment Details
+      description: Additional environment information
+      placeholder: |
+        - OS Version: Ubuntu 22.04
+        - Python Implementation: CPython
+        - Virtual Environment: venv/conda/poetry
+        - Docker Version (if applicable):
+        - Any relevant environment variables:
+    validations:
+      required: false
+
+  - type: textarea
+    id: error-output
+    attributes:
+      label: Error Output
+      description: Full error message, stack trace, or log output
+      placeholder: Paste the complete error message or log output here
+      render: text
+    validations:
+      required: false
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Configuration
+      description: Relevant configuration files or settings
+      placeholder: |
+        Share any relevant configuration:
+        - API specification files
+        - Environment variables
+        - Command line arguments used
+        - Configuration files
+      render: yaml
+    validations:
+      required: false
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: Workaround
+      description: Have you found any workaround for this issue?
+      placeholder: Describe any temporary solutions or workarounds you've discovered
+    validations:
+      required: false
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Bug Severity
+      description: How severe is this bug?
+      options:
+        - Critical (Application crashes, data loss, security vulnerability)
+        - High (Major functionality broken, significant impact)
+        - Medium (Feature not working as expected, moderate impact)
+        - Low (Minor issue, cosmetic problem, or enhancement)
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: installation-issues
+    attributes:
+      label: Installation-Related Issues
+      description: Check any that apply to your issue
+      options:
+        - label: Issue occurs during pip installation
+        - label: Issue with package dependencies
+        - label: Issue with CLI command not found after installation
+        - label: Issue with importing the package in Python
+        - label: Issue with specific Python version compatibility
+        - label: Issue with Docker installation/container
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Any other context about the problem
+      placeholder: |
+        Add any other context about the problem here:
+        - Screenshots (if applicable)
+        - Related issues or discussions
+        - Recent changes to your environment
+        - Anything else that might be relevant
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      description: Would you like to help fix this issue?
+      options:
+        - label: I would like to work on fixing this bug
+        - label: I can provide additional testing or feedback
+        - label: I can help with documentation updates related to this issue

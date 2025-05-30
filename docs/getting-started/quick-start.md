@@ -5,28 +5,29 @@ Get up and running with MockLoop MCP in just a few minutes! This guide will walk
 ## Prerequisites
 
 Before starting, ensure you have:
-- ✅ [Installed MockLoop MCP](installation.md)
+- ✅ [Installed MockLoop MCP from PyPI](installation.md)
 - ✅ An MCP client configured (Cline or Claude Desktop)
 - ✅ A sample OpenAPI specification (we'll provide one)
 
-## Step 1: Start the MCP Server
+## Step 1: Install MockLoop MCP
 
-First, start the MockLoop MCP server:
+If you haven't already, install MockLoop MCP from PyPI:
 
 ```bash
-# Navigate to your MockLoop MCP directory
-cd mockloop-mcp
+# Create and activate virtual environment (recommended)
+python3 -m venv mockloop-env
+source mockloop-env/bin/activate  # On Windows: mockloop-env\Scripts\activate
 
-# Activate virtual environment
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+# Install MockLoop MCP
+pip install mockloop-mcp
 
-# Start the MCP server
-mcp dev src/mockloop_mcp/main.py
+# Verify installation
+mockloop-mcp --version
 ```
 
-You should see output indicating the server is running and ready to accept connections.
+## Step 2: Configure Your MCP Client
 
-## Step 2: Connect Your MCP Client
+The MockLoop MCP server runs automatically when configured with your MCP client. No manual server startup is required.
 
 ### Using Cline (VS Code Extension)
 
@@ -40,10 +41,24 @@ You should see output indicating the server is running and ready to accept conne
       "autoApprove": [],
       "disabled": false,
       "timeout": 60,
-      "command": "/path/to/your/mockloop-mcp/.venv/bin/python",
-      "args": [
-        "/path/to/your/mockloop-mcp/src/mockloop_mcp/main.py"
-      ],
+      "command": "mockloop-mcp",
+      "args": [],
+      "transportType": "stdio"
+    }
+  }
+}
+```
+
+**Alternative for virtual environment:**
+```json
+{
+  "mcpServers": {
+    "MockLoopLocal": {
+      "autoApprove": [],
+      "disabled": false,
+      "timeout": 60,
+      "command": "/path/to/your/mockloop-env/bin/python",
+      "args": ["-m", "mockloop_mcp"],
       "transportType": "stdio"
     }
   }
@@ -60,8 +75,20 @@ Add the following to your Claude Desktop configuration file:
 {
   "mcpServers": {
     "mockloop": {
-      "command": "/path/to/your/mockloop-mcp/.venv/bin/python",
-      "args": ["/path/to/your/mockloop-mcp/src/mockloop_mcp/main.py"]
+      "command": "mockloop-mcp",
+      "args": []
+    }
+  }
+}
+```
+
+**Alternative for virtual environment:**
+```json
+{
+  "mcpServers": {
+    "mockloop": {
+      "command": "/path/to/your/mockloop-env/bin/python",
+      "args": ["-m", "mockloop_mcp"]
     }
   }
 }

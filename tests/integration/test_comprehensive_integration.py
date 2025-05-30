@@ -18,13 +18,13 @@ import requests
 from datetime import datetime
 
 # Add the src directory to the path
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
 from mockloop_mcp.generator import generate_mock_api
 from mockloop_mcp.database_migration import DatabaseMigrator, get_database_status
 from mockloop_mcp.main import (
-    generate_mock_api_tool, 
-    query_mock_logs_tool, 
+    generate_mock_api_tool,
+    query_mock_logs_tool,
     discover_mock_servers_tool,
     manage_mock_data_tool
 )

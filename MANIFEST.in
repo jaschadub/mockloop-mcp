@@ -1,0 +1,47 @@
+# Include essential files
+include README.md
+include LICENSE
+include pyproject.toml
+include requirements.txt
+
+# Include source code and templates
+recursive-include src *.py
+recursive-include src/mockloop_mcp/templates *.j2
+
+# Include documentation
+recursive-include docs *.md
+recursive-include docs *.yml
+recursive-include docs *.css
+include docs/.nojekyll
+include docs/CNAME
+
+# Exclude development and test files
+exclude .gitignore
+exclude *.py
+exclude test_*.py
+exclude test_*.json
+exclude fix_database.py
+exclude generate_mock.py
+exclude generator.py
+exclude main.py
+exclude parser.py
+exclude uv.lock
+exclude docs-requirements.txt
+exclude mkdocs.yml
+exclude favicon.ico
+exclude logo.png
+
+# Exclude development directories and files
+recursive-exclude tests *
+recursive-exclude generated_mocks *
+recursive-exclude memory-bank *
+recursive-exclude site *
+recursive-exclude templates *
+recursive-exclude .github *
+exclude *.db
+exclude *_backup_*.db
+
+# Exclude development configuration files
+exclude ENHANCEMENT_PLAN.md
+exclude PHASE*.md
+exclude PYPI_DISTRIBUTION_PLAN.md

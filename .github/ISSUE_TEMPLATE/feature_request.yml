@@ -1,0 +1,276 @@
+name: 🚀 Feature Request
+description: Suggest a new feature or enhancement for MockLoop MCP
+title: "[Feature]: "
+labels: ["enhancement", "needs-triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a new feature! Please provide as much detail as possible to help us understand and evaluate your request.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      description: Please verify these items before submitting your feature request
+      options:
+        - label: I have searched existing issues and discussions to ensure this feature hasn't been requested already
+          required: true
+        - label: I have read the documentation and roadmap
+          required: true
+        - label: This feature would benefit the broader MockLoop MCP community
+          required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Feature Summary
+      description: A clear and concise description of the feature you'd like to see
+      placeholder: Briefly describe the feature you're requesting
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Feature Category
+      description: What category does this feature fall into?
+      options:
+        - Core Functionality (Mock server generation, API handling)
+        - MCP Tools (New tools or tool enhancements)
+        - Authentication & Security
+        - Database & Storage
+        - Performance & Optimization
+        - Developer Experience (CLI, documentation, debugging)
+        - Integration (Docker, CI/CD, external services)
+        - Admin Interface & Management
+        - Logging & Monitoring
+        - Configuration & Customization
+        - Other (please specify in description)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority Level
+      description: How important is this feature to you?
+      options:
+        - Critical (Blocking current work, essential for adoption)
+        - High (Important for productivity, significant value)
+        - Medium (Nice to have, moderate value)
+        - Low (Minor improvement, convenience feature)
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What problem does this feature solve?
+      placeholder: |
+        Describe the problem or limitation you're experiencing:
+        - What are you trying to accomplish?
+        - What obstacles are you facing?
+        - How does this impact your workflow?
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe your ideal solution
+      placeholder: |
+        Describe how you envision this feature working:
+        - What would the user interface look like?
+        - How would users interact with this feature?
+        - What would the expected behavior be?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternative Solutions
+      description: Have you considered any alternative approaches?
+      placeholder: |
+        Describe any alternative solutions or workarounds you've considered:
+        - Other ways to solve the same problem
+        - Existing tools or features that partially address this
+        - Why those alternatives aren't sufficient
+    validations:
+      required: false
+
+  - type: textarea
+    id: use-cases
+    attributes:
+      label: Use Cases
+      description: Provide specific use cases for this feature
+      placeholder: |
+        Describe specific scenarios where this feature would be useful:
+        
+        **Use Case 1:**
+        - Context: [When would this be used?]
+        - Action: [What would the user do?]
+        - Outcome: [What would be the result?]
+        
+        **Use Case 2:**
+        - Context: [Another scenario]
+        - Action: [User action]
+        - Outcome: [Expected result]
+    validations:
+      required: true
+
+  - type: textarea
+    id: examples
+    attributes:
+      label: Examples & Mockups
+      description: Provide examples, code snippets, or mockups
+      placeholder: |
+        Show examples of how this feature might work:
+        
+        ```bash
+        # Example CLI usage
+        mockloop-mcp new-feature --option value
+        ```
+        
+        ```python
+        # Example API usage
+        from mockloop_mcp import new_feature
+        result = new_feature.do_something()
+        ```
+        
+        Or describe UI mockups, configuration examples, etc.
+      render: markdown
+    validations:
+      required: false
+
+  - type: dropdown
+    id: complexity
+    attributes:
+      label: Implementation Complexity
+      description: How complex do you think this feature would be to implement?
+      options:
+        - Simple (Small change, minimal impact)
+        - Moderate (Medium-sized feature, some complexity)
+        - Complex (Large feature, significant development effort)
+        - Major (Architectural changes, extensive development)
+        - Unknown (Not sure about complexity)
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: components
+    attributes:
+      label: Affected Components
+      description: Which parts of MockLoop MCP would this feature affect?
+      options:
+        - label: Core mock server generation
+        - label: MCP tools and resources
+        - label: CLI interface
+        - label: Admin API
+        - label: Database schema
+        - label: Authentication system
+        - label: Configuration system
+        - label: Docker integration
+        - label: Documentation
+        - label: Testing infrastructure
+        - label: Performance/monitoring
+        - label: Security features
+
+  - type: textarea
+    id: benefits
+    attributes:
+      label: Benefits & Impact
+      description: What benefits would this feature provide?
+      placeholder: |
+        Describe the positive impact this feature would have:
+        - Who would benefit from this feature?
+        - How would it improve the user experience?
+        - What new capabilities would it enable?
+        - How would it affect adoption or productivity?
+    validations:
+      required: true
+
+  - type: textarea
+    id: considerations
+    attributes:
+      label: Technical Considerations
+      description: Any technical considerations or constraints?
+      placeholder: |
+        Consider technical aspects:
+        - Backward compatibility requirements
+        - Performance implications
+        - Security considerations
+        - Integration with existing features
+        - Potential breaking changes
+        - Dependencies on external services
+    validations:
+      required: false
+
+  - type: dropdown
+    id: breaking-changes
+    attributes:
+      label: Breaking Changes
+      description: Would this feature require breaking changes?
+      options:
+        - No breaking changes expected
+        - Minor breaking changes (with migration path)
+        - Major breaking changes required
+        - Unknown/needs investigation
+    validations:
+      required: false
+
+  - type: textarea
+    id: migration
+    attributes:
+      label: Migration Strategy
+      description: If breaking changes are needed, how should migration be handled?
+      placeholder: |
+        If this feature requires breaking changes:
+        - What would the migration path look like?
+        - How can we minimize user impact?
+        - What deprecation timeline would be appropriate?
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: related-features
+    attributes:
+      label: Related Features
+      description: Are there related features that should be considered together?
+      options:
+        - label: This feature depends on other planned features
+        - label: This feature enables other potential features
+        - label: This feature conflicts with existing functionality
+        - label: This feature should be part of a larger feature set
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Any other context or information
+      placeholder: |
+        Add any other context about the feature request:
+        - Links to related discussions or issues
+        - References to similar features in other tools
+        - Community feedback or requests
+        - Timeline considerations
+        - Screenshots or diagrams (if applicable)
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      description: Would you like to help implement this feature?
+      options:
+        - label: I would like to work on implementing this feature
+        - label: I can help with design and specification
+        - label: I can provide testing and feedback
+        - label: I can help with documentation
+        - label: I can help with community discussion and requirements gathering

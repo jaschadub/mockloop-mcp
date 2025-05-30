@@ -20,7 +20,42 @@ You'll need an MCP client to interact with MockLoop MCP. Supported clients inclu
 
 ## Installation Methods
 
-### Method 1: From Source (Recommended)
+### Method 1: From PyPI (Recommended)
+
+The easiest way to install MockLoop MCP is from PyPI:
+
+```bash
+# Install the latest stable version
+pip install mockloop-mcp
+
+# Or install with specific version
+pip install mockloop-mcp==2.1.0
+
+# Install with optional dependencies
+pip install mockloop-mcp[dev]  # Development tools
+pip install mockloop-mcp[docs]  # Documentation tools
+pip install mockloop-mcp[all]  # All optional dependencies
+```
+
+#### Virtual Environment (Recommended)
+
+For better dependency management, use a virtual environment:
+
+```bash
+# Create virtual environment
+python3 -m venv mockloop-env
+source mockloop-env/bin/activate  # On Windows: mockloop-env\Scripts\activate
+
+# Install MockLoop MCP
+pip install mockloop-mcp
+
+# Verify installation
+mockloop-mcp --version
+```
+
+### Method 2: Development Installation
+
+For contributors or advanced users who want the latest development version:
 
 1. **Clone the Repository**
    ```bash
@@ -34,18 +69,25 @@ You'll need an MCP client to interact with MockLoop MCP. Supported clients inclu
    source .venv/bin/activate  # On Windows: .venv\Scripts\activate
    ```
 
-3. **Install Dependencies**
+3. **Install in Development Mode**
    ```bash
-   pip install -r requirements.txt
+   pip install -e ".[dev,test,docs]"
    ```
 
-### Method 2: Using pip (Future Release)
+### Method 3: Using pipx (Isolated Installation)
 
-!!! note "Coming Soon"
-    MockLoop MCP will be available on PyPI in future releases:
-    ```bash
-    pip install mockloop-mcp
-    ```
+For system-wide installation without affecting other Python packages:
+
+```bash
+# Install pipx if not already installed
+pip install pipx
+
+# Install MockLoop MCP with pipx
+pipx install mockloop-mcp
+
+# Run directly
+mockloop-mcp --version
+```
 
 ## Dependencies
 
@@ -75,17 +117,35 @@ After installation, verify that MockLoop MCP is working correctly:
    # Should show Python 3.9 or higher
    ```
 
-2. **Verify Dependencies**
+2. **Verify MockLoop MCP Installation**
    ```bash
-   pip list | grep -E "(fastapi|uvicorn|mcp)"
+   # Check if MockLoop MCP is installed
+   pip show mockloop-mcp
+   
+   # Check version
+   mockloop-mcp --version
    ```
 
-3. **Test MCP Server**
+3. **Verify Dependencies**
    ```bash
+   pip list | grep -E "(fastapi|uvicorn|mcp|mockloop)"
+   ```
+
+4. **Test MCP Server**
+   ```bash
+   # For PyPI installation
+   mockloop-mcp --help
+   
+   # For development installation
    mcp dev src/mockloop_mcp/main.py
    ```
 
-   You should see output indicating the MCP server is running.
+5. **Test Python Import**
+   ```bash
+   python -c "import mockloop_mcp; print('MockLoop MCP imported successfully')"
+   ```
+
+   You should see output indicating successful import and MCP server availability.
 
 ## Docker Setup (Optional)
 
@@ -123,6 +183,96 @@ pip install mkdocs mkdocs-material mkdocstrings[python]
 ```
 
 ## Troubleshooting
+
+### PyPI Installation Issues
+
+#### Package Not Found
+If you get "No matching distribution found":
+```bash
+# Update pip to latest version
+pip install --upgrade pip
+
+# Check if package exists
+pip search mockloop-mcp
+
+# Try with explicit index
+pip install --index-url https://pypi.org/simple/ mockloop-mcp
+```
+
+#### Version Conflicts
+If you encounter dependency conflicts:
+```bash
+# Check installed packages
+pip list | grep mockloop
+
+# Uninstall and reinstall
+pip uninstall mockloop-mcp
+pip install mockloop-mcp
+
+# Use dependency resolver
+pip install --upgrade --force-reinstall mockloop-mcp
+```
+
+#### SSL Certificate Issues
+If you encounter SSL errors:
+```bash
+# Upgrade certificates (macOS)
+/Applications/Python\ 3.x/Install\ Certificates.command
+
+# Use trusted hosts (temporary fix)
+pip install --trusted-host pypi.org --trusted-host pypi.python.org mockloop-mcp
+
+# Update pip and certificates
+pip install --upgrade pip certifi
+```
+
+#### Network/Proxy Issues
+If installation fails due to network issues:
+```bash
+# Use proxy
+pip install --proxy http://user:password@proxy.server:port mockloop-mcp
+
+# Use different index
+pip install -i https://pypi.python.org/simple/ mockloop-mcp
+
+# Increase timeout
+pip install --timeout 60 mockloop-mcp
+```
+
+#### Import Errors After Installation
+If you can install but can't import:
+```bash
+# Check installation location
+pip show mockloop-mcp
+
+# Verify Python path
+python -c "import sys; print('\n'.join(sys.path))"
+
+# Reinstall in current environment
+pip uninstall mockloop-mcp
+pip install mockloop-mcp
+
+# Check for conflicting installations
+pip list | grep mockloop
+```
+
+### Installation Verification
+
+After PyPI installation, verify everything works:
+
+```bash
+# Check MockLoop MCP version
+mockloop-mcp --version
+
+# Test MCP server startup
+mockloop-mcp --help
+
+# Verify Python can import the package
+python -c "import mockloop_mcp; print('Installation successful!')"
+
+# Check available tools
+python -c "from mockloop_mcp.main import main; print('MCP tools available')"
+```
 
 ### Common Issues
 

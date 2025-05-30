@@ -1,0 +1,107 @@
+version: 2
+updates:
+  # Python dependencies
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "jascha"
+    assignees:
+      - "jascha"
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps-dev"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "python"
+    allow:
+      - dependency-type: "direct"
+      - dependency-type: "indirect"
+    ignore:
+      # Ignore major version updates for stable dependencies
+      - dependency-name: "fastapi"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "uvicorn"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "pytest"
+        update-types: ["version-update:semver-major"]
+    groups:
+      # Group FastAPI ecosystem updates
+      fastapi:
+        patterns:
+          - "fastapi*"
+          - "uvicorn*"
+          - "starlette*"
+      # Group testing dependencies
+      testing:
+        patterns:
+          - "pytest*"
+          - "*test*"
+      # Group linting and formatting tools
+      dev-tools:
+        patterns:
+          - "black"
+          - "ruff"
+          - "mypy"
+          - "bandit"
+          - "pre-commit"
+          - "isort"
+      # Group security tools
+      security:
+        patterns:
+          - "safety"
+          - "bandit"
+          - "pip-audit"
+          - "semgrep"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "jascha"
+    assignees:
+      - "jascha"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "github-actions"
+      - "ci"
+    groups:
+      # Group GitHub Actions updates
+      actions:
+        patterns:
+          - "*"
+
+  # Docker dependencies (if we add Dockerfile later)
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "jascha"
+    assignees:
+      - "jascha"
+    commit-message:
+      prefix: "docker"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "docker"

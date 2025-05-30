@@ -4,7 +4,7 @@ from src.mockloop_mcp.generator import generate_mock_api
 
 def test_auth_mock_api_generation():
     print("Loading API specification from test_spec.json...")
-    spec_data = load_api_specification("test_spec.json")
+    spec_data = load_api_specification("tests/fixtures/test_spec.json")
     
     print("Generating mock API server with authentication...")
     output_dir = generate_mock_api(

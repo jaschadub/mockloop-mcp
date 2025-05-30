@@ -1,0 +1,134 @@
+repos:
+  # Code formatting
+  - repo: https://github.com/psf/black
+    rev: 24.3.0
+    hooks:
+      - id: black
+        language_version: python3
+        args: [--line-length=88]
+
+  # Import sorting
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: [--profile=black, --line-length=88]
+
+  # Linting and code quality
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.3.4
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+
+  # Type checking
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.9.0
+    hooks:
+      - id: mypy
+        additional_dependencies: [types-PyYAML, types-requests]
+        args: [--ignore-missing-imports]
+        exclude: ^(src/mockloop_mcp/templates/|tests/fixtures/)
+
+  # Security scanning
+  - repo: https://github.com/pycqa/bandit
+    rev: 1.7.8
+    hooks:
+      - id: bandit
+        args: [-r, src/, -ll]
+        exclude: ^tests/
+
+  # Dependency vulnerability checks
+  - repo: https://github.com/Lucas-C/pre-commit-hooks-safety
+    rev: v1.3.2
+    hooks:
+      - id: python-safety-dependencies-check
+        args: [--short-report]
+
+  # General file cleanup
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: ^(.*\.md|.*\.txt)$
+      - id: end-of-file-fixer
+        exclude: ^(.*\.md|.*\.txt)$
+      - id: check-yaml
+        args: [--unsafe]
+      - id: check-toml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+      - id: debug-statements
+      - id: check-docstring-first
+      - id: check-case-conflict
+      - id: check-executables-have-shebangs
+      - id: check-shebang-scripts-are-executable
+
+  # Python-specific checks
+  - repo: https://github.com/pre-commit/pygrep-hooks
+    rev: v1.10.0
+    hooks:
+      - id: python-check-blanket-noqa
+      - id: python-check-blanket-type-ignore
+      - id: python-no-log-warn
+      - id: python-use-type-annotations
+      - id: rst-backticks
+      - id: rst-directive-colons
+      - id: rst-inline-touching-normal
+
+  # Documentation checks
+  - repo: https://github.com/pycqa/doc8
+    rev: v1.1.1
+    hooks:
+      - id: doc8
+        args: [--max-line-length=88]
+        files: \.rst$
+
+  # Secrets detection
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        args: [--baseline, .secrets.baseline]
+        exclude: ^(tests/fixtures/|\.secrets\.baseline)$
+
+# Configuration for pre-commit
+default_language_version:
+  python: python3.11
+
+# Global excludes
+exclude: |
+  (?x)^(
+    \.git/|
+    \.venv/|
+    venv/|
+    __pycache__/|
+    \.pytest_cache/|
+    \.mypy_cache/|
+    \.ruff_cache/|
+    build/|
+    dist/|
+    .*\.egg-info/|
+    htmlcov/|
+    \.coverage|
+    coverage\.xml|
+    .*\.log|
+    .*\.pyc|
+    .*\.pyo
+  )$
+
+# CI configuration
+ci:
+  autofix_commit_msg: |
+    [pre-commit.ci] auto fixes from pre-commit.com hooks
+
+    for more information, see https://pre-commit.ci
+  autofix_prs: true
+  autoupdate_branch: ''
+  autoupdate_commit_msg: '[pre-commit.ci] pre-commit autoupdate'
+  autoupdate_schedule: weekly
+  skip: [python-safety-dependencies-check]  # Skip safety in CI due to API limits
+  submodules: false

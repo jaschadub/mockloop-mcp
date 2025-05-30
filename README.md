@@ -1,9 +1,19 @@
 ![MockLoop](logo.png "MockLoop")
-# MCP Server (`mockloop-mcp`)
+
+# MockLoop MCP
+
+[![PyPI version](https://img.shields.io/pypi/v/mockloop-mcp.svg)](https://pypi.org/project/mockloop-mcp/)
+[![Python versions](https://img.shields.io/pypi/pyversions/mockloop-mcp.svg)](https://pypi.org/project/mockloop-mcp/)
+[![Downloads](https://img.shields.io/pypi/dm/mockloop-mcp.svg)](https://pypi.org/project/mockloop-mcp/)
+[![License](https://img.shields.io/pypi/l/mockloop-mcp.svg)](https://github.com/mockloop/mockloop-mcp/blob/main/LICENSE)
+[![Tests](https://github.com/mockloop/mockloop-mcp/workflows/Tests/badge.svg)](https://github.com/mockloop/mockloop-mcp/actions)
+[![Documentation](https://img.shields.io/badge/docs-available-brightgreen.svg)](https://docs.mockloop.com)
 
 `mockloop-mcp` is a comprehensive Model Context Protocol (MCP) server designed to generate and run sophisticated mock API servers from API documentation (e.g., OpenAPI/Swagger specifications). This allows developers and AI assistants to quickly spin up mock backends for development, testing, and integration purposes with advanced logging, dynamic response management, scenario testing, and comprehensive performance analytics.
 
-Docs: https://docs.mockloop.com
+**📚 Documentation:** https://docs.mockloop.com
+**📦 PyPI Package:** https://pypi.org/project/mockloop-mcp/
+**🐙 GitHub Repository:** https://github.com/mockloop/mockloop-mcp
 
 ## Features
 
@@ -21,21 +31,55 @@ Docs: https://docs.mockloop.com
 *   **🎯 Smart Filtering:** Advanced log filtering by method, path patterns, time ranges, and custom criteria.
 *   **📈 Insights Generation:** Automated analysis with actionable recommendations for debugging and optimization.
 
+## Quick Start
+
+Get started with MockLoop MCP in just a few steps:
+
+```bash
+# 1. Install from PyPI
+pip install mockloop-mcp
+
+# 2. Verify installation
+mockloop-mcp --version
+
+# 3. Configure with your MCP client (Cline, Claude Desktop, etc.)
+# See configuration examples below
+```
+
+That's it! MockLoop MCP is ready to generate mock servers from any OpenAPI specification.
+
 ## Getting Started
 
 ### Prerequisites
 
-*   Python 3.9+
+*   Python 3.10+
 *   Pip
 *   Docker and Docker Compose (for running generated mocks in containers)
 *   An MCP client capable of interacting with this server.
 
-### Installation & Setup (for `mockloop-mcp` server)
+### Installation
 
-1.  **Clone the repository (if applicable):**
+#### Option 1: Install from PyPI (Recommended)
+
+```bash
+# Install the latest stable version
+pip install mockloop-mcp
+
+# Or install with optional dependencies
+pip install mockloop-mcp[dev]  # Development tools
+pip install mockloop-mcp[docs]  # Documentation tools
+pip install mockloop-mcp[all]  # All optional dependencies
+
+# Verify installation
+mockloop-mcp --version
+```
+
+#### Option 2: Development Installation
+
+1.  **Clone the repository:**
     ```bash
-    # git clone <repository-url>
-    # cd mockloop-mcp
+    git clone https://github.com/mockloop/mockloop-mcp.git
+    cd mockloop-mcp
     ```
 
 2.  **Create and activate a Python virtual environment:**
@@ -45,33 +89,36 @@ Docs: https://docs.mockloop.com
     # On Windows: .venv\Scripts\activate
     ```
 
-3.  **Install dependencies:**
+3.  **Install in development mode:**
     ```bash
-    pip install -r requirements.txt
+    pip install -e ".[dev]"
     ```
-    
-    **Dependencies include:**
-    - Core: `fastapi`, `uvicorn`, `Jinja2`, `PyYAML`, `requests`
-    - Enhanced: `aiohttp` (for async HTTP client functionality)
-    - MCP: `mcp[cli]` (Model Context Protocol SDK)
 
-4.  **Run the MCP Server (Development Mode):**
-    The recommended way to run the server during development is using the `mcp` CLI:
-    ```bash
-    # Ensure your virtual environment is active
-    # source .venv/bin/activate
-    mcp dev src/mockloop_mcp/main.py
-    ```
-    This will start the MockLoop MCP server, and you can interact with it using tools like the MCP Inspector or Claude Desktop.
+### Setup & Configuration
 
-5.  **Run the MCP Server (Standalone/Production):**
-    For direct execution or custom deployments:
-    ```bash
-    # Ensure your virtual environment is active
-    mcp run src/mockloop_mcp/main.py
-    # Or, if you've structured main.py to call mcp_server.run() in __main__:
-    # python src/mockloop_mcp/main.py 
-    ```
+**Dependencies include:**
+- Core: `fastapi`, `uvicorn`, `Jinja2`, `PyYAML`, `requests`, `aiohttp`
+- MCP: `mcp[cli]` (Model Context Protocol SDK)
+
+#### Running the MCP Server
+
+**Development Mode:**
+```bash
+# If installed from PyPI
+mockloop-mcp
+
+# If using development installation
+mcp dev src/mockloop_mcp/main.py
+```
+
+**Production Mode:**
+```bash
+# If installed from PyPI
+mockloop-mcp
+
+# If using development installation
+mcp run src/mockloop_mcp/main.py
+```
 
 ### Configuring MCP Clients
 
@@ -88,17 +135,29 @@ Add the following to your Cline MCP settings file (typically located at `~/.conf
       "autoApprove": [],
       "disabled": false,
       "timeout": 60,
-      "command": "/path/to/your/mockloop-mcp/.venv/bin/python",
-      "args": [
-        "/path/to/your/mockloop-mcp/src/mockloop_mcp/main.py"
-      ],
+      "command": "mockloop-mcp",
+      "args": [],
       "transportType": "stdio"
     }
   }
 }
 ```
 
-**Important:** Replace `/path/to/your/mockloop-mcp/` with the actual path to your MockLoop MCP installation.
+**For virtual environment installations:**
+```json
+{
+  "mcpServers": {
+    "MockLoopLocal": {
+      "autoApprove": [],
+      "disabled": false,
+      "timeout": 60,
+      "command": "/path/to/your/venv/bin/python",
+      "args": ["-m", "mockloop_mcp"],
+      "transportType": "stdio"
+    }
+  }
+}
+```
 
 #### Claude Desktop
 
@@ -108,12 +167,28 @@ Add the following to your Claude Desktop configuration file:
 {
   "mcpServers": {
     "mockloop": {
-      "command": "/path/to/your/mockloop-mcp/.venv/bin/python",
-      "args": ["/path/to/your/mockloop-mcp/src/mockloop_mcp/main.py"]
+      "command": "mockloop-mcp",
+      "args": []
     }
   }
 }
 ```
+
+**For virtual environment installations:**
+```json
+{
+  "mcpServers": {
+    "mockloop": {
+      "command": "/path/to/your/venv/bin/python",
+      "args": ["-m", "mockloop_mcp"]
+    }
+  }
+}
+```
+
+#### Other MCP Clients
+
+For other MCP clients, use the command `mockloop-mcp` or `python -m mockloop_mcp` depending on your installation method.
 
 ## Available MCP Tools
 

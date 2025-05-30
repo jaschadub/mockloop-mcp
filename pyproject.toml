@@ -18,30 +18,42 @@ classifiers = [
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Framework :: FastAPI",
+    "Environment :: Console",
     "Topic :: Software Development :: Testing :: Mocking",
     "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
+    "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 
 dependencies = [
-    "fastapi",
-    "uvicorn[standard]",
-    "Jinja2",
-    "PyYAML",
-    "requests",
-    "mcp[cli]",
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
+    "Jinja2>=3.1.0",
+    "PyYAML>=6.0",
+    "requests>=2.31.0",
+    "aiohttp>=3.9.0",
+    "mcp[cli]>=1.0.0",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest",
-    "pytest-cov",
-    "black",
-    "ruff", # Replaces flake8, isort
-    "mypy",
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0", # Replaces flake8, isort
+    "isort>=5.12.0",
+    "mypy>=1.0.0",
+    "bandit[toml]>=1.7.0",
+    "safety>=2.3.0",
+    "pre-commit>=3.0.0",
+    "pip-audit>=2.6.0",
+    "semgrep>=1.45.0",
+    "types-PyYAML>=6.0.0",
+    "types-requests>=2.31.0",
 ]
 
 [project.urls]
@@ -49,24 +61,218 @@ Homepage = "https://github.com/mockloop/mockloop-mcp"
 Repository = "https://github.com/mockloop/mockloop-mcp" 
 # Documentation = "https://yourusername.github.io/mockloop-mcp/" # If you add docs
 
-# [project.scripts] # If you want to create CLI entry points for mockloop-mcp itself
-# mockloop-cli = "mockloop_mcp.cli:main"
+[project.scripts]
+mockloop-mcp = "mockloop_mcp.main:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.black]
 line-length = 88
-target-version = ['py39', 'py310', 'py311', 'py312']
+target-version = ['py310', 'py311', 'py312']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+  | src/mockloop_mcp/templates
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 88
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+src_paths = ["src", "tests"]
+skip_glob = ["src/mockloop_mcp/templates/*"]
 
 [tool.ruff]
 line-length = 88
-select = ["E", "W", "F", "I", "UP", "C4", "B", "A", "RUF"] # Common selections
-ignore = ["E501"] # Let black handle line length for E501
+target-version = "py310"
+src = ["src", "tests"]
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+    "src/mockloop_mcp/templates",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "UP",  # pyupgrade
+    "C4",  # flake8-comprehensions
+    "B",   # flake8-bugbear
+    "A",   # flake8-builtins
+    "RUF", # Ruff-specific rules
+    "S",   # flake8-bandit
+    "T20", # flake8-print
+    "SIM", # flake8-simplify
+    "ARG", # flake8-unused-arguments
+    "PTH", # flake8-use-pathlib
+    "ERA", # eradicate
+    "PL",  # pylint
+    "TRY", # tryceratops
+    "FLY", # flynt
+    "PERF", # perflint
+]
+ignore = [
+    "E501",   # line too long, handled by black
+    "S101",   # use of assert detected
+    "S603",   # subprocess call: check for execution of untrusted input
+    "S607",   # starting a process with a partial executable path
+    "PLR0913", # too many arguments to function call
+    "PLR0912", # too many branches
+    "PLR0915", # too many statements
+    "TRY003",  # avoid specifying long messages outside the exception class
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101", "ARG001", "ARG002", "PLR2004"]
+"src/mockloop_mcp/templates/*" = ["ALL"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["mockloop_mcp"]
+force-sort-within-sections = true
 
 [tool.mypy]
 python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
-# Add other mypy configurations as needed
-# exclude = ['src/mockloop_mcp/templates/'] # Exclude Jinja templates from mypy
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+strict_concatenate = true
+check_untyped_defs = true
+disallow_any_generics = true
+disallow_incomplete_defs = true
+disallow_subclassing_any = true
+disallow_untyped_calls = true
+disallow_untyped_decorators = true
+disallow_untyped_defs = true
+no_implicit_optional = true
+no_implicit_reexport = true
+strict_optional = true
+exclude = [
+    'src/mockloop_mcp/templates/',
+    'build/',
+    'dist/',
+    '.venv/',
+    'venv/',
+]
+
+[[tool.mypy.overrides]]
+module = [
+    "uvicorn.*",
+    "fastapi.*",
+    "jinja2.*",
+    "yaml.*",
+    "aiohttp.*",
+]
+ignore_missing_imports = true
+
+[tool.bandit]
+exclude_dirs = ["tests", "src/mockloop_mcp/templates"]
+skips = ["B101", "B601"]  # Skip assert_used and shell_injection for templates
+
+[tool.bandit.assert_used]
+skips = ["*_test.py", "test_*.py"]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--verbose",
+    "--tb=short",
+    "--cov-config=.coveragerc",
+]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "slow: Slow running tests",
+    "network: Tests requiring network access",
+]
+asyncio_mode = "auto"
+filterwarnings = [
+    "error",
+    "ignore::UserWarning",
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]
+
+[tool.coverage.run]
+source = ["src/mockloop_mcp"]
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "*/__pycache__/*",
+    "*/venv/*",
+    "*/.venv/*",
+    "*/build/*",
+    "*/dist/*",
+    "*/templates/*",
+    "*/scripts/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+show_missing = true
+skip_covered = false
+precision = 2
+fail_under = 80
+
+[tool.coverage.html]
+directory = "htmlcov"
+
+[tool.coverage.xml]
+output = "coverage.xml"

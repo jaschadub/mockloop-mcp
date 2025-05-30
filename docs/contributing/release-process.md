@@ -90,28 +90,48 @@ Examples:
 1.2.0-alpha.1 - Alpha release
 ```
 
-### Version Numbering Strategy
+### Automated Version Management
 
-```python
-# Version configuration
-VERSION_MAJOR = 1
-VERSION_MINOR = 2
-VERSION_PATCH = 0
-VERSION_PRERELEASE = None  # "alpha.1", "beta.1", "rc.1"
-VERSION_BUILD = None       # Build metadata
+We use automated scripts for version management to ensure consistency and reduce errors:
 
-def get_version():
-    """Get current version string."""
-    version = f"{VERSION_MAJOR}.{VERSION_MINOR}.{VERSION_PATCH}"
-    
-    if VERSION_PRERELEASE:
-        version += f"-{VERSION_PRERELEASE}"
-    
-    if VERSION_BUILD:
-        version += f"+{VERSION_BUILD}"
-    
-    return version
+#### Version Bumping Script
+
+```bash
+# Bump patch version (1.0.0 -> 1.0.1)
+python scripts/bump_version.py patch
+
+# Bump minor version (1.0.1 -> 1.1.0)
+python scripts/bump_version.py minor
+
+# Bump major version (1.1.0 -> 2.0.0)
+python scripts/bump_version.py major
+
+# Set specific version
+python scripts/bump_version.py --version 1.2.3
+
+# Create pre-release version
+python scripts/bump_version.py minor --pre-release alpha
+
+# Dry run to see what would change
+python scripts/bump_version.py patch --dry-run
+
+# Skip git operations
+python scripts/bump_version.py patch --no-git
 ```
+
+The version bumping script automatically:
+- Updates version in `pyproject.toml` and `src/mockloop_mcp/__init__.py`
+- Updates `CHANGELOG.md` with new version and date
+- Creates git commit and tag
+- Validates version consistency across files
+
+#### Version Consistency
+
+Versions are maintained in two locations:
+- `pyproject.toml`: `version = "X.Y.Z"`
+- `src/mockloop_mcp/__init__.py`: `__version__ = "X.Y.Z"`
+
+The automated tools ensure these stay in sync.
 
 ### Branch Strategy
 
@@ -428,7 +448,31 @@ jobs:
 
 ## Release Preparation
 
-### Release Branch Creation
+### Automated Release Preparation
+
+We provide an interactive script to guide release preparation:
+
+```bash
+# Run release preparation checks
+python scripts/prepare_release.py
+
+# Check specific version
+python scripts/prepare_release.py --version 1.2.0
+
+# Run checks only (for CI)
+python scripts/prepare_release.py --check-only
+```
+
+The preparation script validates:
+- Git working directory is clean
+- Version consistency across files
+- Changelog is updated
+- All tests pass
+- Security scans are clean
+- Dependencies are secure
+- Package builds successfully
+
+### Manual Release Branch Creation (Alternative)
 
 ```bash
 # Create release branch from develop
@@ -436,17 +480,10 @@ git checkout develop
 git pull origin develop
 git checkout -b release/v1.2.0
 
-# Update version numbers
-# Edit src/mockloop_mcp/__init__.py
-__version__ = "1.2.0"
+# Use automated version bumping
+python scripts/bump_version.py --version 1.2.0
 
-# Update documentation
-# Edit docs/getting-started/installation.md
-# Update version references
-
-# Commit version bump
-git add .
-git commit -m "chore: bump version to 1.2.0"
+# Push release branch
 git push origin release/v1.2.0
 ```
 
@@ -567,79 +604,218 @@ LABEL release-date="2024-03-15"
 
 ## Release Deployment
 
-### Pre-Release Validation
+### Automated Release Workflow
+
+Our release process is fully automated through GitHub Actions. The workflow is triggered when you push a version tag:
 
 ```bash
-# Final testing on release branch
-pytest tests/ --verbose
-pytest tests/integration/ --slow
-pytest tests/e2e/ --slow
+# Use the version bumping script to create a release
+python scripts/bump_version.py minor  # This creates the tag
 
-# Security scan
-bandit -r src/
-safety check
-
-# Performance validation
-python scripts/performance_test.py
-
-# Documentation build
-mkdocs build --strict
+# Push the changes and tag
+git push && git push --tags
 ```
 
-### Release Creation
+The automated release workflow (`.github/workflows/release.yml`) will:
+
+1. **Run Full Test Suite**: Execute all tests across Python 3.10, 3.11, and 3.12
+2. **Security Validation**: Run security scans (Bandit, Safety, pip-audit)
+3. **Build Packages**: Create source distribution and wheel
+4. **Version Validation**: Ensure tag version matches package version
+5. **Create GitHub Release**: Generate release with changelog notes
+6. **Upload Artifacts**: Attach build artifacts to the release
+7. **Publish to TestPyPI**: Test package publishing and installation
+8. **Verify TestPyPI Installation**: Cross-platform installation verification
+9. **Publish to PyPI**: Production package publishing
+10. **Verify PyPI Installation**: Final cross-platform verification
+
+### PyPI Publishing Process
+
+#### Automatic Publishing (Recommended)
+
+The release workflow automatically publishes to PyPI when you create a version tag:
 
 ```bash
-# Merge release branch to main
-git checkout main
-git pull origin main
-git merge release/v1.2.0
-git push origin main
+# Create and push a version tag
+python scripts/bump_version.py minor
+git push && git push --tags
 
-# Create release tag
+# The workflow will automatically:
+# 1. Test the package thoroughly
+# 2. Publish to TestPyPI for validation
+# 3. Verify installation across platforms
+# 4. Publish to production PyPI
+# 5. Verify final installation
+```
+
+#### Manual Publishing
+
+For manual control over publishing, use the manual publishing workflow:
+
+```bash
+# Trigger manual publishing workflow
+gh workflow run publish.yml \
+  --field target=testpypi \
+  --field version=1.2.0
+
+# After TestPyPI validation, publish to PyPI
+gh workflow run publish.yml \
+  --field target=pypi \
+  --field version=1.2.0
+```
+
+#### Publishing Workflow Features
+
+**TestPyPI Staging:**
+- All packages are first published to TestPyPI
+- Cross-platform installation verification (Ubuntu, Windows, macOS)
+- Python version compatibility testing (3.10, 3.11, 3.12)
+- CLI functionality verification
+
+**Production PyPI:**
+- Only published after successful TestPyPI verification
+- Additional propagation time for global availability
+- Final cross-platform verification
+- Automatic rollback instructions if issues detected
+
+**Security & Quality Gates:**
+- Package validation with `twine check`
+- Security scanning before publishing
+- Version consistency verification
+- Test suite must pass completely
+
+#### PyPI Configuration Requirements
+
+**Repository Secrets:**
+```bash
+# Required GitHub repository secrets
+PYPI_API_TOKEN          # Production PyPI API token
+TEST_PYPI_API_TOKEN     # TestPyPI API token
+```
+
+**Environment Protection:**
+- `pypi` environment: Requires manual approval for production releases
+- `testpypi` environment: Automatic for testing
+
+#### Installation Verification
+
+The publishing process includes comprehensive installation verification:
+
+```bash
+# Automated verification script
+python scripts/verify_installation.py --version 1.2.0
+
+# TestPyPI verification
+python scripts/verify_installation.py --testpypi --version 1.2.0
+
+# Generate installation report
+python scripts/verify_installation.py --output verification_report.md
+```
+
+**Verification Tests:**
+- Package installation from PyPI/TestPyPI
+- CLI command functionality (`mockloop-mcp --version`, `--help`)
+- Python package import verification
+- Basic functionality testing (mock server generation)
+- Dependency availability verification
+- Cross-platform compatibility
+
+#### Troubleshooting PyPI Issues
+
+**Common Issues:**
+
+1. **Version Already Exists**
+   ```bash
+   # PyPI doesn't allow re-uploading the same version
+   # Solution: Bump to next patch version
+   python scripts/bump_version.py patch
+   ```
+
+2. **Package Validation Errors**
+   ```bash
+   # Check package locally
+   python -m build
+   twine check dist/*
+   
+   # Fix issues and rebuild
+   rm -rf dist/ build/
+   python -m build
+   ```
+
+3. **Installation Failures**
+   ```bash
+   # Test installation locally
+   pip install --index-url https://test.pypi.org/simple/ \
+     --extra-index-url https://pypi.org/simple/ \
+     mockloop-mcp==1.2.0
+   
+   # Check dependencies
+   pip check
+   ```
+
+4. **Propagation Delays**
+   ```bash
+   # PyPI can take time to propagate globally
+   # Wait 2-5 minutes and retry installation
+   # Check PyPI project page for availability
+   ```
+
+**Rollback Procedures:**
+
+```bash
+# PyPI packages cannot be deleted, but can be yanked
+twine yank mockloop-mcp 1.2.0 --reason "Critical bug found"
+
+# For critical issues, publish a hotfix immediately
+python scripts/bump_version.py patch
+git push && git push --tags
+```
+
+#### TestPyPI Testing Workflow
+
+Before production release, always test with TestPyPI:
+
+```bash
+# 1. Publish to TestPyPI (automatic in release workflow)
+# 2. Test installation
+pip install --index-url https://test.pypi.org/simple/ \
+  --extra-index-url https://pypi.org/simple/ \
+  mockloop-mcp==1.2.0
+
+# 3. Verify functionality
+mockloop-mcp --version
+python -c "import mockloop_mcp; print('Import successful')"
+
+# 4. Test basic functionality
+echo '{"openapi": "3.0.0", "info": {"title": "Test", "version": "1.0.0"}, "paths": {}}' > test_spec.json
+mockloop-mcp generate-mock test_spec.json --output test_output
+
+# 5. If all tests pass, proceed to PyPI
+```
+
+### Manual Release Process (Fallback)
+
+If you need to create a release manually:
+
+```bash
+# Final validation
+python scripts/prepare_release.py --check-only
+
+# Create and push tag
 git tag -a v1.2.0 -m "Release version 1.2.0"
 git push origin v1.2.0
 
-# Merge back to develop
-git checkout develop
-git merge main
-git push origin develop
-
-# Delete release branch
-git branch -d release/v1.2.0
-git push origin --delete release/v1.2.0
+# The GitHub Actions workflow will handle the rest
 ```
 
-### Package Publishing
+### Release Workflow Features
 
-```bash
-# Build Python package
-python -m build
-
-# Upload to PyPI
-python -m twine upload dist/*
-
-# Build Docker image
-docker build -t mockloop/mockloop-mcp:1.2.0 .
-docker build -t mockloop/mockloop-mcp:latest .
-
-# Push Docker images
-docker push mockloop/mockloop-mcp:1.2.0
-docker push mockloop/mockloop-mcp:latest
-```
-
-### GitHub Release
-
-```bash
-# Create GitHub release
-gh release create v1.2.0 \
-    --title "MockLoop MCP v1.2.0" \
-    --notes-file CHANGELOG.md \
-    --draft=false \
-    --prerelease=false
-
-# Upload release assets
-gh release upload v1.2.0 dist/*
-```
+- **Automatic Changelog Extraction**: Pulls release notes from CHANGELOG.md
+- **Multi-Python Testing**: Tests on Python 3.10, 3.11, and 3.12
+- **Security Validation**: Comprehensive security scanning
+- **Package Validation**: Ensures packages are PyPI-ready
+- **Artifact Management**: Uploads all build artifacts to GitHub release
+- **Pre-release Detection**: Automatically marks pre-release versions
 
 ### Documentation Deployment
 
@@ -784,32 +960,22 @@ git checkout -b hotfix/v1.2.1
 pytest tests/
 pytest tests/integration/
 
-# Update version
-# Edit version to 1.2.1
+# Use automated version bumping for hotfix
+python scripts/bump_version.py patch
 
-# Commit and push
-git add .
-git commit -m "fix: critical security vulnerability"
-git push origin hotfix/v1.2.1
+# Push changes and tag (triggers automated release)
+git push && git push --tags
 
-# Merge to main and develop
-git checkout main
-git merge hotfix/v1.2.1
-git tag v1.2.1
-git push origin main --tags
-
+# Merge back to develop
 git checkout develop
-git merge hotfix/v1.2.1
+git merge main
 git push origin develop
 
-# Release hotfix
-python -m build
-python -m twine upload dist/*
-
-# Announce hotfix
-gh release create v1.2.1 \
-    --title "MockLoop MCP v1.2.1 (Hotfix)" \
-    --notes "Critical security fix"
+# The automated release workflow handles:
+# - Package building and validation
+# - GitHub release creation
+# - Artifact uploads
+# - PyPI preparation
 ```
 
 ## Release Metrics
@@ -933,8 +1099,147 @@ The release process is critical to maintaining quality and user trust. Key princ
 
 By following this structured approach, we ensure that each release of MockLoop MCP meets our high standards for quality, reliability, and user experience.
 
+### PyPI Publishing Troubleshooting Guide
+
+#### Common PyPI Issues and Solutions
+
+**1. Authentication Errors**
+```bash
+# Error: Invalid credentials
+# Solution: Check API tokens in repository secrets
+# Verify PYPI_API_TOKEN and TEST_PYPI_API_TOKEN are correctly set
+
+# Test token locally (for debugging only)
+twine upload --repository testpypi dist/* --username __token__ --password $TEST_PYPI_API_TOKEN
+```
+
+**2. Version Conflicts**
+```bash
+# Error: File already exists
+# PyPI doesn't allow re-uploading the same version
+# Solution: Bump version and republish
+python scripts/bump_version.py patch
+git push && git push --tags
+```
+
+**3. Package Validation Failures**
+```bash
+# Check package structure
+twine check dist/*
+
+# Common issues:
+# - Missing long_description in pyproject.toml
+# - Invalid README format
+# - Missing required metadata
+
+# Fix and rebuild
+rm -rf dist/ build/
+python -m build
+twine check dist/*
+```
+
+**4. Installation Verification Failures**
+```bash
+# Test installation manually
+python scripts/verify_installation.py --testpypi --version 1.2.0
+
+# Common issues:
+# - Missing dependencies in pyproject.toml
+# - Incorrect entry points configuration
+# - Import path issues
+
+# Check package contents
+pip show mockloop-mcp
+pip show -f mockloop-mcp
+```
+
+**5. Cross-Platform Issues**
+```bash
+# Test on different platforms using GitHub Actions
+# Check workflow logs for platform-specific failures
+
+# Common issues:
+# - Path separator differences (Windows vs Unix)
+# - Case sensitivity issues
+# - Binary dependency conflicts
+```
+
+**6. Propagation Delays**
+```bash
+# PyPI can take time to propagate globally
+# Wait 2-5 minutes for TestPyPI
+# Wait 5-10 minutes for production PyPI
+
+# Check package availability
+curl -s https://pypi.org/pypi/mockloop-mcp/1.2.0/json | jq .info.version
+curl -s https://test.pypi.org/pypi/mockloop-mcp/1.2.0/json | jq .info.version
+```
+
+#### Emergency Procedures
+
+**Critical Bug in Published Version:**
+```bash
+# 1. Yank the problematic version (doesn't delete, but discourages installation)
+twine yank mockloop-mcp 1.2.0 --reason "Critical security vulnerability"
+
+# 2. Immediately prepare hotfix
+git checkout main
+git checkout -b hotfix/v1.2.1
+# Fix the issue
+python scripts/bump_version.py patch
+git push && git push --tags
+
+# 3. Communicate with users
+# - Update GitHub release notes
+# - Post security advisory if needed
+# - Notify community channels
+```
+
+**Rollback Procedures:**
+```bash
+# PyPI packages cannot be deleted, only yanked
+# For critical issues:
+
+# 1. Yank problematic version
+twine yank mockloop-mcp 1.2.0
+
+# 2. Publish fixed version immediately
+python scripts/bump_version.py patch
+git push && git push --tags
+
+# 3. Update documentation
+# - Add migration notes
+# - Update installation instructions
+# - Document breaking changes
+```
+
+#### Monitoring and Alerts
+
+**Release Health Monitoring:**
+```bash
+# Monitor download statistics
+python scripts/verify_installation.py --version 1.2.0 --output health_report.md
+
+# Check for issues
+gh issue list --label "bug" --label "pypi"
+gh issue list --label "installation"
+
+# Monitor community channels
+# - GitHub Discussions
+# - Discord/Slack channels
+# - Stack Overflow tags
+```
+
+**Automated Monitoring:**
+- GitHub Actions workflow monitors installation success
+- Cross-platform verification runs automatically
+- Community issue tracking for installation problems
+- Download statistics and adoption metrics
+
 ## See Also
 
 - **[Development Setup](development-setup.md)**: Setting up your development environment
 - **[Contributing Guidelines](guidelines.md)**: Code standards and contribution process
 - **[Testing Guide](testing.md)**: Comprehensive testing practices
+- **[Installation Verification Script](../../scripts/verify_installation.py)**: Automated installation testing
+- **[PyPI Project Page](https://pypi.org/project/mockloop-mcp/)**: Official package distribution

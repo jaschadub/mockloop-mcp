@@ -1,0 +1,275 @@
+name: ❓ Support Question
+description: Get help with using MockLoop MCP
+title: "[Support]: "
+labels: ["question", "support"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Need help with MockLoop MCP? We're here to assist! Please provide details about your question or issue.
+        
+        **Before submitting:** Please check our [documentation](https://mockloop.github.io/mockloop-mcp/) and [existing discussions](https://github.com/mockloop/mockloop-mcp/discussions) first.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      description: Please verify these items before asking for support
+      options:
+        - label: I have searched existing issues and discussions
+          required: true
+        - label: I have read the relevant documentation
+          required: true
+        - label: I have tried basic troubleshooting steps
+          required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Question Category
+      description: What type of help do you need?
+      options:
+        - Installation & Setup
+        - Configuration & Usage
+        - API Specification & OpenAPI
+        - MCP Tools & Integration
+        - Authentication & Security
+        - Performance & Optimization
+        - Docker & Deployment
+        - Troubleshooting & Debugging
+        - Best Practices & Recommendations
+        - PyPI Installation Issues
+        - Other (please specify in description)
+    validations:
+      required: true
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Your Question
+      description: What would you like help with?
+      placeholder: Please describe your question or what you're trying to accomplish
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context & Background
+      description: Provide context about what you're working on
+      placeholder: |
+        Help us understand your situation:
+        - What are you trying to build or accomplish?
+        - What's your use case or project goal?
+        - Any relevant background information
+    validations:
+      required: true
+
+  - type: textarea
+    id: attempted
+    attributes:
+      label: What Have You Tried?
+      description: What steps have you already taken?
+      placeholder: |
+        Describe what you've already attempted:
+        - Commands you've run
+        - Documentation you've consulted
+        - Solutions you've tried
+        - Error messages you've encountered
+    validations:
+      required: false
+
+  - type: dropdown
+    id: installation
+    attributes:
+      label: Installation Method
+      description: How did you install MockLoop MCP?
+      options:
+        - PyPI (pip install mockloop-mcp)
+        - TestPyPI (pip install --index-url https://test.pypi.org/simple/ mockloop-mcp)
+        - Source (git clone + pip install -e .)
+        - Docker
+        - Haven't installed yet
+        - Other (please specify in additional info)
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: MockLoop MCP Version
+      description: What version are you using?
+      placeholder: "e.g., 1.2.0 (run `mockloop-mcp --version` to check)"
+    validations:
+      required: false
+
+  - type: dropdown
+    id: python-version
+    attributes:
+      label: Python Version
+      description: What version of Python are you using?
+      options:
+        - "3.10"
+        - "3.11"
+        - "3.12"
+        - "Other (please specify below)"
+        - "Not applicable"
+    validations:
+      required: false
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      description: What operating system are you using?
+      options:
+        - Ubuntu/Debian
+        - CentOS/RHEL/Fedora
+        - macOS
+        - Windows
+        - Docker Container
+        - Other (please specify below)
+    validations:
+      required: false
+
+  - type: textarea
+    id: error-output
+    attributes:
+      label: Error Messages or Output
+      description: Any error messages or relevant output
+      placeholder: Paste any error messages, stack traces, or relevant command output here
+      render: text
+    validations:
+      required: false
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Configuration & Files
+      description: Relevant configuration or files
+      placeholder: |
+        Share relevant configuration:
+        - API specification files (OpenAPI/Swagger)
+        - Command line arguments
+        - Environment variables
+        - Configuration files
+        - Docker compose files
+      render: yaml
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: installation-help
+    attributes:
+      label: Installation-Related Questions
+      description: Check any that apply to your question
+      options:
+        - label: Having trouble installing from PyPI
+        - label: Package dependencies not resolving
+        - label: CLI command not found after installation
+        - label: Import errors when using the package
+        - label: Python version compatibility questions
+        - label: Virtual environment setup questions
+        - label: Docker installation questions
+
+  - type: checkboxes
+    id: usage-help
+    attributes:
+      label: Usage-Related Questions
+      description: Check any that apply to your question
+      options:
+        - label: How to generate mock servers
+        - label: API specification format questions
+        - label: MCP tools usage and integration
+        - label: Authentication and security setup
+        - label: Configuration and customization
+        - label: Performance optimization
+        - label: Deployment and production usage
+        - label: Integration with other tools
+
+  - type: dropdown
+    id: urgency
+    attributes:
+      label: Urgency Level
+      description: How urgent is this question?
+      options:
+        - Low (General question, no rush)
+        - Medium (Affecting current work, but not blocking)
+        - High (Blocking current work or project)
+        - Critical (Production issue or urgent deadline)
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-outcome
+    attributes:
+      label: Expected Outcome
+      description: What would a successful resolution look like?
+      placeholder: |
+        Describe what you're hoping to achieve:
+        - What should work when this is resolved?
+        - What would success look like?
+        - Any specific requirements or constraints?
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-info
+    attributes:
+      label: Additional Information
+      description: Any other relevant information
+      placeholder: |
+        Add any other context that might be helpful:
+        - Screenshots (if applicable)
+        - Links to related resources
+        - Specific requirements or constraints
+        - Timeline considerations
+        - Team or project context
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: |
+        ## 📚 Helpful Resources
+        
+        While waiting for a response, you might find these resources helpful:
+        
+        - **[Documentation](https://mockloop.github.io/mockloop-mcp/)**: Complete guides and API reference
+        - **[Quick Start Guide](https://mockloop.github.io/mockloop-mcp/getting-started/quick-start/)**: Get up and running quickly
+        - **[Troubleshooting Guide](https://mockloop.github.io/mockloop-mcp/advanced/troubleshooting/)**: Common issues and solutions
+        - **[Examples](https://github.com/mockloop/mockloop-mcp/tree/main/examples)**: Sample configurations and use cases
+        - **[Discussions](https://github.com/mockloop/mockloop-mcp/discussions)**: Community Q&A and discussions
+        
+        ## 🚀 PyPI Installation Troubleshooting
+        
+        If you're having PyPI installation issues, try these steps:
+        
+        ```bash
+        # Update pip and try again
+        python -m pip install --upgrade pip
+        pip install mockloop-mcp
+        
+        # Try with verbose output to see what's happening
+        pip install -v mockloop-mcp
+        
+        # If you're having dependency conflicts
+        pip install mockloop-mcp --no-deps
+        pip install -r requirements.txt  # Install dependencies separately
+        
+        # For TestPyPI testing
+        pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ mockloop-mcp
+        ```
+
+  - type: checkboxes
+    id: follow-up
+    attributes:
+      label: Follow-up
+      description: How would you like to be involved in the resolution?
+      options:
+        - label: I can provide additional information if needed
+        - label: I can test proposed solutions
+        - label: I'd like to help improve documentation based on this question
+        - label: I'm interested in contributing to the project
