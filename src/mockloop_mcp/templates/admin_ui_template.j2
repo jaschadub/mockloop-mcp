@@ -275,6 +275,66 @@
         .footer a:hover {
             text-decoration: underline;
         }
+        
+        /* Pagination styles */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 1rem 0;
+            gap: 0.5rem;
+        }
+        
+        .pagination button {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #ddd;
+            background-color: white;
+            color: var(--text-color);
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        
+        .pagination button:hover:not(:disabled) {
+            background-color: var(--light-bg);
+            border-color: var(--primary-color);
+        }
+        
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .pagination button.active {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        .pagination-info {
+            font-size: 0.9rem;
+            color: #666;
+            margin: 0 1rem;
+        }
+        
+        .page-size-selector {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 1rem 0;
+        }
+        
+        .page-size-selector label {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .page-size-selector select {
+            padding: 0.25rem 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
     </style>
 </head>
 <body>
@@ -329,6 +389,16 @@
                 
                 <div class="card">
                     <h3 class="card-title">Recent Requests</h3>
+                    <div class="page-size-selector">
+                        <label for="dashboard-page-size">Show:</label>
+                        <select id="dashboard-page-size">
+                            <option value="10" selected>10</option>
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                        <span>entries</span>
+                    </div>
                     <table id="recent-requests-table">
                         <thead>
                             <tr>
@@ -345,6 +415,13 @@
                             </tr>
                         </tbody>
                     </table>
+                    <div class="pagination" id="dashboard-pagination" style="display: none;">
+                        <button id="dashboard-first-page" onclick="dashboardGoToPage(1)">First</button>
+                        <button id="dashboard-prev-page" onclick="dashboardPreviousPage()">Previous</button>
+                        <div class="pagination-info" id="dashboard-pagination-info">Page 1 of 1</div>
+                        <button id="dashboard-next-page" onclick="dashboardNextPage()">Next</button>
+                        <button id="dashboard-last-page" onclick="dashboardGoToLastPage()">Last</button>
+                    </div>
                 </div>
             </div>
             
@@ -376,6 +453,17 @@
                         </div>
                     </div>
                     
+                    <div class="page-size-selector">
+                        <label for="requests-page-size">Show:</label>
+                        <select id="requests-page-size">
+                            <option value="10">10</option>
+                            <option value="25" selected>25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                        <span>entries</span>
+                    </div>
+                    
                     <table id="requests-table">
                         <thead>
                             <tr>
@@ -393,6 +481,14 @@
             </tr>
                         </tbody>
                     </table>
+                    
+                    <div class="pagination" id="requests-pagination" style="display: none;">
+                        <button id="requests-first-page" onclick="requestsGoToPage(1)">First</button>
+                        <button id="requests-prev-page" onclick="requestsPreviousPage()">Previous</button>
+                        <div class="pagination-info" id="requests-pagination-info">Page 1 of 1</div>
+                        <button id="requests-next-page" onclick="requestsNextPage()">Next</button>
+                        <button id="requests-last-page" onclick="requestsGoToLastPage()">Last</button>
+                    </div>
                 </div>
                 
                 <div class="card" id="request-details" style="display: none;">
@@ -478,6 +574,16 @@
                 <div class="card" id="search-results" style="display: none;">
                     <h3 class="card-title">Search Results</h3>
                     <div id="search-results-summary"></div>
+                    <div class="page-size-selector">
+                        <label for="analytics-page-size">Show:</label>
+                        <select id="analytics-page-size">
+                            <option value="10">10</option>
+                            <option value="25">25</option>
+                            <option value="50" selected>50</option>
+                            <option value="100">100</option>
+                        </select>
+                        <span>entries</span>
+                    </div>
                     <table id="search-results-table">
                         <thead>
                             <tr>
@@ -492,6 +598,13 @@
                         <tbody>
                         </tbody>
                     </table>
+                    <div class="pagination" id="analytics-pagination" style="display: none;">
+                        <button id="analytics-first-page" onclick="analyticsGoToPage(1)">First</button>
+                        <button id="analytics-prev-page" onclick="analyticsPreviousPage()">Previous</button>
+                        <div class="pagination-info" id="analytics-pagination-info">Page 1 of 1</div>
+                        <button id="analytics-next-page" onclick="analyticsNextPage()">Next</button>
+                        <button id="analytics-last-page" onclick="analyticsGoToLastPage()">Last</button>
+                    </div>
                 </div>
                 
                 <!-- Analytics Section -->
@@ -1062,43 +1175,24 @@
         
         // Function to update recent requests table
         function updateRecentRequestsTable(requests) {
-            const tbody = document.querySelector('#recent-requests-table tbody');
-            if (!requests || requests.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5">No request logs available yet. Make some API requests to see them logged here.</td></tr>';
-                return;
-            }
+            // Store all requests for pagination
+            dashboardAllRequests = requests || [];
+            dashboardTotalItems = dashboardAllRequests.length;
+            dashboardCurrentPage = 1; // Reset to first page
             
-            tbody.innerHTML = requests.map(req => `
-                <tr>
-                    <td>${req.timestamp ? new Date(req.timestamp).toLocaleString() : 'N/A'}</td>
-                    <td><span class="badge badge-info">${req.method || 'N/A'}</span></td>
-                    <td>${req.path || 'N/A'}</td>
-                    <td><span class="badge ${getStatusBadgeClass(req.status_code)}">${req.status_code || 'N/A'}</span></td>
-                    <td>${(req.process_time_ms !== undefined && req.process_time_ms !== null) ? req.process_time_ms + 'ms' : 'N/A'}</td>
-                </tr>
-            `).join('');
+            // Use paginated function
+            updateRecentRequestsTablePaginated();
         }
         
         // Function to update the main requests table in the Requests tab
         function updateRequestsTable(requests) {
-            const tbody = document.querySelector('#requests-table tbody');
-            if (!requests || requests.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6">No request logs available yet. Make some API requests to see them logged here.</td></tr>';
-                return;
-            }
+            // Store all requests for pagination
+            requestsAllRequests = requests || [];
+            requestsTotalItems = requestsAllRequests.length;
+            requestsCurrentPage = 1; // Reset to first page
             
-            tbody.innerHTML = requests.map(req => `
-                <tr>
-                    <td>${req.timestamp ? new Date(req.timestamp).toLocaleString() : 'N/A'}</td>
-                    <td><span class="badge badge-info">${req.method || 'N/A'}</span></td>
-                    <td>${req.path || 'N/A'}</td>
-                    <td><span class="badge ${getStatusBadgeClass(req.status_code)}">${req.status_code || 'N/A'}</span></td>
-                    <td>${(req.process_time_ms !== undefined && req.process_time_ms !== null) ? req.process_time_ms + 'ms' : 'N/A'}</td>
-                    <td>
-                        <button class="btn btn-info btn-sm" onclick="showRequestDetails(${req.id})">View Details</button>
-                    </td>
-                </tr>
-            `).join('');
+            // Use paginated function
+            updateRequestsTablePaginated();
         }
         
         // Function to show request details
@@ -1757,7 +1851,6 @@
         function displaySearchResults(results) {
             const resultsDiv = document.getElementById('search-results');
             const summaryDiv = document.getElementById('search-results-summary');
-            const tableBody = document.querySelector('#search-results-table tbody');
             
             // Show results section
             resultsDiv.style.display = 'block';
@@ -1769,23 +1862,13 @@
                 ${results.search_time ? `<p>Search completed in ${results.search_time}ms</p>` : ''}
             `;
             
-            // Update table
-            if (results.logs && results.logs.length > 0) {
-                tableBody.innerHTML = results.logs.map(log => `
-                    <tr>
-                        <td>${log.timestamp ? new Date(log.timestamp).toLocaleString() : 'N/A'}</td>
-                        <td><span class="badge badge-info">${log.method || 'N/A'}</span></td>
-                        <td>${log.path || 'N/A'}</td>
-                        <td><span class="badge ${getStatusBadgeClass(log.status_code)}">${log.status_code || 'N/A'}</span></td>
-                        <td>${(log.process_time_ms !== undefined && log.process_time_ms !== null) ? log.process_time_ms + 'ms' : 'N/A'}</td>
-                        <td>
-                            <button class="btn btn-info btn-sm" onclick="showRequestDetails(${log.id})">View Details</button>
-                        </td>
-                    </tr>
-                `).join('');
-            } else {
-                tableBody.innerHTML = '<tr><td colspan="6">No results found</td></tr>';
-            }
+            // Store all results for pagination
+            analyticsAllResults = results.logs || [];
+            analyticsTotalItems = analyticsAllResults.length;
+            analyticsCurrentPage = 1; // Reset to first page
+            
+            // Use paginated function
+            updateAnalyticsTablePaginated();
         }
         
         // Analyze all logs
@@ -2525,6 +2608,294 @@
                     await loadTestSessions();
                 });
             }
+        });
+        
+        // --- Pagination Functions ---
+        
+        // Pagination state variables
+        let dashboardCurrentPage = 1;
+        let dashboardPageSize = 10;
+        let dashboardTotalItems = 0;
+        let dashboardAllRequests = [];
+        
+        let requestsCurrentPage = 1;
+        let requestsPageSize = 25;
+        let requestsTotalItems = 0;
+        let requestsAllRequests = [];
+        
+        let analyticsCurrentPage = 1;
+        let analyticsPageSize = 50;
+        let analyticsTotalItems = 0;
+        let analyticsAllResults = [];
+        
+        // Dashboard pagination functions
+        function dashboardGoToPage(page) {
+            dashboardCurrentPage = page;
+            updateRecentRequestsTablePaginated();
+        }
+        
+        function dashboardPreviousPage() {
+            if (dashboardCurrentPage > 1) {
+                dashboardCurrentPage--;
+                updateRecentRequestsTablePaginated();
+            }
+        }
+        
+        function dashboardNextPage() {
+            const totalPages = Math.ceil(dashboardTotalItems / dashboardPageSize);
+            if (dashboardCurrentPage < totalPages) {
+                dashboardCurrentPage++;
+                updateRecentRequestsTablePaginated();
+            }
+        }
+        
+        function dashboardGoToLastPage() {
+            const totalPages = Math.ceil(dashboardTotalItems / dashboardPageSize);
+            dashboardCurrentPage = totalPages;
+            updateRecentRequestsTablePaginated();
+        }
+        
+        // Function to update recent requests table with pagination
+        function updateRecentRequestsTablePaginated() {
+            const tbody = document.querySelector('#recent-requests-table tbody');
+            if (!dashboardAllRequests || dashboardAllRequests.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5">No request logs available yet. Make some API requests to see them logged here.</td></tr>';
+                document.getElementById('dashboard-pagination').style.display = 'none';
+                return;
+            }
+            
+            // Calculate pagination
+            const totalPages = Math.ceil(dashboardTotalItems / dashboardPageSize);
+            const startIndex = (dashboardCurrentPage - 1) * dashboardPageSize;
+            const endIndex = startIndex + dashboardPageSize;
+            const pageRequests = dashboardAllRequests.slice(startIndex, endIndex);
+            
+            // Update table
+            tbody.innerHTML = pageRequests.map(req => `
+                <tr>
+                    <td>${req.timestamp ? new Date(req.timestamp).toLocaleString() : 'N/A'}</td>
+                    <td><span class="badge badge-info">${req.method || 'N/A'}</span></td>
+                    <td>${req.path || 'N/A'}</td>
+                    <td><span class="badge ${getStatusBadgeClass(req.status_code)}">${req.status_code || 'N/A'}</span></td>
+                    <td>${(req.process_time_ms !== undefined && req.process_time_ms !== null) ? req.process_time_ms + 'ms' : 'N/A'}</td>
+                </tr>
+            `).join('');
+            
+            // Update pagination controls
+            updateDashboardPagination(totalPages);
+        }
+        
+        // Function to update dashboard pagination controls
+        function updateDashboardPagination(totalPages) {
+            const pagination = document.getElementById('dashboard-pagination');
+            const paginationInfo = document.getElementById('dashboard-pagination-info');
+            const firstBtn = document.getElementById('dashboard-first-page');
+            const prevBtn = document.getElementById('dashboard-prev-page');
+            const nextBtn = document.getElementById('dashboard-next-page');
+            const lastBtn = document.getElementById('dashboard-last-page');
+            
+            if (totalPages <= 1) {
+                pagination.style.display = 'none';
+                return;
+            }
+            
+            pagination.style.display = 'flex';
+            paginationInfo.textContent = `Page ${dashboardCurrentPage} of ${totalPages} (${dashboardTotalItems} entries)`;
+            
+            firstBtn.disabled = dashboardCurrentPage === 1;
+            prevBtn.disabled = dashboardCurrentPage === 1;
+            nextBtn.disabled = dashboardCurrentPage === totalPages;
+            lastBtn.disabled = dashboardCurrentPage === totalPages;
+        }
+        
+        // Requests pagination functions
+        function requestsGoToPage(page) {
+            requestsCurrentPage = page;
+            updateRequestsTablePaginated();
+        }
+        
+        function requestsPreviousPage() {
+            if (requestsCurrentPage > 1) {
+                requestsCurrentPage--;
+                updateRequestsTablePaginated();
+            }
+        }
+        
+        function requestsNextPage() {
+            const totalPages = Math.ceil(requestsTotalItems / requestsPageSize);
+            if (requestsCurrentPage < totalPages) {
+                requestsCurrentPage++;
+                updateRequestsTablePaginated();
+            }
+        }
+        
+        function requestsGoToLastPage() {
+            const totalPages = Math.ceil(requestsTotalItems / requestsPageSize);
+            requestsCurrentPage = totalPages;
+            updateRequestsTablePaginated();
+        }
+        
+        // Function to update requests table with pagination
+        function updateRequestsTablePaginated() {
+            const tbody = document.querySelector('#requests-table tbody');
+            if (!requestsAllRequests || requestsAllRequests.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6">No request logs available yet. Make some API requests to see them logged here.</td></tr>';
+                document.getElementById('requests-pagination').style.display = 'none';
+                return;
+            }
+            
+            // Calculate pagination
+            const totalPages = Math.ceil(requestsTotalItems / requestsPageSize);
+            const startIndex = (requestsCurrentPage - 1) * requestsPageSize;
+            const endIndex = startIndex + requestsPageSize;
+            const pageRequests = requestsAllRequests.slice(startIndex, endIndex);
+            
+            // Update table
+            tbody.innerHTML = pageRequests.map(req => `
+                <tr>
+                    <td>${req.timestamp ? new Date(req.timestamp).toLocaleString() : 'N/A'}</td>
+                    <td><span class="badge badge-info">${req.method || 'N/A'}</span></td>
+                    <td>${req.path || 'N/A'}</td>
+                    <td><span class="badge ${getStatusBadgeClass(req.status_code)}">${req.status_code || 'N/A'}</span></td>
+                    <td>${(req.process_time_ms !== undefined && req.process_time_ms !== null) ? req.process_time_ms + 'ms' : 'N/A'}</td>
+                    <td>
+                        <button class="btn btn-info btn-sm" onclick="showRequestDetails(${req.id})">View Details</button>
+                    </td>
+                </tr>
+            `).join('');
+            
+            // Update pagination controls
+            updateRequestsPagination(totalPages);
+        }
+        
+        // Function to update requests pagination controls
+        function updateRequestsPagination(totalPages) {
+            const pagination = document.getElementById('requests-pagination');
+            const paginationInfo = document.getElementById('requests-pagination-info');
+            const firstBtn = document.getElementById('requests-first-page');
+            const prevBtn = document.getElementById('requests-prev-page');
+            const nextBtn = document.getElementById('requests-next-page');
+            const lastBtn = document.getElementById('requests-last-page');
+            
+            if (totalPages <= 1) {
+                pagination.style.display = 'none';
+                return;
+            }
+            
+            pagination.style.display = 'flex';
+            paginationInfo.textContent = `Page ${requestsCurrentPage} of ${totalPages} (${requestsTotalItems} entries)`;
+            
+            firstBtn.disabled = requestsCurrentPage === 1;
+            prevBtn.disabled = requestsCurrentPage === 1;
+            nextBtn.disabled = requestsCurrentPage === totalPages;
+            lastBtn.disabled = requestsCurrentPage === totalPages;
+        }
+        
+        // Analytics pagination functions
+        function analyticsGoToPage(page) {
+            analyticsCurrentPage = page;
+            updateAnalyticsTablePaginated();
+        }
+        
+        function analyticsPreviousPage() {
+            if (analyticsCurrentPage > 1) {
+                analyticsCurrentPage--;
+                updateAnalyticsTablePaginated();
+            }
+        }
+        
+        function analyticsNextPage() {
+            const totalPages = Math.ceil(analyticsTotalItems / analyticsPageSize);
+            if (analyticsCurrentPage < totalPages) {
+                analyticsCurrentPage++;
+                updateAnalyticsTablePaginated();
+            }
+        }
+        
+        function analyticsGoToLastPage() {
+            const totalPages = Math.ceil(analyticsTotalItems / analyticsPageSize);
+            analyticsCurrentPage = totalPages;
+            updateAnalyticsTablePaginated();
+        }
+        
+        // Function to update analytics table with pagination
+        function updateAnalyticsTablePaginated() {
+            const tbody = document.querySelector('#search-results-table tbody');
+            if (!analyticsAllResults || analyticsAllResults.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6">No results found</td></tr>';
+                document.getElementById('analytics-pagination').style.display = 'none';
+                return;
+            }
+            
+            // Calculate pagination
+            const totalPages = Math.ceil(analyticsTotalItems / analyticsPageSize);
+            const startIndex = (analyticsCurrentPage - 1) * analyticsPageSize;
+            const endIndex = startIndex + analyticsPageSize;
+            const pageResults = analyticsAllResults.slice(startIndex, endIndex);
+            
+            // Update table
+            tbody.innerHTML = pageResults.map(log => `
+                <tr>
+                    <td>${log.timestamp ? new Date(log.timestamp).toLocaleString() : 'N/A'}</td>
+                    <td><span class="badge badge-info">${log.method || 'N/A'}</span></td>
+                    <td>${log.path || 'N/A'}</td>
+                    <td><span class="badge ${getStatusBadgeClass(log.status_code)}">${log.status_code || 'N/A'}</span></td>
+                    <td>${(log.process_time_ms !== undefined && log.process_time_ms !== null) ? log.process_time_ms + 'ms' : 'N/A'}</td>
+                    <td>
+                        <button class="btn btn-info btn-sm" onclick="showRequestDetails(${log.id})">View Details</button>
+                    </td>
+                </tr>
+            `).join('');
+            
+            // Update pagination controls
+            updateAnalyticsPagination(totalPages);
+        }
+        
+        // Function to update analytics pagination controls
+        function updateAnalyticsPagination(totalPages) {
+            const pagination = document.getElementById('analytics-pagination');
+            const paginationInfo = document.getElementById('analytics-pagination-info');
+            const firstBtn = document.getElementById('analytics-first-page');
+            const prevBtn = document.getElementById('analytics-prev-page');
+            const nextBtn = document.getElementById('analytics-next-page');
+            const lastBtn = document.getElementById('analytics-last-page');
+            
+            if (totalPages <= 1) {
+                pagination.style.display = 'none';
+                return;
+            }
+            
+            pagination.style.display = 'flex';
+            paginationInfo.textContent = `Page ${analyticsCurrentPage} of ${totalPages} (${analyticsTotalItems} entries)`;
+            
+            firstBtn.disabled = analyticsCurrentPage === 1;
+            prevBtn.disabled = analyticsCurrentPage === 1;
+            nextBtn.disabled = analyticsCurrentPage === totalPages;
+            lastBtn.disabled = analyticsCurrentPage === totalPages;
+        }
+        
+        // Event listeners for page size changes
+        document.addEventListener('DOMContentLoaded', function() {
+            // Dashboard page size change
+            document.getElementById('dashboard-page-size').addEventListener('change', function() {
+                dashboardPageSize = parseInt(this.value, 10);
+                dashboardCurrentPage = 1; // Reset to first page
+                updateRecentRequestsTablePaginated();
+            });
+            
+            // Requests page size change
+            document.getElementById('requests-page-size').addEventListener('change', function() {
+                requestsPageSize = parseInt(this.value, 10);
+                requestsCurrentPage = 1; // Reset to first page
+                updateRequestsTablePaginated();
+            });
+            
+            // Analytics page size change
+            document.getElementById('analytics-page-size').addEventListener('change', function() {
+                analyticsPageSize = parseInt(this.value, 10);
+                analyticsCurrentPage = 1; // Reset to first page
+                updateAnalyticsTablePaginated();
+            });
         });
     </script>
 </body>
