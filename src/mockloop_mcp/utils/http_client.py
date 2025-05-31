@@ -219,15 +219,16 @@ class MockServerClient:
         """
         try:
             payload = {
-                "scenario_name": scenario_name,
-                "scenario_config": scenario_config,
+                "name": scenario_name,
+                "description": f"Mock scenario for {scenario_name}",
+                "config": scenario_config,
             }
 
             async with aiohttp.ClientSession(timeout=self.timeout) as session:
                 async with session.post(
-                    f"{self.base_url}/admin/api/scenarios/create", json=payload
+                    f"{self.base_url}/admin/api/mock-data/scenarios", json=payload
                 ) as response:
-                    if response.status == 201:
+                    if response.status == 200:  # Changed from 201 to 200
                         result = await response.json()
                         return {
                             "status": "success",
@@ -255,11 +256,32 @@ class MockServerClient:
             Dict containing scenario switch result
         """
         try:
-            payload = {"scenario_name": scenario_name}
+            # First, get all scenarios to find the ID by name
+            scenarios_result = await self.list_scenarios()
+            if scenarios_result.get("status") != "success":
+                return {
+                    "status": "error",
+                    "error": f"Failed to list scenarios: {scenarios_result.get('error')}",
+                    "scenario_name": scenario_name,
+                }
+
+            scenarios = scenarios_result.get("scenarios", [])
+            scenario_id = None
+            for scenario in scenarios:
+                if scenario.get("name") == scenario_name:
+                    scenario_id = scenario.get("id")
+                    break
+
+            if scenario_id is None:
+                return {
+                    "status": "error",
+                    "error": f"Scenario '{scenario_name}' not found",
+                    "scenario_name": scenario_name,
+                }
 
             async with aiohttp.ClientSession(timeout=self.timeout) as session:
                 async with session.post(
-                    f"{self.base_url}/admin/api/scenarios/switch", json=payload
+                    f"{self.base_url}/admin/api/mock-data/scenarios/{scenario_id}/activate"
                 ) as response:
                     if response.status == 200:
                         result = await response.json()
@@ -289,7 +311,7 @@ class MockServerClient:
         try:
             async with aiohttp.ClientSession(timeout=self.timeout) as session:
                 async with session.get(
-                    f"{self.base_url}/admin/api/scenarios"
+                    f"{self.base_url}/admin/api/mock-data/scenarios"
                 ) as response:
                     if response.status == 200:
                         scenarios = await response.json()
@@ -320,7 +342,7 @@ class MockServerClient:
         try:
             async with aiohttp.ClientSession(timeout=self.timeout) as session:
                 async with session.get(
-                    f"{self.base_url}/admin/api/scenarios/current"
+                    f"{self.base_url}/admin/api/mock-data/scenarios/active"
                 ) as response:
                     if response.status == 200:
                         current_scenario = await response.json()

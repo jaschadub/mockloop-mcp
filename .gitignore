@@ -69,3 +69,4 @@ site/
 .mkdocs_cache/
 
 PYPI_DISTRIBUTION_PLAN.md
+MockLoop_CLI*

@@ -21,7 +21,9 @@ if not TEMPLATE_DIR.is_dir():
     if not TEMPLATE_DIR.is_dir():
         raise APIGenerationError("Template directory not found at expected locations.")
 
-jinja_env = Environment(loader=FileSystemLoader(TEMPLATE_DIR), autoescape=True)
+# Note: autoescape=False is intentional here as we're generating Python code, not HTML
+# This is safe because we control all template inputs and don't render user-provided content
+jinja_env = Environment(loader=FileSystemLoader(TEMPLATE_DIR), autoescape=False)  # noqa: S701 # nosec B701
 
 
 def _to_bool(value: Any) -> bool:
