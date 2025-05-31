@@ -205,6 +205,14 @@ def generate_mock_api(
             ) as f:
                 f.write("jinja2\n")
 
+            # Generate log analyzer module for admin UI analytics
+            log_analyzer_template = jinja_env.get_template("log_analyzer_template.j2")
+            log_analyzer_code = log_analyzer_template.render()
+            with open(
+                mock_server_dir / "log_analyzer.py", "w", encoding="utf-8"
+            ) as f:
+                f.write(log_analyzer_code)
+
             # Copy favicon.ico to prevent 404s in admin UI
             import shutil
             favicon_source_paths = [
