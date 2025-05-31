@@ -63,16 +63,6 @@ This documentation is organized into several sections:
 - **[Advanced Topics](advanced/architecture.md)**: Architecture, performance, and troubleshooting
 - **[Contributing](contributing/development-setup.md)**: How to contribute to the project
 
-## Latest Version: 2.1.0
-
-The latest version includes major enhancements:
-
-- ✅ **Dynamic Response Management**: Real-time response updates without server restart
-- ✅ **Advanced Scenario Management**: Create, switch, and manage test scenarios with persistent storage
-- ✅ **Enhanced Performance Monitoring**: Comprehensive performance metrics with session tracking
-- ✅ **Database Migration System**: Robust schema versioning and migration framework
-- ✅ **Framework Integration**: Native support for LangGraph, CrewAI, and LangChain workflows
-
 ## Community and Support
 
 - **GitHub Repository**: [mockloop/mockloop-mcp](https://github.com/mockloop/mockloop-mcp)
