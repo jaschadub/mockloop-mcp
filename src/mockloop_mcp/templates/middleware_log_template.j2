@@ -530,8 +530,8 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         }
         logger.info(json.dumps(response_log_data))
         
-        # Check if this is an admin request
-        is_admin = request.url.path.startswith('/admin')
+        # All requests on business port are non-admin (admin requests are on separate port)
+        is_admin = False
         
         # Extract session information
         session_id, test_scenario, correlation_id, user_agent = extract_session_info(request)

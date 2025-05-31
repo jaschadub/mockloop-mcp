@@ -25,6 +25,16 @@ if not TEMPLATE_DIR.is_dir():
 # This is safe because we control all template inputs and don't render user-provided content
 jinja_env = Environment(loader=FileSystemLoader(TEMPLATE_DIR), autoescape=False)  # noqa: S701 # nosec B701
 
+# Add base64 encode filter for admin UI template
+import base64
+def b64encode_filter(s):
+    """Base64 encode filter for Jinja2 templates"""
+    if isinstance(s, str):
+        s = s.encode('utf-8')
+    return base64.b64encode(s).decode('ascii')
+
+jinja_env.filters['b64encode'] = b64encode_filter
+
 
 def _to_bool(value: Any) -> bool:
     if isinstance(value, bool):
@@ -106,11 +116,17 @@ def generate_mock_api(
     webhooks_enabled: Any = True,
     admin_ui_enabled: Any = True,
     storage_enabled: Any = True,
+    business_port: int = 8000,
+    admin_port: int | None = None,
 ) -> Path:
     auth_enabled_bool = _to_bool(auth_enabled)
     webhooks_enabled_bool = _to_bool(webhooks_enabled)
     admin_ui_enabled_bool = _to_bool(admin_ui_enabled)
     storage_enabled_bool = _to_bool(storage_enabled)
+
+    # Set admin port to business_port + 1 if not specified
+    if admin_port is None:
+        admin_port = business_port + 1
 
     try:
         api_title = (
@@ -360,6 +376,15 @@ async def favicon():
         ) as f:
             f.write(logging_middleware_code)
 
+        # Generate separate admin logging middleware if admin UI is enabled
+        if admin_ui_enabled_bool:
+            admin_middleware_template = jinja_env.get_template("admin_middleware_log_template.j2")
+            admin_logging_middleware_code = admin_middleware_template.render()
+            with open(
+                mock_server_dir / "admin_logging_middleware.py", "w", encoding="utf-8"
+            ) as f:
+                f.write(admin_logging_middleware_code)
+
         common_imports = "from fastapi import FastAPI, Request, Depends, HTTPException, status, Form, Body, Query, Path, BackgroundTasks\nfrom fastapi.responses import HTMLResponse, JSONResponse\nfrom fastapi.templating import Jinja2Templates\nfrom fastapi.staticfiles import StaticFiles\nfrom fastapi.middleware.cors import CORSMiddleware\nfrom typing import List, Dict, Any, Optional\nimport json\nimport os\nimport time\nimport sqlite3\nimport logging\nfrom datetime import datetime\nfrom pathlib import Path\nfrom logging_middleware import LoggingMiddleware\n"
         auth_imports = (
             "from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer\nfrom auth_middleware import verify_api_key, verify_jwt_token, generate_token_response\n"
@@ -390,7 +415,7 @@ async def favicon():
         if admin_ui_enabled_bool:
             admin_api_endpoints_str = """
 # --- Admin API Endpoints ---
-@app.get("/admin/api/export", tags=["_admin"])
+@app.get("/api/export", tags=["_admin"])
 async def export_data():
     import io
     import zipfile
@@ -457,7 +482,7 @@ async def export_data():
         }
     )
 
-@app.get("/admin/api/requests", tags=["_admin"])
+@app.get("/api/requests", tags=["_admin"])
 async def get_request_logs(limit: int = 100, offset: int = 0, method: str = None, path: str = None, include_admin: bool = False, id: int = None):
     try:
 
@@ -521,7 +546,7 @@ async def get_request_logs(limit: int = 100, offset: int = 0, method: str = None
         print(f"Error getting request logs: {e}")
         return []
 
-@app.get("/admin/api/debug", tags=["_admin"])
+@app.get("/api/debug", tags=["_admin"])
 async def get_debug_info():
     debug_info = {
         "db_path_exists": os.path.exists(str(DB_PATH)),
@@ -561,7 +586,7 @@ async def get_debug_info():
 
     return debug_info
 
-@app.get("/admin/api/requests/stats", tags=["_admin"])
+@app.get("/api/requests/stats", tags=["_admin"])
 async def get_request_stats():
     try:
         conn = sqlite3.connect(str(DB_PATH))
@@ -594,7 +619,7 @@ async def get_request_stats():
         print(f"Error getting request stats: {e}")
         return {"error": str(e), "total_requests": 0}
 
-@app.get("/admin/api/logs/search", tags=["_admin"])
+@app.get("/api/logs/search", tags=["_admin"])
 async def search_logs(
     q: str = None,
     method: str = None,
@@ -724,7 +749,7 @@ async def search_logs(
     except Exception as e:
         return {"error": str(e), "logs": []}
 
-@app.get("/admin/api/logs/analyze", tags=["_admin"])
+@app.get("/api/logs/analyze", tags=["_admin"])
 async def analyze_logs(
     method: str = None,
     status: int = None,
@@ -815,7 +840,7 @@ async def analyze_logs(
     except Exception as e:
         return {"error": str(e), "total_requests": 0}
 
-@app.get("/admin/api/mock-data/scenarios", tags=["_admin"])
+@app.get("/api/mock-data/scenarios", tags=["_admin"])
 async def get_scenarios():
     \"\"\"Get all mock scenarios\"\"\"
     try:
@@ -846,7 +871,7 @@ async def get_scenarios():
         print(f"Error getting scenarios: {e}")
         return []
 
-@app.post("/admin/api/mock-data/scenarios", tags=["_admin"])
+@app.post("/api/mock-data/scenarios", tags=["_admin"])
 async def create_scenario(scenario_data: dict = Body(...)):
     \"\"\"Create a new mock scenario\"\"\"
     try:
@@ -883,7 +908,7 @@ async def create_scenario(scenario_data: dict = Body(...)):
         print(f"Error creating scenario: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.put("/admin/api/mock-data/scenarios/{scenario_id}", tags=["_admin"])
+@app.put("/api/mock-data/scenarios/{scenario_id}", tags=["_admin"])
 async def update_scenario(scenario_id: int, scenario_data: dict = Body(...)):
     \"\"\"Update an existing mock scenario\"\"\"
     try:
@@ -926,7 +951,7 @@ async def update_scenario(scenario_id: int, scenario_data: dict = Body(...)):
         print(f"Error updating scenario: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.delete("/admin/api/mock-data/scenarios/{scenario_id}", tags=["_admin"])
+@app.delete("/api/mock-data/scenarios/{scenario_id}", tags=["_admin"])
 async def delete_scenario(scenario_id: int):
     \"\"\"Delete a mock scenario\"\"\"
     try:
@@ -957,7 +982,7 @@ async def delete_scenario(scenario_id: int):
         print(f"Error deleting scenario: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/admin/api/mock-data/scenarios/{scenario_id}/activate", tags=["_admin"])
+@app.post("/api/mock-data/scenarios/{scenario_id}/activate", tags=["_admin"])
 async def activate_scenario(scenario_id: int):
     \"\"\"Activate a mock scenario (deactivates all others)\"\"\"
     try:
@@ -995,7 +1020,7 @@ async def activate_scenario(scenario_id: int):
         print(f"Error activating scenario: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/admin/api/mock-data/scenarios/{scenario_id}/deactivate", tags=["_admin"])
+@app.post("/api/mock-data/scenarios/{scenario_id}/deactivate", tags=["_admin"])
 async def deactivate_scenario(scenario_id: int):
     \"\"\"Deactivate a mock scenario\"\"\"
     try:
@@ -1030,7 +1055,7 @@ async def deactivate_scenario(scenario_id: int):
         print(f"Error deactivating scenario: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/admin/api/mock-data/scenarios/active", tags=["_admin"])
+@app.get("/api/mock-data/scenarios/active", tags=["_admin"])
 async def get_active_scenario():
     \"\"\"Get the currently active scenario\"\"\"
     try:
@@ -1060,7 +1085,7 @@ async def get_active_scenario():
         print(f"Error getting active scenario: {e}")
         return None
 
-@app.get("/admin/api/performance/metrics", tags=["_admin"])
+@app.get("/api/performance/metrics", tags=["_admin"])
 async def get_performance_metrics(
     limit: int = 100,
     offset: int = 0,
@@ -1117,7 +1142,7 @@ async def get_performance_metrics(
         print(f"Error getting performance metrics: {e}")
         return {"error": str(e), "metrics": []}
 
-@app.get("/admin/api/performance/sessions", tags=["_admin"])
+@app.get("/api/performance/sessions", tags=["_admin"])
 async def get_performance_sessions(
     limit: int = 100,
     offset: int = 0,
@@ -1170,7 +1195,7 @@ async def get_performance_sessions(
         print(f"Error getting test sessions: {e}")
         return {"error": str(e), "sessions": []}
 
-@app.get("/admin/api/performance/summary", tags=["_admin"])
+@app.get("/api/performance/summary", tags=["_admin"])
 async def get_performance_summary(
     time_from: str = None,
     time_to: str = None
@@ -1274,7 +1299,7 @@ async def get_performance_summary(
     except Exception as e:
         print(f"Error getting performance summary: {e}")
         return {"error": str(e)}
-@app.get("/admin/api/analytics/export", tags=["_admin"])
+@app.get("/api/analytics/export", tags=["_admin"])
 async def export_analytics_data(
     format: str = "json",
     time_from: str = None,
@@ -1374,7 +1399,7 @@ async def export_analytics_data(
     except Exception as e:
         return {"error": str(e)}
 
-@app.get("/admin/api/analytics/realtime", tags=["_admin"])
+@app.get("/api/analytics/realtime", tags=["_admin"])
 async def get_realtime_analytics():
     \"\"\"Get real-time analytics data for dashboard updates\"\"\"
     try:
@@ -1417,7 +1442,7 @@ async def get_realtime_analytics():
     except Exception as e:
         return {"error": str(e), "status": "error"}
 
-@app.get("/admin/api/analytics/charts", tags=["_admin"])
+@app.get("/api/analytics/charts", tags=["_admin"])
 async def get_chart_data(
     chart_type: str = "overview",
     time_range: str = "1h",
@@ -1508,9 +1533,9 @@ async def get_chart_data(
         webhook_api_endpoints_str = ""
         if webhooks_enabled_bool and admin_ui_enabled_bool:
             webhook_api_endpoints_str = """
-@app.get("/admin/api/webhooks", tags=["_admin"])
+@app.get("/api/webhooks", tags=["_admin"])
 async def admin_get_webhooks(): return get_webhooks()
-@app.post("/admin/api/webhooks", tags=["_admin"])
+@app.post("/api/webhooks", tags=["_admin"])
 async def admin_register_webhook(webhook_data: dict = Body(...)):
     event_type = webhook_data.get("event_type")
     url = webhook_data.get("url")
@@ -1518,25 +1543,25 @@ async def admin_register_webhook(webhook_data: dict = Body(...)):
     if not event_type or not url:
         raise HTTPException(status_code=400, detail="event_type and url are required")
     return register_webhook(event_type, url, description)
-@app.delete("/admin/api/webhooks/{webhook_id}", tags=["_admin"])
+@app.delete("/api/webhooks/{webhook_id}", tags=["_admin"])
 async def admin_delete_webhook(webhook_id: str): return delete_webhook(webhook_id)
-@app.post("/admin/api/webhooks/{webhook_id}/test", tags=["_admin"])
+@app.post("/api/webhooks/{webhook_id}/test", tags=["_admin"])
 async def admin_test_webhook(webhook_id: str): return await test_webhook(webhook_id)
-@app.get("/admin/api/webhooks/history", tags=["_admin"])
+@app.get("/api/webhooks/history", tags=["_admin"])
 async def admin_get_webhook_history(): return get_webhook_history()
 """
         storage_api_endpoints_str = ""
         if storage_enabled_bool and admin_ui_enabled_bool:
             storage_api_endpoints_str = """
-@app.get("/admin/api/storage/stats", tags=["_admin"])
+@app.get("/api/storage/stats", tags=["_admin"])
 async def admin_get_storage_stats(): return get_storage_stats()
-@app.get("/admin/api/storage/collections", tags=["_admin"])
+@app.get("/api/storage/collections", tags=["_admin"])
 async def admin_get_collections(): return get_collections()
 """
 
         admin_ui_endpoint_str = (
             f'''
-@app.get("/admin", response_class=HTMLResponse, summary="Admin UI", tags=["_system"])
+@app.get("/", response_class=HTMLResponse, summary="Admin UI", tags=["_system"])
 async def read_admin_ui(request: Request):
     return templates.TemplateResponse("admin.html", {{
         "request": request,
@@ -1548,30 +1573,72 @@ async def read_admin_ui(request: Request):
     }})
 '''
             if admin_ui_enabled_bool
-            else "@app.get(\"/admin\")\nasync def no_admin(): return {'message': 'Admin UI not enabled'}"
+            else "@app.get(\"/\")\nasync def no_admin(): return {'message': 'Admin UI not enabled'}"
         )
 
         health_endpoint_str = '@app.get("/health", summary="Health check endpoint", tags=["_system"])\nasync def health_check(): return {"status": "healthy"}\n'
-        main_section_str = 'if __name__ == "__main__":\n    import uvicorn\n    uvicorn.run(app, host="0.0.0.0", port={{ default_port }})\n'
+
+        # Create separate main sections for business and admin servers
+        business_main_section_str = f'''if __name__ == "__main__":
+    import uvicorn
+    import threading
+    import time
+
+    def run_business_server():
+        uvicorn.run(app, host="0.0.0.0", port={business_port})
+
+    def run_admin_server():
+        # Create admin app
+        admin_app = FastAPI(title="{api_title} Admin", version="{api_version}")
+        admin_app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+
+        # Add admin-specific middleware for separate logging
+        from admin_logging_middleware import AdminLoggingMiddleware
+        admin_app.add_middleware(AdminLoggingMiddleware)
+
+        # Add admin endpoints
+        {admin_api_endpoints_str.strip() if admin_ui_enabled_bool else ""}
+        {webhook_api_endpoints_str.strip() if webhooks_enabled_bool and admin_ui_enabled_bool else ""}
+        {storage_api_endpoints_str.strip() if storage_enabled_bool and admin_ui_enabled_bool else ""}
+        {admin_ui_endpoint_str.strip() if admin_ui_enabled_bool else ""}
+
+        # Add health check for admin server
+        @admin_app.get("/health", summary="Admin health check", tags=["_system"])
+        async def admin_health_check():
+            return {{"status": "healthy", "server": "admin"}}
+
+        uvicorn.run(admin_app, host="0.0.0.0", port={admin_port})
+
+    # Start both servers
+    if {admin_ui_enabled_bool}:
+        # Start admin server in separate thread
+        admin_thread = threading.Thread(target=run_admin_server, daemon=True)
+        admin_thread.start()
+        time.sleep(1)  # Give admin server time to start
+
+        print(f"Business API server starting on port {business_port}")
+        print(f"Admin UI server running on port {admin_port}")
+    else:
+        print(f"Business API server starting on port {business_port}")
+
+    # Start business server (main thread)
+    run_business_server()
+'''
 
         main_app_template_str = (
             imports_section
             + app_setup
             + auth_endpoints_str
             + "\n# --- Generated Routes ---\n{{ routes_code }}\n# --- End Generated Routes ---\n"
-            + admin_api_endpoints_str
-            + webhook_api_endpoints_str
-            + storage_api_endpoints_str
-            + admin_ui_endpoint_str
             + health_endpoint_str
-            + main_section_str
+            + business_main_section_str
         )
         main_app_jinja_template = jinja_env.from_string(main_app_template_str)
         main_py_content = main_app_jinja_template.render(
             api_title=api_title,
             api_version=api_version,
             routes_code=all_routes_code,
-            default_port=8000,
+            default_port=business_port,
         )
         with open(mock_server_dir / "main.py", "w", encoding="utf-8") as f:
             f.write(main_py_content)
@@ -1579,7 +1646,7 @@ async def read_admin_ui(request: Request):
         dockerfile_template = jinja_env.get_template("dockerfile_template.j2")
         dockerfile_content = dockerfile_template.render(
             python_version="3.9-slim",
-            port=8000,
+            port=business_port,
             auth_enabled=auth_enabled_bool,
             webhooks_enabled=webhooks_enabled_bool,
             storage_enabled=storage_enabled_bool,
@@ -1602,8 +1669,9 @@ async def read_admin_ui(request: Request):
         final_service_name = f"{clean_service_name}-mock"
         compose_content = compose_template.render(
             service_name=final_service_name,
-            host_port=8000,
-            container_port=8000,
+            business_port=business_port,
+            admin_port=admin_port,
+            admin_ui_enabled=admin_ui_enabled_bool,
             timestamp_id=timestamp_for_id,
         )
         with open(mock_server_dir / "docker-compose.yml", "w", encoding="utf-8") as f:

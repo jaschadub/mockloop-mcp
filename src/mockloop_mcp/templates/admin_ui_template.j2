@@ -1250,7 +1250,7 @@
                 {% if webhooks_enabled %}
                 // Try to load webhooks count
                 try {
-                    const webhooksResponse = await fetch('/admin/api/webhooks');
+                    const webhooksResponse = await fetch('/api/webhooks');
                     if (webhooksResponse.ok) {
                         const webhooks = await webhooksResponse.json();
                         document.getElementById('active-webhooks').textContent = webhooks.length || '0';
@@ -1269,7 +1269,7 @@
                 
                         // Try to load request logs
                 try {
-                    const requestsResponse = await fetch('/admin/api/requests');
+                    const requestsResponse = await fetch('/api/requests');
                     if (requestsResponse.ok) {
                         const requests = await requestsResponse.json();
                         
@@ -1335,7 +1335,7 @@
                 document.getElementById('response-body').textContent = 'Loading...';
                 document.getElementById('request-details').style.display = 'block';
                 
-                const response = await fetch(`/admin/api/requests?id=${requestId}`);
+                const response = await fetch(`/api/requests?id=${requestId}`);
                 if (response.ok) {
                     const data = await response.json();
                     // Handle both array and single object responses
@@ -1489,7 +1489,7 @@
                 const methodFilter = document.getElementById('filter-method').value;
                 try {
                     // Use the include_admin parameter directly in the API call
-                    let url = '/admin/api/requests';
+                    let url = '/api/requests';
                     const params = new URLSearchParams();
                     
                     if (methodFilter) {
@@ -1570,7 +1570,7 @@
                     }
                     
                     try {
-                        const response = await fetch('/admin/api/webhooks', {
+                        const response = await fetch('/api/webhooks', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -1617,7 +1617,7 @@
         {% if webhooks_enabled %}
         async function loadWebhooks() {
             try {
-                const response = await fetch('/admin/api/webhooks');
+                const response = await fetch('/api/webhooks');
                 if (response.ok) {
                     const webhooks = await response.json();
                     updateWebhooksTable(webhooks);
@@ -1658,7 +1658,7 @@
             }
             
             try {
-                const response = await fetch(`/admin/api/webhooks/${webhookId}`, {
+                const response = await fetch(`/api/webhooks/${webhookId}`, {
                     method: 'DELETE'
                 });
                 
@@ -1683,7 +1683,7 @@
             
             try {
                 // Send test webhook request to the backend
-                const response = await fetch(`/admin/api/webhooks/${webhookId}/test`, {
+                const response = await fetch(`/api/webhooks/${webhookId}/test`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1827,7 +1827,7 @@
         // Function to load webhook history
         async function loadWebhookHistory() {
             try {
-                const response = await fetch('/admin/api/webhooks/history');
+                const response = await fetch('/api/webhooks/history');
                 if (response.ok) {
                     const history = await response.json();
                     updateWebhookHistoryTable(history);
@@ -1880,7 +1880,7 @@
                 exportButton.parentElement.disabled = true;
                 
                 // Make request to export endpoint
-                const response = await fetch('/admin/api/export');
+                const response = await fetch('/api/export');
                 
                 if (response.ok) {
                     // Create a blob from the response
@@ -1965,7 +1965,7 @@
                 params.append('limit', limit);
                 params.append('offset', offset);
                 
-                const response = await fetch(`/admin/api/logs/search?${params.toString()}`);
+                const response = await fetch(`/api/logs/search?${params.toString()}`);
                 if (response.ok) {
                     const results = await response.json();
                     displaySearchResults(results);
@@ -2005,7 +2005,7 @@
         // Analyze all logs
         async function analyzeAllLogs() {
             try {
-                const response = await fetch('/admin/api/logs/analyze');
+                const response = await fetch('/api/logs/analyze');
                 if (response.ok) {
                     const analysis = await response.json();
                     displayAnalysisResults(analysis);
@@ -2038,7 +2038,7 @@
                 if (status) params.append('status', status);
                 if (pathRegex) params.append('path_regex', pathRegex);
                 
-                const response = await fetch(`/admin/api/logs/analyze?${params.toString()}`);
+                const response = await fetch(`/api/logs/analyze?${params.toString()}`);
                 if (response.ok) {
                     const analysis = await response.json();
                     displayAnalysisResults(analysis);
@@ -2065,7 +2065,7 @@
                 params.append('time_from', new Date(timeFrom).toISOString());
                 params.append('time_to', new Date(timeTo).toISOString());
                 
-                const response = await fetch(`/admin/api/logs/analyze?${params.toString()}`);
+                const response = await fetch(`/api/logs/analyze?${params.toString()}`);
                 if (response.ok) {
                     const analysis = await response.json();
                     displayAnalysisResults(analysis);
@@ -2159,7 +2159,7 @@
         // Load all scenarios
         async function loadScenarios() {
             try {
-                const response = await fetch('/admin/api/mock-data/scenarios');
+                const response = await fetch('/api/mock-data/scenarios');
                 if (response.ok) {
                     const scenarios = await response.json();
                     updateScenariosTable(scenarios);
@@ -2174,7 +2174,7 @@
         // Load active scenario
         async function loadActiveScenario() {
             try {
-                const response = await fetch('/admin/api/mock-data/scenarios/active');
+                const response = await fetch('/api/mock-data/scenarios/active');
                 if (response.ok) {
                     const activeScenario = await response.json();
                     updateActiveScenarioDisplay(activeScenario);
@@ -2249,7 +2249,7 @@
             }
             
             try {
-                const response = await fetch('/admin/api/mock-data/scenarios', {
+                const response = await fetch('/api/mock-data/scenarios', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -2287,7 +2287,7 @@
             }
             
             try {
-                const response = await fetch(`/admin/api/mock-data/scenarios/${scenarioId}/activate`, {
+                const response = await fetch(`/api/mock-data/scenarios/${scenarioId}/activate`, {
                     method: 'POST'
                 });
                 
@@ -2314,7 +2314,7 @@
             
             try {
                 // Get active scenario first
-                const activeResponse = await fetch('/admin/api/mock-data/scenarios/active');
+                const activeResponse = await fetch('/api/mock-data/scenarios/active');
                 if (!activeResponse.ok) {
                     alert('No active scenario found');
                     return;
@@ -2342,7 +2342,7 @@
             
             try {
                 // Use the dedicated deactivate endpoint
-                const response = await fetch(`/admin/api/mock-data/scenarios/${scenarioId}/deactivate`, {
+                const response = await fetch(`/api/mock-data/scenarios/${scenarioId}/deactivate`, {
                     method: 'POST'
                 });
                 
@@ -2365,7 +2365,7 @@
         async function editScenario(scenarioId) {
             try {
                 // Get scenario details
-                const response = await fetch('/admin/api/mock-data/scenarios');
+                const response = await fetch('/api/mock-data/scenarios');
                 if (!response.ok) {
                     alert('Failed to load scenario details');
                     return;
@@ -2507,7 +2507,7 @@
             }
             
             try {
-                const response = await fetch(`/admin/api/mock-data/scenarios/${id}`, {
+                const response = await fetch(`/api/mock-data/scenarios/${id}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -2549,7 +2549,7 @@
             }
             
             try {
-                const response = await fetch(`/admin/api/mock-data/scenarios/${scenarioId}`, {
+                const response = await fetch(`/api/mock-data/scenarios/${scenarioId}`, {
                     method: 'DELETE'
                 });
                 
@@ -2571,7 +2571,7 @@
         // Load performance summary
         async function loadPerformanceSummary() {
             try {
-                const response = await fetch('/admin/api/performance/summary');
+                const response = await fetch('/api/performance/summary');
                 if (response.ok) {
                     const data = await response.json();
                     updatePerformanceSummary(data);
@@ -2634,7 +2634,7 @@
         // Load performance metrics
         async function loadPerformanceMetrics() {
             try {
-                const response = await fetch('/admin/api/performance/metrics?limit=50');
+                const response = await fetch('/api/performance/metrics?limit=50');
                 if (response.ok) {
                     const data = await response.json();
                     updatePerformanceMetricsTable(data.metrics || []);
@@ -2677,7 +2677,7 @@
         // Load test sessions
         async function loadTestSessions() {
             try {
-                const response = await fetch('/admin/api/performance/sessions');
+                const response = await fetch('/api/performance/sessions');
                 if (response.ok) {
                     const data = await response.json();
                     updateTestSessionsTable(data.sessions || []);
@@ -2734,7 +2734,7 @@
                 if (timeTo) params.append('time_to', new Date(timeTo).toISOString());
                 params.append('limit', '100');
                 
-                const response = await fetch(`/admin/api/performance/metrics?${params.toString()}`);
+                const response = await fetch(`/api/performance/metrics?${params.toString()}`);
                 if (response.ok) {
                     const data = await response.json();
                     updatePerformanceMetricsTable(data.metrics || []);

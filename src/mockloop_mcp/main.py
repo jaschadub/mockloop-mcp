@@ -123,6 +123,8 @@ async def generate_mock_api_tool(
     webhooks_enabled: bool = True,
     admin_ui_enabled: bool = True,
     storage_enabled: bool = True,
+    business_port: int = 8000,
+    admin_port: int | None = None,
     # ctx: Context # MCP Context, can be added if tool needs to report progress, etc.
 ) -> GenerateMockApiOutput:
     """
@@ -176,6 +178,8 @@ async def generate_mock_api_tool(
             webhooks_enabled=webhooks_enabled_debug,  # Pass debug hardcoded True
             admin_ui_enabled=admin_ui_enabled_debug,  # Pass debug hardcoded True
             storage_enabled=storage_enabled_debug,  # Pass debug hardcoded True
+            business_port=business_port,
+            admin_port=admin_port,
             # output_base_dir can be configured if needed, defaults to "generated_mocks"
         )
 
