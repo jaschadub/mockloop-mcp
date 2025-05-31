@@ -549,7 +549,9 @@ class PyPIValidator:
                             severity="warning"
                         )
                         break
-            except Exception:
+            except Exception as e:
+                # Log the exception for debugging purposes
+                print(f"Warning: Failed to check secret pattern: {e}")
                 continue
 
         if not secrets_found:
@@ -626,7 +628,7 @@ def print_summary(summary: ValidationSummary) -> None:
     # Print warnings
     warning_results = [r for r in summary.results if not r.passed and r.severity == "warning"]
     if warning_results:
-        for result in warning_results[:5]:  # Show first 5 warnings
+        for _result in warning_results[:5]:  # Show first 5 warnings
             pass
         if len(warning_results) > 5:
             pass

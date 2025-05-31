@@ -67,9 +67,10 @@ jobs:
       - name: Build documentation
         run: |
           mkdocs build --clean --strict
-        env:
-          # Override the site_url for GitHub Pages
-          MKDOCS_SITE_URL: ${{ steps.pages.outputs.base_url }}
+
+      - name: Copy CNAME to site directory
+        run: |
+          cp docs/CNAME site/CNAME
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
@@ -120,6 +121,10 @@ jobs:
       - name: Build documentation (PR check)
         run: |
           mkdocs build --clean --strict
+
+      - name: Copy CNAME to site directory (PR check)
+        run: |
+          cp docs/CNAME site/CNAME
 
       - name: Comment PR with build status
         if: github.event_name == 'pull_request'

@@ -323,11 +323,11 @@ class ReleasePreparation:
         # Summary
 
         if self.checks_failed:
-            for check in self.checks_failed:
+            for _check in self.checks_failed:
                 pass
 
         if self.checks_passed:
-            for check in self.checks_passed:
+            for _check in self.checks_passed:
                 pass
 
         return len(self.checks_failed) == 0

@@ -10,7 +10,7 @@ body:
       value: |
         Need help with MockLoop MCP? We're here to assist! Please provide details about your question or issue.
         
-        **Before submitting:** Please check our [documentation](https://mockloop.github.io/mockloop-mcp/) and [existing discussions](https://github.com/mockloop/mockloop-mcp/discussions) first.
+        **Before submitting:** Please check our [documentation](https://docs.mockloop.com/) and [existing discussions](https://github.com/mockloop/mockloop-mcp/discussions) first.
 
   - type: checkboxes
     id: checklist
@@ -237,9 +237,9 @@ body:
         
         While waiting for a response, you might find these resources helpful:
         
-        - **[Documentation](https://mockloop.github.io/mockloop-mcp/)**: Complete guides and API reference
-        - **[Quick Start Guide](https://mockloop.github.io/mockloop-mcp/getting-started/quick-start/)**: Get up and running quickly
-        - **[Troubleshooting Guide](https://mockloop.github.io/mockloop-mcp/advanced/troubleshooting/)**: Common issues and solutions
+        - **[Documentation](https://docs.mockloop.com/)**: Complete guides and API reference
+        - **[Quick Start Guide](https://docs.mockloop.com/getting-started/quick-start/)**: Get up and running quickly
+        - **[Troubleshooting Guide](https://docs.mockloop.com/advanced/troubleshooting/)**: Common issues and solutions
         - **[Examples](https://github.com/mockloop/mockloop-mcp/tree/main/examples)**: Sample configurations and use cases
         - **[Discussions](https://github.com/mockloop/mockloop-mcp/discussions)**: Community Q&A and discussions
         

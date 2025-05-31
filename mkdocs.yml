@@ -1,7 +1,7 @@
 site_name: MockLoop MCP Documentation
 site_description: Comprehensive documentation for MockLoop MCP - A Model Context Protocol server for generating sophisticated mock API servers
 site_author: MockLoop Team
-site_url: https://mockloop.github.io/mockloop-mcp/
+site_url: https://docs.mockloop.com/
 
 repo_name: mockloop/mockloop-mcp
 repo_url: https://github.com/mockloop/mockloop-mcp

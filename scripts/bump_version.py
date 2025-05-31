@@ -69,8 +69,8 @@ class VersionBumper:
 
         try:
             major, minor, patch = map(int, parts)
-        except ValueError:
-            raise ValueError(f"Invalid version format: {version}")
+        except ValueError as err:
+            raise ValueError(f"Invalid version format: {version}") from err
 
         return major, minor, patch, pre_release
 
