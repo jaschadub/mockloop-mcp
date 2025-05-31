@@ -1,0 +1,242 @@
+// --- Enhanced Analytics Functions ---
+        
+        // Initialize analytics charts
+        let analyticsCharts = null;
+        let chartUpdateIntervals = {};
+        
+        // Initialize charts when analytics tab is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize analytics charts
+            analyticsCharts = new AnalyticsCharts();
+            
+            // Load charts when analytics tab is clicked
+            document.querySelector('.nav-link[data-tab="analytics"]').addEventListener('click', async function() {
+                await loadAnalyticsCharts();
+                setupRealTimeUpdates();
+            });
+            
+            // Setup chart controls
+            const chartTimeRange = document.getElementById('chart-time-range');
+            const chartTypeFilter = document.getElementById('chart-type-filter');
+            const realtimeCharts = document.getElementById('realtime-charts');
+            const chartRefreshRate = document.getElementById('chart-refresh-rate');
+            
+            if (chartTimeRange) chartTimeRange.addEventListener('change', refreshCharts);
+            if (chartTypeFilter) chartTypeFilter.addEventListener('change', refreshCharts);
+            if (realtimeCharts) realtimeCharts.addEventListener('change', toggleRealTimeUpdates);
+            if (chartRefreshRate) chartRefreshRate.addEventListener('change', updateRefreshRate);
+        });
+        
+        // Load and display analytics charts
+        async function loadAnalyticsCharts() {
+            try {
+                const timeRange = document.getElementById('chart-time-range')?.value || '1h';
+                const chartType = document.getElementById('chart-type-filter')?.value || 'overview';
+                
+                const response = await fetch(`/admin/api/analytics/charts?chart_type=${chartType}&time_range=${timeRange}`);
+                if (!response.ok) {
+                    throw new Error('Failed to load chart data');
+                }
+                
+                const chartData = await response.json();
+                
+                // Create request volume chart
+                if (chartData.request_volume && analyticsCharts) {
+                    const volumeData = chartData.request_volume.map(item => ({
+                        label: item.time_bucket,
+                        value: item.request_count
+                    }));
+                    analyticsCharts.createLineChart('request-volume-chart', volumeData, { height: 180 });
+                }
+                
+                // Create response time chart
+                if (chartData.performance_trends && analyticsCharts) {
+                    const perfData = chartData.performance_trends.map(item => ({
+                        label: item.time_bucket,
+                        value: item.avg_response_time || 0
+                    }));
+                    analyticsCharts.createLineChart('response-time-chart', perfData, { height: 180 });
+                }
+                
+                // Create status code pie chart
+                if (chartData.status_distribution && analyticsCharts) {
+                    const statusData = chartData.status_distribution.map(item => ({
+                        label: `${item.status_code}`,
+                        value: item.count
+                    }));
+                    analyticsCharts.createPieChart('status-code-pie-chart', statusData, { size: 180 });
+                }
+                
+                // Create top endpoints bar chart
+                if (chartData.top_endpoints && analyticsCharts) {
+                    const endpointData = chartData.top_endpoints.slice(0, 10).map(item => ({
+                        label: item.path.length > 15 ? item.path.substring(0, 15) + '...' : item.path,
+                        value: item.request_count
+                    }));
+                    analyticsCharts.createBarChart('top-endpoints-bar-chart', endpointData, { height: 180 });
+                }
+                
+            } catch (error) {
+                console.error('Error loading analytics charts:', error);
+                // Show error message in charts
+                ['request-volume-chart', 'response-time-chart', 'status-code-pie-chart', 'top-endpoints-bar-chart'].forEach(chartId => {
+                    const container = document.getElementById(chartId);
+                    if (container) {
+                        container.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666;">Error loading chart data</div>';
+                    }
+                });
+            }
+        }
+        
+        // Refresh all charts
+        async function refreshCharts() {
+            await loadAnalyticsCharts();
+        }
+        
+        // Setup real-time updates
+        function setupRealTimeUpdates() {
+            const realtimeCheckbox = document.getElementById('realtime-charts');
+            const enabled = realtimeCheckbox ? realtimeCheckbox.checked : false;
+            if (enabled) {
+                startRealTimeUpdates();
+            } else {
+                stopRealTimeUpdates();
+            }
+        }
+        
+        // Toggle real-time updates
+        function toggleRealTimeUpdates() {
+            setupRealTimeUpdates();
+        }
+        
+        // Update refresh rate
+        function updateRefreshRate() {
+            const realtimeCheckbox = document.getElementById('realtime-charts');
+            if (realtimeCheckbox && realtimeCheckbox.checked) {
+                stopRealTimeUpdates();
+                startRealTimeUpdates();
+            }
+        }
+        
+        // Start real-time chart updates
+        function startRealTimeUpdates() {
+            stopRealTimeUpdates(); // Clear any existing intervals
+            
+            const refreshRateSelect = document.getElementById('chart-refresh-rate');
+            const refreshRate = refreshRateSelect ? parseInt(refreshRateSelect.value, 10) : 5000;
+            
+            chartUpdateIntervals.main = setInterval(async () => {
+                const analyticsTab = document.getElementById('analytics');
+                if (analyticsTab && analyticsTab.classList.contains('active')) {
+                    await loadAnalyticsCharts();
+                }
+            }, refreshRate);
+        }
+        
+        // Stop real-time updates
+        function stopRealTimeUpdates() {
+            Object.values(chartUpdateIntervals).forEach(interval => {
+                if (interval) clearInterval(interval);
+            });
+            chartUpdateIntervals = {};
+        }
+        
+        // Export analytics data
+        async function exportAnalyticsData() {
+            try {
+                const formatSelect = document.getElementById('export-format');
+                const timeRangeSelect = document.getElementById('chart-time-range');
+                
+                const format = formatSelect ? formatSelect.value : 'json';
+                const timeRange = timeRangeSelect ? timeRangeSelect.value : '1h';
+                
+                // Calculate time parameters based on range
+                let timeFrom = null;
+                let timeTo = new Date().toISOString();
+                
+                const now = new Date();
+                switch (timeRange) {
+                    case '1h':
+                        timeFrom = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
+                        break;
+                    case '6h':
+                        timeFrom = new Date(now.getTime() - 6 * 60 * 60 * 1000).toISOString();
+                        break;
+                    case '24h':
+                        timeFrom = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+                        break;
+                    case '7d':
+                        timeFrom = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+                        break;
+                    case '30d':
+                        timeFrom = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+                        break;
+                }
+                
+                const params = new URLSearchParams({
+                    format: format,
+                    include_performance: 'true',
+                    include_logs: 'true'
+                });
+                
+                if (timeFrom) params.append('time_from', timeFrom);
+                if (timeTo) params.append('time_to', timeTo);
+                
+                const response = await fetch(`/admin/api/analytics/export?${params.toString()}`);
+                if (!response.ok) {
+                    throw new Error('Export failed');
+                }
+                
+                // Create download
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = `analytics_export_${timeRange}.${format}`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                alert('Analytics data exported successfully!');
+            } catch (error) {
+                console.error('Export error:', error);
+                alert('Failed to export analytics data. Please try again.');
+            }
+        }
+        
+        // Export chart data
+        async function exportChartData() {
+            try {
+                const timeRangeSelect = document.getElementById('chart-time-range');
+                const chartTypeSelect = document.getElementById('chart-type-filter');
+                
+                const timeRange = timeRangeSelect ? timeRangeSelect.value : '1h';
+                const chartType = chartTypeSelect ? chartTypeSelect.value : 'overview';
+                
+                const response = await fetch(`/admin/api/analytics/charts?chart_type=${chartType}&time_range=${timeRange}`);
+                if (!response.ok) {
+                    throw new Error('Failed to load chart data');
+                }
+                
+                const chartData = await response.json();
+                
+                // Create download
+                const blob = new Blob([JSON.stringify(chartData, null, 2)], { type: 'application/json' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = `chart_data_${timeRange}_${chartType}.json`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                alert('Chart data exported successfully!');
+            } catch (error) {
+                console.error('Export error:', error);
+                alert('Failed to export chart data. Please try again.');
+            }
+        }

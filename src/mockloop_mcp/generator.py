@@ -187,6 +187,13 @@ def generate_mock_api(
             (mock_server_dir / "mock_data").mkdir(exist_ok=True)
 
         if admin_ui_enabled_bool:
+            # Load analytics charts and functions templates
+            analytics_charts_template = jinja_env.get_template("analytics_charts_template.j2")
+            analytics_charts_code = analytics_charts_template.render()
+
+            analytics_functions_template = jinja_env.get_template("analytics_functions_template.j2")
+            analytics_functions_code = analytics_functions_template.render()
+
             admin_ui_template = jinja_env.get_template("admin_ui_template.j2")
             admin_ui_code = admin_ui_template.render(
                 api_title=spec_data.get("info", {}).get("title", "Mock API"),
@@ -194,6 +201,8 @@ def generate_mock_api(
                 auth_enabled=auth_enabled_bool,
                 webhooks_enabled=webhooks_enabled_bool,
                 storage_enabled=storage_enabled_bool,
+                analytics_charts_js=analytics_charts_code,
+                analytics_functions_js=analytics_functions_code,
             )
             (mock_server_dir / "templates").mkdir(exist_ok=True)
             with open(
@@ -1265,6 +1274,236 @@ async def get_performance_summary(
     except Exception as e:
         print(f"Error getting performance summary: {e}")
         return {"error": str(e)}
+@app.get("/admin/api/analytics/export", tags=["_admin"])
+async def export_analytics_data(
+    format: str = "json",
+    time_from: str = None,
+    time_to: str = None,
+    include_performance: bool = True,
+    include_logs: bool = True
+):
+    \"\"\"Export analytics data in various formats\"\"\"
+    try:
+        from fastapi.responses import StreamingResponse
+        import csv
+        import io
+
+        # Get analytics data
+        analytics_data = {}
+
+        if include_logs:
+            # Get log analysis
+            conn = sqlite3.connect(str(DB_PATH))
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+
+            query = "SELECT * FROM request_logs"
+            params = []
+            where_clauses = []
+
+            if time_from:
+                where_clauses.append("timestamp >= ?")
+                params.append(time_from)
+            if time_to:
+                where_clauses.append("timestamp <= ?")
+                params.append(time_to)
+
+            if where_clauses:
+                query += " WHERE " + " AND ".join(where_clauses)
+            query += " ORDER BY id DESC"
+
+            cursor.execute(query, params)
+            logs = [dict(row) for row in cursor.fetchall()]
+
+            # Use log analyzer for insights
+            from log_analyzer import LogAnalyzer
+            analyzer = LogAnalyzer()
+            analytics_data["log_analysis"] = analyzer.analyze_logs(logs)
+            analytics_data["raw_logs"] = logs
+            conn.close()
+
+        if include_performance:
+            # Get performance data
+            conn = sqlite3.connect(str(DB_PATH))
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+
+            perf_query = "SELECT * FROM performance_metrics"
+            perf_params = []
+            perf_where = []
+
+            if time_from:
+                perf_where.append("recorded_at >= ?")
+                perf_params.append(time_from)
+            if time_to:
+                perf_where.append("recorded_at <= ?")
+                perf_params.append(time_to)
+
+            if perf_where:
+                perf_query += " WHERE " + " AND ".join(perf_where)
+            perf_query += " ORDER BY recorded_at DESC"
+
+            cursor.execute(perf_query, perf_params)
+            analytics_data["performance_metrics"] = [dict(row) for row in cursor.fetchall()]
+            conn.close()
+
+        # Export in requested format
+        if format.lower() == "csv":
+            # Create CSV export
+            output = io.StringIO()
+
+            if include_logs and analytics_data.get("raw_logs"):
+                writer = csv.DictWriter(output, fieldnames=analytics_data["raw_logs"][0].keys())
+                writer.writeheader()
+                writer.writerows(analytics_data["raw_logs"])
+
+            output.seek(0)
+            return StreamingResponse(
+                io.BytesIO(output.getvalue().encode()),
+                media_type="text/csv",
+                headers={"Content-Disposition": "attachment; filename=analytics_export.csv"}
+            )
+        else:
+            # JSON export
+            return StreamingResponse(
+                io.BytesIO(json.dumps(analytics_data, indent=2, default=str).encode()),
+                media_type="application/json",
+                headers={"Content-Disposition": "attachment; filename=analytics_export.json"}
+            )
+
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/admin/api/analytics/realtime", tags=["_admin"])
+async def get_realtime_analytics():
+    \"\"\"Get real-time analytics data for dashboard updates\"\"\"
+    try:
+        conn = sqlite3.connect(str(DB_PATH))
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+
+        # Get recent activity (last 5 minutes)
+        cursor.execute(\"\"\"
+            SELECT COUNT(*) as recent_requests,
+                   AVG(process_time_ms) as avg_response_time,
+                   COUNT(CASE WHEN status_code >= 400 THEN 1 END) as error_count
+            FROM request_logs
+            WHERE timestamp >= datetime('now', '-5 minutes')
+        \"\"\")
+        recent_stats = dict(cursor.fetchone())
+
+        # Get current active scenarios
+        cursor.execute("SELECT name FROM mock_scenarios WHERE is_active = 1")
+        active_scenario = cursor.fetchone()
+
+        # Get performance metrics from last hour
+        cursor.execute(\"\"\"
+            SELECT AVG(memory_usage_mb) as avg_memory,
+                   AVG(cpu_usage_percent) as avg_cpu
+            FROM performance_metrics
+            WHERE recorded_at >= datetime('now', '-1 hour')
+        \"\"\")
+        perf_stats = dict(cursor.fetchone())
+
+        conn.close()
+
+        return {
+            "timestamp": datetime.now().isoformat(),
+            "recent_activity": recent_stats,
+            "active_scenario": active_scenario[0] if active_scenario else None,
+            "system_performance": perf_stats,
+            "status": "healthy"
+        }
+    except Exception as e:
+        return {"error": str(e), "status": "error"}
+
+@app.get("/admin/api/analytics/charts", tags=["_admin"])
+async def get_chart_data(
+    chart_type: str = "overview",
+    time_range: str = "1h",
+    limit: int = 50
+):
+    \"\"\"Get data formatted for chart rendering\"\"\"
+    try:
+        conn = sqlite3.connect(str(DB_PATH))
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+
+        # Calculate time filter based on range
+        time_filters = {
+            "1h": "datetime('now', '-1 hour')",
+            "6h": "datetime('now', '-6 hours')",
+            "24h": "datetime('now', '-24 hours')",
+            "7d": "datetime('now', '-7 days')",
+            "30d": "datetime('now', '-30 days')"
+        }
+        time_filter = time_filters.get(time_range, time_filters["1h"])
+
+        chart_data = {}
+
+        if chart_type == "overview" or chart_type == "requests":
+            # Request volume over time
+            cursor.execute(f\"\"\"
+                SELECT strftime('%H:%M', timestamp) as time_bucket,
+                       COUNT(*) as request_count,
+                       AVG(process_time_ms) as avg_response_time
+                FROM request_logs
+                WHERE timestamp >= {time_filter}
+                GROUP BY strftime('%H:%M', timestamp)
+                ORDER BY time_bucket
+                LIMIT ?
+            \"\"\", (limit,))
+
+            chart_data["request_volume"] = [dict(row) for row in cursor.fetchall()]
+
+        if chart_type == "overview" or chart_type == "status":
+            # Status code distribution
+            cursor.execute(f\"\"\"
+                SELECT status_code, COUNT(*) as count
+                FROM request_logs
+                WHERE timestamp >= {time_filter}
+                GROUP BY status_code
+                ORDER BY count DESC
+            \"\"\")
+
+            chart_data["status_distribution"] = [dict(row) for row in cursor.fetchall()]
+
+        if chart_type == "overview" or chart_type == "endpoints":
+            # Top endpoints
+            cursor.execute(f\"\"\"
+                SELECT path, COUNT(*) as request_count,
+                       AVG(process_time_ms) as avg_response_time
+                FROM request_logs
+                WHERE timestamp >= {time_filter}
+                GROUP BY path
+                ORDER BY request_count DESC
+                LIMIT ?
+            \"\"\", (limit,))
+
+            chart_data["top_endpoints"] = [dict(row) for row in cursor.fetchall()]
+
+        if chart_type == "overview" or chart_type == "performance":
+            # Performance metrics
+            cursor.execute(f\"\"\"
+                SELECT strftime('%H:%M', recorded_at) as time_bucket,
+                       AVG(response_time_ms) as avg_response_time,
+                       AVG(memory_usage_mb) as avg_memory,
+                       AVG(cpu_usage_percent) as avg_cpu
+                FROM performance_metrics
+                WHERE recorded_at >= {time_filter}
+                GROUP BY strftime('%H:%M', recorded_at)
+                ORDER BY time_bucket
+                LIMIT ?
+            \"\"\", (limit,))
+
+            chart_data["performance_trends"] = [dict(row) for row in cursor.fetchall()]
+
+        conn.close()
+        return chart_data
+
+    except Exception as e:
+        return {"error": str(e)}
+
 """
         webhook_api_endpoints_str = ""
         if webhooks_enabled_bool and admin_ui_enabled_bool:

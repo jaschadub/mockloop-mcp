@@ -1,0 +1,303 @@
+// Analytics Charts and Visualization Components
+// This module provides chart rendering capabilities for the admin UI
+
+class AnalyticsCharts {
+    constructor() {
+        this.charts = {};
+        this.colors = {
+            primary: '#3498db',
+            success: '#2ecc71',
+            danger: '#e74c3c',
+            warning: '#f39c12',
+            info: '#17a2b8',
+            secondary: '#6c757d'
+        };
+    }
+
+    // Create a simple bar chart using CSS and HTML
+    createBarChart(containerId, data, options = {}) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        const maxValue = Math.max(...data.map(d => d.value));
+        const chartHeight = options.height || 200;
+        
+        let html = '<div class="chart-container" style="height: ' + chartHeight + 'px; display: flex; align-items: end; gap: 5px; padding: 10px;">';
+        
+        data.forEach((item, index) => {
+            const barHeight = (item.value / maxValue) * (chartHeight - 40);
+            const color = options.colors ? options.colors[index % options.colors.length] : this.colors.primary;
+            
+            html += `
+                <div class="chart-bar" style="flex: 1; display: flex; flex-direction: column; align-items: center;">
+                    <div class="bar-value" style="font-size: 12px; margin-bottom: 5px;">${item.value}</div>
+                    <div class="bar" style="
+                        width: 100%; 
+                        height: ${barHeight}px; 
+                        background-color: ${color}; 
+                        border-radius: 3px 3px 0 0;
+                        transition: all 0.3s ease;
+                    "></div>
+                    <div class="bar-label" style="font-size: 11px; margin-top: 5px; text-align: center; word-break: break-word;">
+                        ${item.label}
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        container.innerHTML = html;
+        
+        // Add hover effects
+        container.querySelectorAll('.bar').forEach(bar => {
+            bar.addEventListener('mouseenter', function() {
+                this.style.opacity = '0.8';
+            });
+            bar.addEventListener('mouseleave', function() {
+                this.style.opacity = '1';
+            });
+        });
+    }
+
+    // Create a simple line chart
+    createLineChart(containerId, data, options = {}) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        const width = options.width || container.offsetWidth || 400;
+        const height = options.height || 200;
+        const padding = 40;
+        
+        const maxValue = Math.max(...data.map(d => d.value));
+        const minValue = Math.min(...data.map(d => d.value));
+        const valueRange = maxValue - minValue || 1;
+        
+        let svg = `<svg width="${width}" height="${height}" style="border: 1px solid #eee;">`;
+        
+        // Draw grid lines
+        for (let i = 0; i <= 5; i++) {
+            const y = padding + (i * (height - 2 * padding) / 5);
+            svg += `<line x1="${padding}" y1="${y}" x2="${width - padding}" y2="${y}" stroke="#f0f0f0" stroke-width="1"/>`;
+        }
+        
+        // Draw line
+        let pathData = '';
+        data.forEach((point, index) => {
+            const x = padding + (index * (width - 2 * padding) / (data.length - 1));
+            const y = height - padding - ((point.value - minValue) / valueRange) * (height - 2 * padding);
+            
+            if (index === 0) {
+                pathData += `M ${x} ${y}`;
+            } else {
+                pathData += ` L ${x} ${y}`;
+            }
+            
+            // Add data points
+            svg += `<circle cx="${x}" cy="${y}" r="4" fill="${this.colors.primary}"/>`;
+        });
+        
+        svg += `<path d="${pathData}" stroke="${this.colors.primary}" stroke-width="2" fill="none"/>`;
+        svg += '</svg>';
+        
+        container.innerHTML = svg;
+    }
+
+    // Create a pie chart
+    createPieChart(containerId, data, options = {}) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        const size = options.size || 200;
+        const radius = size / 2 - 10;
+        const centerX = size / 2;
+        const centerY = size / 2;
+        
+        const total = data.reduce((sum, item) => sum + item.value, 0);
+        let currentAngle = 0;
+        
+        let svg = `<svg width="${size}" height="${size}">`;
+        
+        data.forEach((item, index) => {
+            const sliceAngle = (item.value / total) * 2 * Math.PI;
+            const endAngle = currentAngle + sliceAngle;
+            
+            const x1 = centerX + radius * Math.cos(currentAngle);
+            const y1 = centerY + radius * Math.sin(currentAngle);
+            const x2 = centerX + radius * Math.cos(endAngle);
+            const y2 = centerY + radius * Math.sin(endAngle);
+            
+            const largeArcFlag = sliceAngle > Math.PI ? 1 : 0;
+            
+            const color = options.colors ? options.colors[index % options.colors.length] : 
+                         Object.values(this.colors)[index % Object.values(this.colors).length];
+            
+            const pathData = [
+                `M ${centerX} ${centerY}`,
+                `L ${x1} ${y1}`,
+                `A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2}`,
+                'Z'
+            ].join(' ');
+            
+            svg += `<path d="${pathData}" fill="${color}" stroke="white" stroke-width="2"/>`;
+            
+            currentAngle = endAngle;
+        });
+        
+        svg += '</svg>';
+        
+        // Add legend
+        let legend = '<div class="pie-legend" style="margin-top: 10px;">';
+        data.forEach((item, index) => {
+            const color = options.colors ? options.colors[index % options.colors.length] : 
+                         Object.values(this.colors)[index % Object.values(this.colors).length];
+            const percentage = ((item.value / total) * 100).toFixed(1);
+            
+            legend += `
+                <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                    <div style="width: 12px; height: 12px; background-color: ${color}; margin-right: 8px; border-radius: 2px;"></div>
+                    <span style="font-size: 12px;">${item.label}: ${item.value} (${percentage}%)</span>
+                </div>
+            `;
+        });
+        legend += '</div>';
+        
+        container.innerHTML = svg + legend;
+    }
+
+    // Create a time series chart
+    createTimeSeriesChart(containerId, data, options = {}) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        // Group data by time intervals
+        const timeData = this.groupDataByTime(data, options.interval || 'hour');
+        this.createLineChart(containerId, timeData, options);
+    }
+
+    // Helper function to group data by time intervals
+    groupDataByTime(data, interval) {
+        const grouped = {};
+        
+        data.forEach(item => {
+            let timeKey;
+            const date = new Date(item.timestamp);
+            
+            switch (interval) {
+                case 'minute':
+                    timeKey = date.toISOString().substring(0, 16);
+                    break;
+                case 'hour':
+                    timeKey = date.toISOString().substring(0, 13);
+                    break;
+                case 'day':
+                    timeKey = date.toISOString().substring(0, 10);
+                    break;
+                default:
+                    timeKey = date.toISOString().substring(0, 13);
+            }
+            
+            if (!grouped[timeKey]) {
+                grouped[timeKey] = { count: 0, totalTime: 0 };
+            }
+            grouped[timeKey].count++;
+            grouped[timeKey].totalTime += item.process_time_ms || 0;
+        });
+        
+        return Object.entries(grouped).map(([time, stats]) => ({
+            label: new Date(time).toLocaleTimeString(),
+            value: stats.count,
+            avgTime: stats.totalTime / stats.count
+        }));
+    }
+
+    // Update chart with new data
+    updateChart(chartId, newData, options = {}) {
+        if (this.charts[chartId]) {
+            this.charts[chartId](newData, options);
+        }
+    }
+
+    // Create performance metrics dashboard
+    createPerformanceDashboard(containerId, performanceData) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        let html = `
+            <div class="performance-dashboard">
+                <div class="dashboard-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <div class="chart-section">
+                        <h4>Response Time Trend</h4>
+                        <div id="response-time-chart"></div>
+                    </div>
+                    <div class="chart-section">
+                        <h4>Request Volume</h4>
+                        <div id="request-volume-chart"></div>
+                    </div>
+                </div>
+                <div class="dashboard-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div class="chart-section">
+                        <h4>Status Code Distribution</h4>
+                        <div id="status-codes-chart"></div>
+                    </div>
+                    <div class="chart-section">
+                        <h4>Top Endpoints</h4>
+                        <div id="top-endpoints-chart"></div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        container.innerHTML = html;
+        
+        // Create individual charts
+        if (performanceData.timeSeries) {
+            this.createTimeSeriesChart('response-time-chart', performanceData.timeSeries);
+        }
+        
+        if (performanceData.statusCodes) {
+            const statusData = Object.entries(performanceData.statusCodes).map(([code, count]) => ({
+                label: code,
+                value: count
+            }));
+            this.createPieChart('status-codes-chart', statusData, { size: 150 });
+        }
+        
+        if (performanceData.endpoints) {
+            const endpointData = Object.entries(performanceData.endpoints)
+                .slice(0, 10)
+                .map(([endpoint, count]) => ({
+                    label: endpoint.length > 15 ? endpoint.substring(0, 15) + '...' : endpoint,
+                    value: count
+                }));
+            this.createBarChart('top-endpoints-chart', endpointData, { height: 150 });
+        }
+    }
+
+    // Real-time chart updates
+    startRealTimeUpdates(chartId, updateFunction, interval = 5000) {
+        const updateChart = async () => {
+            try {
+                const newData = await updateFunction();
+                this.updateChart(chartId, newData);
+            } catch (error) {
+                console.error('Error updating chart:', error);
+            }
+        };
+        
+        // Initial update
+        updateChart();
+        
+        // Set up interval updates
+        return setInterval(updateChart, interval);
+    }
+
+    // Stop real-time updates
+    stopRealTimeUpdates(intervalId) {
+        if (intervalId) {
+            clearInterval(intervalId);
+        }
+    }
+}
+
+// Export for use in admin UI
+window.AnalyticsCharts = AnalyticsCharts;
