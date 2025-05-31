@@ -978,6 +978,41 @@ async def activate_scenario(scenario_id: int):
         print(f"Error activating scenario: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/admin/api/mock-data/scenarios/{scenario_id}/deactivate", tags=["_admin"])
+async def deactivate_scenario(scenario_id: int):
+    \"\"\"Deactivate a mock scenario\"\"\"
+    try:
+        conn = sqlite3.connect(str(DB_PATH))
+        cursor = conn.cursor()
+
+        # Check if scenario exists and is active
+        cursor.execute("SELECT id, name, is_active FROM mock_scenarios WHERE id = ?", (scenario_id,))
+        scenario = cursor.fetchone()
+        if not scenario:
+            conn.close()
+            raise HTTPException(status_code=404, detail="Scenario not found")
+
+        if not scenario[2]:  # is_active
+            conn.close()
+            raise HTTPException(status_code=400, detail="Scenario is not currently active")
+
+        # Deactivate the scenario
+        cursor.execute("UPDATE mock_scenarios SET is_active = 0 WHERE id = ?", (scenario_id,))
+
+        conn.commit()
+        conn.close()
+
+        # Clear in-memory active scenario
+        global active_scenario
+        active_scenario = None
+
+        return {"message": f"Scenario '{scenario[1]}' deactivated successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error deactivating scenario: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/admin/api/mock-data/scenarios/active", tags=["_admin"])
 async def get_active_scenario():
     \"\"\"Get the currently active scenario\"\"\"

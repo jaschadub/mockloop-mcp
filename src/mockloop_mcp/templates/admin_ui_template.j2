@@ -2071,7 +2071,7 @@
                     <td><span class="badge ${scenario.is_active ? 'badge-success' : 'badge-info'}">${scenario.is_active ? 'Active' : 'Inactive'}</span></td>
                     <td>${scenario.created_at ? new Date(scenario.created_at).toLocaleDateString() : 'N/A'}</td>
                     <td>
-                        ${!scenario.is_active ? `<button class="btn btn-success btn-sm" onclick="activateScenario(${scenario.id})" style="margin-right: 5px;">Activate</button>` : ''}
+                        ${!scenario.is_active ? `<button class="btn btn-success btn-sm" onclick="activateScenario(${scenario.id})" style="margin-right: 5px;">Activate</button>` : `<button class="btn btn-warning btn-sm" onclick="deactivateScenarioById(${scenario.id})" style="margin-right: 5px;">Deactivate</button>`}
                         <button class="btn btn-warning btn-sm" onclick="editScenario(${scenario.id})" style="margin-right: 5px;">Edit</button>
                         ${!scenario.is_active ? `<button class="btn btn-danger btn-sm" onclick="deleteScenario(${scenario.id})">Delete</button>` : ''}
                     </td>
@@ -2190,31 +2190,34 @@
                 }
                 
                 const activeScenario = await activeResponse.json();
-                if (!activeScenario) {
+                if (!activeScenario || !activeScenario.id) {
                     alert('No active scenario found');
                     return;
                 }
                 
-                // Deactivate by updating the scenario
-                const response = await fetch(`/admin/api/mock-data/scenarios/${activeScenario.id}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        name: activeScenario.name,
-                        description: activeScenario.description,
-                        config: activeScenario.config
-                    })
+                // Use the dedicated deactivate endpoint
+                await deactivateScenarioById(activeScenario.id);
+            } catch (error) {
+                console.error('Error deactivating scenario:', error);
+                alert('Error deactivating scenario. Please check the console for details.');
+            }
+        }
+        
+        // Deactivate scenario by ID (called from scenarios table)
+        async function deactivateScenarioById(scenarioId) {
+            if (!confirm('Are you sure you want to deactivate this scenario?')) {
+                return;
+            }
+            
+            try {
+                // Use the dedicated deactivate endpoint
+                const response = await fetch(`/admin/api/mock-data/scenarios/${scenarioId}/deactivate`, {
+                    method: 'POST'
                 });
                 
                 if (response.ok) {
-                    // Manually deactivate in database
-                    await fetch(`/admin/api/mock-data/scenarios/${activeScenario.id}/activate`, {
-                        method: 'DELETE'
-                    });
-                    
-                    alert('Scenario deactivated successfully!');
+                    const result = await response.json();
+                    alert(result.message || 'Scenario deactivated successfully!');
                     await loadScenarios();
                     await loadActiveScenario();
                 } else {
@@ -2443,9 +2446,13 @@
                     updatePerformanceSummary(data);
                 } else {
                     console.error('Failed to load performance summary');
+                    // Show default/empty state
+                    updatePerformanceSummary({});
                 }
             } catch (error) {
                 console.error('Error loading performance summary:', error);
+                // Show default/empty state
+                updatePerformanceSummary({});
             }
         }
         
@@ -2503,9 +2510,15 @@
                     document.getElementById('detailed-performance-metrics').style.display = 'block';
                 } else {
                     console.error('Failed to load performance metrics');
+                    // Show empty state
+                    updatePerformanceMetricsTable([]);
+                    document.getElementById('detailed-performance-metrics').style.display = 'block';
                 }
             } catch (error) {
                 console.error('Error loading performance metrics:', error);
+                // Show empty state
+                updatePerformanceMetricsTable([]);
+                document.getElementById('detailed-performance-metrics').style.display = 'block';
             }
         }
         
@@ -2539,9 +2552,13 @@
                     updateTestSessionsTable(data.sessions || []);
                 } else {
                     console.error('Failed to load test sessions');
+                    // Show empty state
+                    updateTestSessionsTable([]);
                 }
             } catch (error) {
                 console.error('Error loading test sessions:', error);
+                // Show empty state
+                updateTestSessionsTable([]);
             }
         }
         
@@ -2604,8 +2621,10 @@
             const perfTab = document.querySelector('.nav-link[data-tab="performance"]');
             if (perfTab) {
                 perfTab.addEventListener('click', async function() {
+                    // Load performance data automatically when tab is clicked
                     await loadPerformanceSummary();
                     await loadTestSessions();
+                    await loadPerformanceMetrics(); // Also load detailed metrics
                 });
             }
         });

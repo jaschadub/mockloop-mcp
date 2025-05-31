@@ -155,8 +155,12 @@ def migrate_database(cursor, current_version):
     if current_version < 5:
         print("Applying migration 5: Creating enhanced performance metrics table...")
         
+        # Drop the old performance_metrics table if it exists
+        cursor.execute('DROP TABLE IF EXISTS performance_metrics')
+        
+        # Create the new enhanced performance_metrics table
         cursor.execute('''
-        CREATE TABLE IF NOT EXISTS performance_metrics (
+        CREATE TABLE performance_metrics (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             request_id INTEGER,
             response_time_ms REAL NOT NULL,
@@ -175,7 +179,7 @@ def migrate_database(cursor, current_version):
         # Record migration
         cursor.execute(
             "INSERT INTO schema_version (version, description) VALUES (?, ?)",
-            (5, "Created enhanced performance_metrics table for comprehensive performance tracking")
+            (5, "Recreated enhanced performance_metrics table for comprehensive performance tracking")
         )
         print("Migration 5 completed successfully")
     
@@ -183,8 +187,12 @@ def migrate_database(cursor, current_version):
     if current_version < 6:
         print("Applying migration 6: Creating enhanced test sessions table...")
         
+        # Drop the old test_sessions table if it exists
+        cursor.execute('DROP TABLE IF EXISTS test_sessions')
+        
+        # Create the new enhanced test_sessions table
         cursor.execute('''
-        CREATE TABLE IF NOT EXISTS test_sessions (
+        CREATE TABLE test_sessions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             session_id TEXT UNIQUE NOT NULL,
             scenario_name TEXT,
@@ -202,9 +210,32 @@ def migrate_database(cursor, current_version):
         # Record migration
         cursor.execute(
             "INSERT INTO schema_version (version, description) VALUES (?, ?)",
-            (6, "Created enhanced test_sessions table for advanced session tracking")
+            (6, "Recreated enhanced test_sessions table for advanced session tracking")
         )
         print("Migration 6 completed successfully")
+    
+    # Migration 7: Create mock_scenarios table (missing table)
+    if current_version < 7:
+        print("Applying migration 7: Creating mock_scenarios table...")
+        
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS mock_scenarios (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE NOT NULL,
+            description TEXT,
+            config TEXT,
+            is_active BOOLEAN DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        ''')
+        
+        # Record migration
+        cursor.execute(
+            "INSERT INTO schema_version (version, description) VALUES (?, ?)",
+            (7, "Created mock_scenarios table for scenario management")
+        )
+        print("Migration 7 completed successfully")
 
 def get_schema_version():
     """Get current database schema version."""
