@@ -165,17 +165,18 @@ class MockServerManager:
         """
         return await discover_running_servers(ports, check_health)
 
-    async def get_server_status(self, server_url: str) -> dict[str, Any]:
+    async def get_server_status(self, server_url: str, admin_port: int | None = None) -> dict[str, Any]:
         """
         Get the status of a specific mock server.
 
         Args:
             server_url: URL of the mock server
+            admin_port: Admin port for dual-port architecture (optional)
 
         Returns:
             Dict containing server status information
         """
-        client = MockServerClient(server_url)
+        client = MockServerClient(server_url, admin_port=admin_port)
 
         # Get health status
         health_result = await client.health_check()
@@ -185,13 +186,22 @@ class MockServerManager:
             stats_result = await client.get_stats()
             debug_result = await client.get_debug_info()
 
-            return {
+            server_status = {
                 "url": server_url,
                 "health": health_result,
                 "stats": stats_result.get("stats", {}),
                 "debug_info": debug_result.get("debug_info", {}),
                 "is_mockloop_server": True,
             }
+
+            # Add architecture information
+            if admin_port is not None:
+                server_status["architecture"] = "dual-port"
+                server_status["admin_port"] = admin_port
+            else:
+                server_status["architecture"] = "single-port"
+
+            return server_status
         else:
             return {
                 "url": server_url,
@@ -199,18 +209,19 @@ class MockServerManager:
                 "is_mockloop_server": False,
             }
 
-    async def query_server_logs(self, server_url: str, **kwargs) -> dict[str, Any]:
+    async def query_server_logs(self, server_url: str, admin_port: int | None = None, **kwargs) -> dict[str, Any]:
         """
         Query logs from a specific mock server.
 
         Args:
             server_url: URL of the mock server
+            admin_port: Admin port for dual-port architecture (optional)
             **kwargs: Additional query parameters
 
         Returns:
             Dict containing log query results
         """
-        client = MockServerClient(server_url)
+        client = MockServerClient(server_url, admin_port=admin_port)
         return await client.query_logs(**kwargs)
 
     def get_mock_by_name(self, name: str) -> dict[str, Any] | None:
@@ -319,6 +330,7 @@ async def quick_discovery() -> dict[str, Any]:
 async def find_server_by_name(name: str) -> dict[str, Any] | None:
     """
     Find a running server by mock name.
+    Supports both single-port and dual-port architectures.
 
     Args:
         name: Name of the mock server
@@ -330,7 +342,17 @@ async def find_server_by_name(name: str) -> dict[str, Any] | None:
     mock_info = manager.get_mock_by_name(name)
 
     if mock_info and mock_info.get("default_port"):
-        server_url = f"http://localhost:{mock_info['default_port']}"
+        business_port = mock_info["default_port"]
+        server_url = f"http://localhost:{business_port}"
+
+        # Try dual-port architecture first (admin_port = business_port + 1)
+        admin_port = business_port + 1
+        status = await manager.get_server_status(server_url, admin_port=admin_port)
+
+        if status.get("health", {}).get("status") == "healthy":
+            return {"mock_info": mock_info, "server_status": status}
+
+        # Fallback to single-port architecture
         status = await manager.get_server_status(server_url)
         if status.get("health", {}).get("status") == "healthy":
             return {"mock_info": mock_info, "server_status": status}

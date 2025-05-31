@@ -16,16 +16,28 @@ logger = logging.getLogger(__name__)
 class MockServerClient:
     """Client for communicating with MockLoop generated mock servers."""
 
-    def __init__(self, base_url: str, timeout: int = 30):
+    def __init__(self, base_url: str, timeout: int = 30, admin_port: int | None = None):
         """
         Initialize the mock server client.
 
         Args:
             base_url: Base URL of the mock server (e.g., "http://localhost:8000")
             timeout: Request timeout in seconds
+            admin_port: Port for admin API (for dual-port architecture). If None, uses legacy /admin paths
         """
         self.base_url = base_url.rstrip("/")
         self.timeout = aiohttp.ClientTimeout(total=timeout)
+        self.admin_port = admin_port
+
+        # Determine admin base URL
+        if admin_port is not None:
+            # Dual-port architecture: admin runs on separate port
+            from urllib.parse import urlparse
+            parsed = urlparse(self.base_url)
+            self.admin_base_url = f"{parsed.scheme}://{parsed.hostname}:{admin_port}"
+        else:
+            # Legacy single-port architecture: admin uses /admin paths
+            self.admin_base_url = self.base_url
 
     async def health_check(self) -> dict[str, Any]:
         """
@@ -88,10 +100,16 @@ class MockServerClient:
             if log_id:
                 params["id"] = log_id
 
+            # Use appropriate admin endpoint based on architecture
+            if self.admin_port is not None:
+                # Dual-port: admin API on separate port with /api/* paths
+                admin_url = f"{self.admin_base_url}/api/requests"
+            else:
+                # Legacy: admin API on same port with /admin/api/* paths
+                admin_url = f"{self.admin_base_url}/admin/api/requests"
+
             async with aiohttp.ClientSession(timeout=self.timeout) as session:
-                async with session.get(
-                    f"{self.base_url}/admin/api/requests", params=params
-                ) as response:
+                async with session.get(admin_url, params=params) as response:
                     if response.status == 200:
                         logs = await response.json()
                         return {
@@ -123,10 +141,16 @@ class MockServerClient:
             Dict containing request statistics
         """
         try:
+            # Use appropriate admin endpoint based on architecture
+            if self.admin_port is not None:
+                # Dual-port: admin API on separate port with /api/* paths
+                admin_url = f"{self.admin_base_url}/api/requests/stats"
+            else:
+                # Legacy: admin API on same port with /admin/api/* paths
+                admin_url = f"{self.admin_base_url}/admin/api/requests/stats"
+
             async with aiohttp.ClientSession(timeout=self.timeout) as session:
-                async with session.get(
-                    f"{self.base_url}/admin/api/requests/stats"
-                ) as response:
+                async with session.get(admin_url) as response:
                     if response.status == 200:
                         stats = await response.json()
                         return {"status": "success", "stats": stats}
@@ -147,8 +171,16 @@ class MockServerClient:
             Dict containing debug information
         """
         try:
+            # Use appropriate admin endpoint based on architecture
+            if self.admin_port is not None:
+                # Dual-port: admin API on separate port with /api/* paths
+                admin_url = f"{self.admin_base_url}/api/debug"
+            else:
+                # Legacy: admin API on same port with /admin/api/* paths
+                admin_url = f"{self.admin_base_url}/admin/api/debug"
+
             async with aiohttp.ClientSession(timeout=self.timeout) as session:
-                async with session.get(f"{self.base_url}/admin/api/debug") as response:
+                async with session.get(admin_url) as response:
                     if response.status == 200:
                         debug_info = await response.json()
                         return {"status": "success", "debug_info": debug_info}
@@ -182,10 +214,16 @@ class MockServerClient:
                 "response_data": response_data,
             }
 
+            # Use appropriate admin endpoint based on architecture
+            if self.admin_port is not None:
+                # Dual-port: admin API on separate port with /api/* paths
+                admin_url = f"{self.admin_base_url}/api/responses/update"
+            else:
+                # Legacy: admin API on same port with /admin/api/* paths
+                admin_url = f"{self.admin_base_url}/admin/api/responses/update"
+
             async with aiohttp.ClientSession(timeout=self.timeout) as session:
-                async with session.post(
-                    f"{self.base_url}/admin/api/responses/update", json=payload
-                ) as response:
+                async with session.post(admin_url, json=payload) as response:
                     if response.status == 200:
                         result = await response.json()
                         return {
@@ -224,10 +262,16 @@ class MockServerClient:
                 "config": scenario_config,
             }
 
+            # Use appropriate admin endpoint based on architecture
+            if self.admin_port is not None:
+                # Dual-port: admin API on separate port with /api/* paths
+                admin_url = f"{self.admin_base_url}/api/mock-data/scenarios"
+            else:
+                # Legacy: admin API on same port with /admin/api/* paths
+                admin_url = f"{self.admin_base_url}/admin/api/mock-data/scenarios"
+
             async with aiohttp.ClientSession(timeout=self.timeout) as session:
-                async with session.post(
-                    f"{self.base_url}/admin/api/mock-data/scenarios", json=payload
-                ) as response:
+                async with session.post(admin_url, json=payload) as response:
                     if response.status == 200:  # Changed from 201 to 200
                         result = await response.json()
                         return {
@@ -279,10 +323,16 @@ class MockServerClient:
                     "scenario_name": scenario_name,
                 }
 
+            # Use appropriate admin endpoint based on architecture
+            if self.admin_port is not None:
+                # Dual-port: admin API on separate port with /api/* paths
+                admin_url = f"{self.admin_base_url}/api/mock-data/scenarios/{scenario_id}/activate"
+            else:
+                # Legacy: admin API on same port with /admin/api/* paths
+                admin_url = f"{self.admin_base_url}/admin/api/mock-data/scenarios/{scenario_id}/activate"
+
             async with aiohttp.ClientSession(timeout=self.timeout) as session:
-                async with session.post(
-                    f"{self.base_url}/admin/api/mock-data/scenarios/{scenario_id}/activate"
-                ) as response:
+                async with session.post(admin_url) as response:
                     if response.status == 200:
                         result = await response.json()
                         return {
@@ -309,10 +359,16 @@ class MockServerClient:
             Dict containing list of scenarios
         """
         try:
+            # Use appropriate admin endpoint based on architecture
+            if self.admin_port is not None:
+                # Dual-port: admin API on separate port with /api/* paths
+                admin_url = f"{self.admin_base_url}/api/mock-data/scenarios"
+            else:
+                # Legacy: admin API on same port with /admin/api/* paths
+                admin_url = f"{self.admin_base_url}/admin/api/mock-data/scenarios"
+
             async with aiohttp.ClientSession(timeout=self.timeout) as session:
-                async with session.get(
-                    f"{self.base_url}/admin/api/mock-data/scenarios"
-                ) as response:
+                async with session.get(admin_url) as response:
                     if response.status == 200:
                         scenarios = await response.json()
                         return {
@@ -340,10 +396,16 @@ class MockServerClient:
             Dict containing current scenario information
         """
         try:
+            # Use appropriate admin endpoint based on architecture
+            if self.admin_port is not None:
+                # Dual-port: admin API on separate port with /api/* paths
+                admin_url = f"{self.admin_base_url}/api/mock-data/scenarios/active"
+            else:
+                # Legacy: admin API on same port with /admin/api/* paths
+                admin_url = f"{self.admin_base_url}/admin/api/mock-data/scenarios/active"
+
             async with aiohttp.ClientSession(timeout=self.timeout) as session:
-                async with session.get(
-                    f"{self.base_url}/admin/api/mock-data/scenarios/active"
-                ) as response:
+                async with session.get(admin_url) as response:
                     if response.status == 200:
                         current_scenario = await response.json()
                         return {
@@ -390,6 +452,7 @@ async def discover_running_servers(
 ) -> list[dict[str, Any]]:
     """
     Discover running MockLoop servers by scanning common ports.
+    Supports both single-port (legacy) and dual-port (new) architectures.
 
     Args:
         ports: List of ports to scan. If None, scans common ports.
@@ -399,9 +462,11 @@ async def discover_running_servers(
         List of discovered server information
     """
     if ports is None:
-        ports = [8000, 8001, 8002, 8003, 8004, 8005, 3000, 3001, 5000, 5001]
+        # Extended port range to include common dual-port setups
+        ports = [8000, 8001, 8002, 8003, 8004, 8005, 8006, 8007, 3000, 3001, 5000, 5001]
 
     discovered_servers = []
+    potential_admin_ports = set()
 
     for port in ports:
         try:
@@ -416,6 +481,7 @@ async def discover_running_servers(
                 server_info = {"url": server_url, "port": port, "status": "discovered"}
 
                 if check_health:
+                    # First try as business server (legacy single-port or dual-port business)
                     client = MockServerClient(server_url, timeout=5)
                     health_result = await client.health_check()
                     server_info.update(health_result)
@@ -425,11 +491,25 @@ async def discover_running_servers(
                         debug_result = await client.get_debug_info()
                         if debug_result.get("status") == "success":
                             server_info["is_mockloop_server"] = True
-                            server_info["debug_info"] = debug_result.get(
-                                "debug_info", {}
-                            )
+                            server_info["debug_info"] = debug_result.get("debug_info", {})
+                            server_info["server_type"] = "business"
+
+                            # Check if this might be part of a dual-port setup
+                            # Look for admin port (typically business_port + 1)
+                            potential_admin_port = port + 1
+                            if potential_admin_port in ports:
+                                potential_admin_ports.add(potential_admin_port)
                         else:
-                            server_info["is_mockloop_server"] = False
+                            # Try as admin server (dual-port admin)
+                            admin_client = MockServerClient(server_url, timeout=5, admin_port=port)
+                            admin_debug_result = await admin_client.get_debug_info()
+                            if admin_debug_result.get("status") == "success":
+                                server_info["is_mockloop_server"] = True
+                                server_info["debug_info"] = admin_debug_result.get("debug_info", {})
+                                server_info["server_type"] = "admin"
+                            else:
+                                server_info["is_mockloop_server"] = False
+                                server_info["server_type"] = "unknown"
 
                 discovered_servers.append(server_info)
 
@@ -437,6 +517,28 @@ async def discover_running_servers(
             logger.debug(f"Port scan failed for port {port}: {e}")
             # Port scan failed, continue to next port
             continue
+
+    # Post-process to identify dual-port setups
+    for server in discovered_servers:
+        if (server.get("is_mockloop_server") and
+            server.get("server_type") == "business" and
+            server["port"] + 1 in potential_admin_ports):
+            # Check if the next port is actually the admin port for this business server
+            admin_port = server["port"] + 1
+            admin_servers = [s for s in discovered_servers if s["port"] == admin_port]
+            if admin_servers:
+                admin_server = admin_servers[0]
+                if admin_server.get("server_type") == "admin":
+                    server["admin_port"] = admin_port
+                    server["architecture"] = "dual-port"
+                    admin_server["business_port"] = server["port"]
+                    admin_server["architecture"] = "dual-port"
+                else:
+                    server["architecture"] = "single-port"
+            else:
+                server["architecture"] = "single-port"
+        elif server.get("is_mockloop_server") and not server.get("architecture"):
+            server["architecture"] = "single-port"
 
     return discovered_servers
 
