@@ -388,7 +388,7 @@ class TestMCPComplianceReporter(unittest.TestCase):
     def test_export_audit_logs_json(self):
         """Test exporting audit logs in JSON format."""
         export_path = self.reporter.export_audit_logs(
-            format=ReportFormat.JSON,
+            export_format=ReportFormat.JSON,
             include_sensitive_data=False
         )
 
@@ -410,7 +410,7 @@ class TestMCPComplianceReporter(unittest.TestCase):
     def test_export_audit_logs_csv(self):
         """Test exporting audit logs in CSV format."""
         export_path = self.reporter.export_audit_logs(
-            format=ReportFormat.CSV,
+            export_format=ReportFormat.CSV,
             include_sensitive_data=False
         )
 
