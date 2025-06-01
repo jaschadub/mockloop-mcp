@@ -69,7 +69,7 @@ body:
       description: How did you install MockLoop MCP?
       options:
         - PyPI (pip install mockloop-mcp)
-        - TestPyPI (pip install --index-url https://test.pypi.org/simple/ mockloop-mcp)
+        - TestPyPI (pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ mockloop-mcp)
         - Source (git clone + pip install -e .)
         - Docker
         - Other (please specify in additional context)
