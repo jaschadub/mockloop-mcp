@@ -1,356 +1,282 @@
 """
-MCP Audit Logger Module for regulatory compliance and model training data source tracking.
+MCP Audit Logger Module
 
-This module provides comprehensive logging of all MCP operations including:
-- Prompt invocations with input parameters and generated outputs
-- Resource access with metadata and content hashes
-- Tool executions with parameters, results, and execution time
-- Context operations (set, get, update) with state changes
-
-Supports structured logging (JSON format) for easy parsing and compliance reporting.
-Includes data lineage tracking for model training source attribution.
+Provides comprehensive audit logging capabilities for MCP (Model Context Protocol) operations.
+Tracks tool executions, data access, compliance requirements, and performance metrics.
 """
 
-import hashlib
 import json
-import logging
+import sqlite3
 import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional, Union
-import sqlite3
-from contextlib import contextmanager
-from dataclasses import dataclass, asdict
+from typing import Any, Union
+import hashlib
+import logging
 from enum import Enum
+
+logger = logging.getLogger(__name__)
 
 
 class MCPOperationType(Enum):
-    """Types of MCP operations that can be logged."""
-    PROMPT_INVOCATION = "prompt_invocation"
-    RESOURCE_ACCESS = "resource_access"
+    """Enumeration of MCP operation types for audit logging."""
     TOOL_EXECUTION = "tool_execution"
+    RESOURCE_ACCESS = "resource_access"
     CONTEXT_OPERATION = "context_operation"
-
-
-class MCPLogLevel(Enum):
-    """Log levels for MCP operations."""
-    DEBUG = "debug"
-    INFO = "info"
-    WARNING = "warning"
-    ERROR = "error"
-    CRITICAL = "critical"
-
-
-@dataclass
-class MCPAuditEntry:
-    """Structured audit log entry for MCP operations."""
-
-    # Core identification
-    entry_id: str
-    session_id: str
-    user_id: str | None
-    timestamp: str
-    operation_type: str
-
-    # Operation details
-    operation_name: str
-    operation_version: str | None
-    input_parameters: dict[str, Any]
-    output_data: dict[str, Any] | None
-
-    # Performance metrics
-    execution_time_ms: float | None
-    memory_usage_mb: float | None
-    cpu_usage_percent: float | None
-
-    # Data lineage and compliance
-    data_sources: list[str]
-    content_hash: str | None
-    data_classification: str | None
-    retention_policy: str | None
-
-    # Context and metadata
-    context_state_before: dict[str, Any] | None
-    context_state_after: dict[str, Any] | None
-    error_details: str | None
-    compliance_tags: list[str]
-
-    # Regulatory tracking
-    gdpr_applicable: bool = False
-    ccpa_applicable: bool = False
-    data_subject_id: str | None = None
-    processing_purpose: str | None = None
-    legal_basis: str | None = None
+    PROMPT_EXECUTION = "prompt_execution"
+    SERVER_OPERATION = "server_operation"
 
 
 class MCPAuditLogger:
     """
-    Comprehensive MCP audit logger for regulatory compliance and model training tracking.
+    Comprehensive audit logger for MCP operations.
 
-    Features:
-    - Structured JSON logging for all MCP operations
-    - Data lineage tracking for model training source attribution
-    - GDPR/CCPA compliance support
-    - Performance metrics collection
-    - Configurable retention policies
-    - Secure content hashing
+    Provides detailed logging of tool executions, data access patterns,
+    compliance tracking, and performance monitoring for MCP servers.
     """
 
     def __init__(
         self,
-        db_path: str,
-        log_file_path: str | None = None,
+        db_path: str = "mcp_audit.db",
         session_id: str | None = None,
         user_id: str | None = None,
         enable_performance_tracking: bool = True,
         enable_content_hashing: bool = True,
-        default_retention_days: int = 2555,  # 7 years for compliance
-        log_level: MCPLogLevel = MCPLogLevel.INFO
+        auto_log_session: bool = False
     ):
         """
         Initialize the MCP audit logger.
 
         Args:
-            db_path: Path to SQLite database for audit logs
-            log_file_path: Optional path to JSON log file
-            session_id: Current session identifier
-            user_id: Current user identifier
-            enable_performance_tracking: Whether to collect performance metrics
-            enable_content_hashing: Whether to hash content for integrity
-            default_retention_days: Default retention period in days
-            log_level: Minimum log level to record
+            db_path: Path to the SQLite database file
+            session_id: Unique session identifier
+            user_id: User identifier for the session
+            enable_performance_tracking: Enable performance metrics collection
+            enable_content_hashing: Enable content hashing for integrity verification
+            auto_log_session: Whether to automatically log session start/end
         """
         self.db_path = Path(db_path)
-        self.log_file_path = Path(log_file_path) if log_file_path else None
         self.session_id = session_id or str(uuid.uuid4())
-        self.user_id = user_id
+        self.user_id = user_id or "anonymous"
         self.enable_performance_tracking = enable_performance_tracking
         self.enable_content_hashing = enable_content_hashing
-        self.default_retention_days = default_retention_days
-        self.log_level = log_level
+        self.auto_log_session = auto_log_session
 
         # Initialize database
         self._init_database()
 
-        # Setup file logger if specified
-        if self.log_file_path:
-            self._setup_file_logger()
+        # Log session start if enabled
+        if self.auto_log_session:
+            self._log_session_start()
 
     def _init_database(self) -> None:
-        """Initialize the audit log database schema."""
-        with self._get_db_connection() as conn:
-            cursor = conn.cursor()
-
-            # Create audit logs table
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS mcp_audit_logs (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    entry_id TEXT UNIQUE NOT NULL,
-                    session_id TEXT NOT NULL,
-                    user_id TEXT,
-                    timestamp TEXT NOT NULL,
-                    operation_type TEXT NOT NULL,
-                    operation_name TEXT NOT NULL,
-                    operation_version TEXT,
-                    input_parameters TEXT,
-                    output_data TEXT,
-                    execution_time_ms REAL,
-                    memory_usage_mb REAL,
-                    cpu_usage_percent REAL,
-                    data_sources TEXT,
-                    content_hash TEXT,
-                    data_classification TEXT,
-                    retention_policy TEXT,
-                    context_state_before TEXT,
-                    context_state_after TEXT,
-                    error_details TEXT,
-                    compliance_tags TEXT,
-                    gdpr_applicable BOOLEAN DEFAULT 0,
-                    ccpa_applicable BOOLEAN DEFAULT 0,
-                    data_subject_id TEXT,
-                    processing_purpose TEXT,
-                    legal_basis TEXT,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    expires_at TIMESTAMP
-                )
-            """)
-
-            # Create indexes for performance
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_mcp_audit_session
-                ON mcp_audit_logs(session_id)
-            """)
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_mcp_audit_timestamp
-                ON mcp_audit_logs(timestamp)
-            """)
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_mcp_audit_operation
-                ON mcp_audit_logs(operation_type, operation_name)
-            """)
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_mcp_audit_user
-                ON mcp_audit_logs(user_id)
-            """)
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_mcp_audit_expires
-                ON mcp_audit_logs(expires_at)
-            """)
-
-            # Create data lineage table
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS mcp_data_lineage (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    entry_id TEXT NOT NULL,
-                    source_type TEXT NOT NULL,
-                    source_identifier TEXT NOT NULL,
-                    source_metadata TEXT,
-                    transformation_applied TEXT,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (entry_id) REFERENCES mcp_audit_logs (entry_id)
-                )
-            """)
-
-            # Create compliance events table
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS mcp_compliance_events (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    entry_id TEXT NOT NULL,
-                    event_type TEXT NOT NULL,
-                    regulation TEXT NOT NULL,
-                    compliance_status TEXT NOT NULL,
-                    details TEXT,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (entry_id) REFERENCES mcp_audit_logs (entry_id)
-                )
-            """)
-
-            conn.commit()
-
-    def _setup_file_logger(self) -> None:
-        """Setup JSON file logger for audit entries."""
-        self.file_logger = logging.getLogger(f"mcp_audit_{self.session_id}")
-        self.file_logger.setLevel(logging.INFO)
-
-        # Create file handler
-        handler = logging.FileHandler(self.log_file_path)
-        handler.setLevel(logging.INFO)
-
-        # JSON formatter
-        formatter = logging.Formatter('%(message)s')
-        handler.setFormatter(formatter)
-
-        self.file_logger.addHandler(handler)
-
-    @contextmanager
-    def _get_db_connection(self):
-        """Get database connection with proper error handling."""
-        conn = None
+        """Initialize the audit database with required tables."""
         try:
-            conn = sqlite3.connect(str(self.db_path))
-            conn.row_factory = sqlite3.Row
-            yield conn
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+
+                # Create mcp_audit_logs table (main audit table)
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS mcp_audit_logs (
+                        entry_id TEXT PRIMARY KEY,
+                        session_id TEXT NOT NULL,
+                        user_id TEXT,
+                        timestamp TEXT NOT NULL,
+                        operation_type TEXT NOT NULL,
+                        operation_name TEXT NOT NULL,
+                        input_parameters TEXT,
+                        output_data TEXT,
+                        execution_time_ms REAL,
+                        data_sources TEXT,
+                        compliance_tags TEXT,
+                        processing_purpose TEXT,
+                        legal_basis TEXT,
+                        content_hash TEXT,
+                        gdpr_applicable BOOLEAN DEFAULT FALSE,
+                        ccpa_applicable BOOLEAN DEFAULT FALSE,
+                        data_subject_id TEXT,
+                        context_state_before TEXT,
+                        context_state_after TEXT,
+                        expires_at TEXT,
+                        retention_policy TEXT,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                # Create mcp_data_lineage table
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS mcp_data_lineage (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        entry_id TEXT NOT NULL,
+                        source_uri TEXT NOT NULL,
+                        source_type TEXT,
+                        source_identifier TEXT,
+                        source_metadata TEXT,
+                        transformation_applied TEXT,
+                        destination_uri TEXT,
+                        transformation_type TEXT,
+                        data_flow_direction TEXT,
+                        timestamp TEXT NOT NULL,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (entry_id) REFERENCES mcp_audit_logs (entry_id)
+                    )
+                """)
+
+                # Create mcp_compliance_events table
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS mcp_compliance_events (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        session_id TEXT NOT NULL,
+                        event_type TEXT NOT NULL,
+                        compliance_framework TEXT NOT NULL,
+                        event_details TEXT,
+                        risk_level TEXT,
+                        mitigation_actions TEXT,
+                        timestamp TEXT NOT NULL,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                # Create indexes for better performance
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_mcp_audit_logs_session ON mcp_audit_logs(session_id)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_mcp_audit_logs_operation ON mcp_audit_logs(operation_type)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_mcp_audit_logs_timestamp ON mcp_audit_logs(timestamp)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_mcp_data_lineage_entry ON mcp_data_lineage(entry_id)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_mcp_compliance_events_session ON mcp_compliance_events(session_id)")
+
+                conn.commit()
+
         except Exception:
-            if conn:
-                conn.rollback()
+            logger.exception("Failed to initialize audit database")
             raise
-        finally:
-            if conn:
-                conn.close()
 
-    def _calculate_content_hash(self, content: Any) -> str:
-        """Calculate SHA-256 hash of content for integrity verification."""
-        if not self.enable_content_hashing:
-            return ""
-
+    def _log_session_start(self) -> None:
+        """Log the start of a new audit session."""
         try:
-            content_str = json.dumps(content, sort_keys=True, default=str)
-            return hashlib.sha256(content_str.encode()).hexdigest()
+            # Create a session start entry in the audit logs
+            self.log_tool_execution(
+                tool_name="session_start",
+                input_parameters={"session_id": self.session_id, "user_id": self.user_id},
+                processing_purpose="session_management",
+                legal_basis="legitimate_interests"
+            )
         except Exception:
-            return ""
+            logger.exception("Failed to log session start")
 
-    def _get_performance_metrics(self) -> dict[str, float | None]:
-        """Get current performance metrics if enabled."""
-        if not self.enable_performance_tracking:
-            return {"memory_usage_mb": None, "cpu_usage_percent": None}
-
-        try:
-            import psutil
-            process = psutil.Process()
-            memory_mb = process.memory_info().rss / 1024 / 1024
-            cpu_percent = process.cpu_percent()
-            return {"memory_usage_mb": memory_mb, "cpu_usage_percent": cpu_percent}
-        except ImportError:
-            return {"memory_usage_mb": None, "cpu_usage_percent": None}
-
-    def log_prompt_invocation(
+    def log_tool_execution(
         self,
-        prompt_name: str,
-        input_parameters: dict[str, Any],
-        generated_output: dict[str, Any] | None = None,
+        tool_name: str,
+        input_parameters: dict[str, Any] | None = None,
+        execution_result: dict[str, Any] | None = None,
         execution_time_ms: float | None = None,
         data_sources: list[str] | None = None,
         compliance_tags: list[str] | None = None,
-        **kwargs
+        processing_purpose: str | None = None,
+        legal_basis: str | None = None,
+        user_id: str | None = None,
+        gdpr_applicable: bool = False,
+        ccpa_applicable: bool = False,
+        data_subject_id: str | None = None,
+        retention_policy: str | None = None
     ) -> str:
         """
-        Log MCP prompt invocation with input parameters and generated outputs.
+        Log a tool execution event.
 
         Args:
-            prompt_name: Name of the prompt being invoked
-            input_parameters: Input parameters passed to the prompt
-            generated_output: Generated output from the prompt
+            tool_name: Name of the MCP tool being executed
+            input_parameters: Input parameters passed to the tool
+            execution_result: Result returned by the tool
             execution_time_ms: Execution time in milliseconds
-            data_sources: List of data sources used
+            data_sources: List of data sources accessed
             compliance_tags: Compliance-related tags
-            **kwargs: Additional metadata
+            processing_purpose: Purpose of data processing
+            legal_basis: Legal basis for data processing
+            error_details: Error details if execution failed
+            user_id: Override user ID for this operation
+            gdpr_applicable: Whether GDPR applies to this operation
+            ccpa_applicable: Whether CCPA applies to this operation
+            data_subject_id: ID of the data subject if applicable
 
         Returns:
-            Entry ID of the logged operation
+            Unique entry ID for the logged event
         """
         entry_id = str(uuid.uuid4())
         timestamp = datetime.now(timezone.utc).isoformat()
 
-        # Calculate content hash
-        content_hash = self._calculate_content_hash({
-            "input": input_parameters,
-            "output": generated_output
-        })
+        # Generate content hash if enabled
+        content_hash = None
+        if self.enable_content_hashing:
+            content_data = {
+                "tool_name": tool_name,
+                "input_parameters": input_parameters,
+                "execution_result": execution_result
+            }
+            content_hash = hashlib.sha256(
+                json.dumps(content_data, sort_keys=True).encode()
+            ).hexdigest()
 
-        # Get performance metrics
-        perf_metrics = self._get_performance_metrics()
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
 
-        # Create audit entry
-        audit_entry = MCPAuditEntry(
-            entry_id=entry_id,
-            session_id=self.session_id,
-            user_id=self.user_id,
-            timestamp=timestamp,
-            operation_type=MCPOperationType.PROMPT_INVOCATION.value,
-            operation_name=prompt_name,
-            operation_version=kwargs.get("version"),
-            input_parameters=input_parameters,
-            output_data=generated_output,
-            execution_time_ms=execution_time_ms,
-            memory_usage_mb=perf_metrics["memory_usage_mb"],
-            cpu_usage_percent=perf_metrics["cpu_usage_percent"],
-            data_sources=data_sources or [],
-            content_hash=content_hash,
-            data_classification=kwargs.get("data_classification"),
-            retention_policy=kwargs.get("retention_policy"),
-            context_state_before=kwargs.get("context_before"),
-            context_state_after=kwargs.get("context_after"),
-            error_details=kwargs.get("error_details"),
-            compliance_tags=compliance_tags or [],
-            gdpr_applicable=kwargs.get("gdpr_applicable", False),
-            ccpa_applicable=kwargs.get("ccpa_applicable", False),
-            data_subject_id=kwargs.get("data_subject_id"),
-            processing_purpose=kwargs.get("processing_purpose"),
-            legal_basis=kwargs.get("legal_basis")
-        )
+                # Insert audit log entry
+                cursor.execute("""
+                    INSERT INTO mcp_audit_logs (
+                        entry_id, session_id, user_id, timestamp, operation_type,
+                        operation_name, input_parameters, output_data, execution_time_ms,
+                        data_sources, compliance_tags, processing_purpose,
+                        legal_basis, content_hash, gdpr_applicable, ccpa_applicable,
+                        data_subject_id, retention_policy
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    entry_id,
+                    self.session_id,
+                    user_id or self.user_id,
+                    timestamp,
+                    MCPOperationType.TOOL_EXECUTION.value,
+                    tool_name,
+                    json.dumps(input_parameters) if input_parameters else None,
+                    json.dumps(execution_result) if execution_result else None,
+                    execution_time_ms,
+                    json.dumps(data_sources) if data_sources else None,
+                    json.dumps(compliance_tags) if compliance_tags else None,
+                    processing_purpose,
+                    legal_basis,
+                    content_hash,
+                    gdpr_applicable,
+                    ccpa_applicable,
+                    data_subject_id,
+                    retention_policy
+                ))
 
-        self._store_audit_entry(audit_entry)
+                # Log data lineage if data sources are provided
+                if data_sources:
+                    for source in data_sources:
+                        cursor.execute("""
+                            INSERT INTO mcp_data_lineage (
+                                entry_id, source_uri, source_type, source_identifier,
+                                source_metadata, transformation_applied, transformation_type,
+                                data_flow_direction, timestamp
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """, (
+                            entry_id,
+                            source,
+                            "external_api",
+                            source,
+                            json.dumps({"tool_name": tool_name}),
+                            "tool_execution",
+                            "tool_execution",
+                            "input",
+                            timestamp
+                        ))
+
+                conn.commit()
+
+        except Exception:
+            logger.exception("Failed to log tool execution")
+            raise
+
         return entry_id
 
     def log_resource_access(
@@ -361,136 +287,100 @@ class MCPAuditLogger:
         content_preview: str | None = None,
         data_sources: list[str] | None = None,
         compliance_tags: list[str] | None = None,
-        **kwargs
+        processing_purpose: str | None = None,
+        legal_basis: str | None = None,
+        user_id: str | None = None,
+        gdpr_applicable: bool = False,
+        ccpa_applicable: bool = False,
+        data_subject_id: str | None = None,
+        retention_policy: str | None = None
     ) -> str:
         """
-        Log MCP resource access with metadata and content hashes.
+        Log a resource access event.
 
         Args:
-            resource_uri: URI of the accessed resource
+            resource_uri: URI of the resource being accessed
             access_type: Type of access (read, write, delete, etc.)
             metadata: Resource metadata
-            content_preview: Preview of accessed content
-            data_sources: List of data sources
+            content_preview: Preview of resource content
+            data_sources: List of data sources accessed
             compliance_tags: Compliance-related tags
-            **kwargs: Additional metadata
+            processing_purpose: Purpose of data processing
+            legal_basis: Legal basis for data processing
+            user_id: Override user ID for this operation
+            gdpr_applicable: Whether GDPR applies to this operation
+            ccpa_applicable: Whether CCPA applies to this operation
+            data_subject_id: ID of the data subject if applicable
 
         Returns:
-            Entry ID of the logged operation
+            Unique entry ID for the logged event
         """
         entry_id = str(uuid.uuid4())
         timestamp = datetime.now(timezone.utc).isoformat()
 
-        # Calculate content hash
-        content_hash = self._calculate_content_hash({
-            "uri": resource_uri,
-            "metadata": metadata,
-            "preview": content_preview
-        })
+        # Generate content hash if enabled
+        content_hash = None
+        if self.enable_content_hashing and content_preview:
+            content_hash = hashlib.sha256(content_preview.encode()).hexdigest()
 
-        # Get performance metrics
-        perf_metrics = self._get_performance_metrics()
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
 
-        # Create audit entry
-        audit_entry = MCPAuditEntry(
-            entry_id=entry_id,
-            session_id=self.session_id,
-            user_id=self.user_id,
-            timestamp=timestamp,
-            operation_type=MCPOperationType.RESOURCE_ACCESS.value,
-            operation_name=f"resource_access_{access_type}",
-            operation_version=kwargs.get("version"),
-            input_parameters={"uri": resource_uri, "access_type": access_type},
-            output_data={"metadata": metadata, "content_preview": content_preview},
-            execution_time_ms=kwargs.get("execution_time_ms"),
-            memory_usage_mb=perf_metrics["memory_usage_mb"],
-            cpu_usage_percent=perf_metrics["cpu_usage_percent"],
-            data_sources=data_sources or [resource_uri],
-            content_hash=content_hash,
-            data_classification=kwargs.get("data_classification"),
-            retention_policy=kwargs.get("retention_policy"),
-            context_state_before=kwargs.get("context_before"),
-            context_state_after=kwargs.get("context_after"),
-            error_details=kwargs.get("error_details"),
-            compliance_tags=compliance_tags or [],
-            gdpr_applicable=kwargs.get("gdpr_applicable", False),
-            ccpa_applicable=kwargs.get("ccpa_applicable", False),
-            data_subject_id=kwargs.get("data_subject_id"),
-            processing_purpose=kwargs.get("processing_purpose", "resource_access"),
-            legal_basis=kwargs.get("legal_basis")
-        )
+                # Insert audit log entry
+                cursor.execute("""
+                    INSERT INTO mcp_audit_logs (
+                        entry_id, session_id, user_id, timestamp, operation_type,
+                        operation_name, input_parameters, output_data,
+                        data_sources, compliance_tags, processing_purpose,
+                        legal_basis, content_hash, gdpr_applicable, ccpa_applicable,
+                        data_subject_id, retention_policy
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    entry_id,
+                    self.session_id,
+                    user_id or self.user_id,
+                    timestamp,
+                    MCPOperationType.RESOURCE_ACCESS.value,
+                    f"resource_access_{access_type}",
+                    json.dumps({"uri": resource_uri, "access_type": access_type}),
+                    json.dumps({"metadata": metadata, "content_preview": content_preview}),
+                    json.dumps(data_sources) if data_sources else None,
+                    json.dumps(compliance_tags) if compliance_tags else None,
+                    processing_purpose,
+                    legal_basis,
+                    content_hash,
+                    gdpr_applicable,
+                    ccpa_applicable,
+                    data_subject_id,
+                    retention_policy
+                ))
 
-        self._store_audit_entry(audit_entry)
-        return entry_id
+                # Log data lineage
+                cursor.execute("""
+                    INSERT INTO mcp_data_lineage (
+                        entry_id, source_uri, source_type, source_identifier,
+                        source_metadata, transformation_applied, transformation_type,
+                        data_flow_direction, timestamp
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    entry_id,
+                    resource_uri,
+                    "resource",
+                    resource_uri,
+                    json.dumps(metadata) if metadata else None,
+                    "resource_access",
+                    "resource_access",
+                    access_type,
+                    timestamp
+                ))
 
-    def log_tool_execution(
-        self,
-        tool_name: str,
-        input_parameters: dict[str, Any],
-        execution_result: dict[str, Any] | None = None,
-        execution_time_ms: float | None = None,
-        data_sources: list[str] | None = None,
-        compliance_tags: list[str] | None = None,
-        **kwargs
-    ) -> str:
-        """
-        Log MCP tool execution with parameters, results, and execution time.
+                conn.commit()
 
-        Args:
-            tool_name: Name of the executed tool
-            input_parameters: Input parameters passed to the tool
-            execution_result: Result returned by the tool
-            execution_time_ms: Execution time in milliseconds
-            data_sources: List of data sources used
-            compliance_tags: Compliance-related tags
-            **kwargs: Additional metadata
+        except Exception:
+            logger.exception("Failed to log resource access")
+            raise
 
-        Returns:
-            Entry ID of the logged operation
-        """
-        entry_id = str(uuid.uuid4())
-        timestamp = datetime.now(timezone.utc).isoformat()
-
-        # Calculate content hash
-        content_hash = self._calculate_content_hash({
-            "tool": tool_name,
-            "input": input_parameters,
-            "result": execution_result
-        })
-
-        # Get performance metrics
-        perf_metrics = self._get_performance_metrics()
-
-        # Create audit entry
-        audit_entry = MCPAuditEntry(
-            entry_id=entry_id,
-            session_id=self.session_id,
-            user_id=self.user_id,
-            timestamp=timestamp,
-            operation_type=MCPOperationType.TOOL_EXECUTION.value,
-            operation_name=tool_name,
-            operation_version=kwargs.get("version"),
-            input_parameters=input_parameters,
-            output_data=execution_result,
-            execution_time_ms=execution_time_ms,
-            memory_usage_mb=perf_metrics["memory_usage_mb"],
-            cpu_usage_percent=perf_metrics["cpu_usage_percent"],
-            data_sources=data_sources or [],
-            content_hash=content_hash,
-            data_classification=kwargs.get("data_classification"),
-            retention_policy=kwargs.get("retention_policy"),
-            context_state_before=kwargs.get("context_before"),
-            context_state_after=kwargs.get("context_after"),
-            error_details=kwargs.get("error_details"),
-            compliance_tags=compliance_tags or [],
-            gdpr_applicable=kwargs.get("gdpr_applicable", False),
-            ccpa_applicable=kwargs.get("ccpa_applicable", False),
-            data_subject_id=kwargs.get("data_subject_id"),
-            processing_purpose=kwargs.get("processing_purpose", "tool_execution"),
-            legal_basis=kwargs.get("legal_basis")
-        )
-
-        self._store_audit_entry(audit_entry)
         return entry_id
 
     def log_context_operation(
@@ -499,237 +389,226 @@ class MCPAuditLogger:
         context_key: str,
         state_before: dict[str, Any] | None = None,
         state_after: dict[str, Any] | None = None,
-        data_sources: list[str] | None = None,
         compliance_tags: list[str] | None = None,
-        **kwargs
+        processing_purpose: str | None = None,
+        legal_basis: str | None = None,
+        user_id: str | None = None
     ) -> str:
         """
-        Log MCP context operations (set, get, update) with state changes.
+        Log a context operation event.
 
         Args:
             operation_type: Type of context operation (set, get, update, delete)
-            context_key: Key being operated on
-            state_before: Context state before operation
-            state_after: Context state after operation
-            data_sources: List of data sources
+            context_key: Key of the context being operated on
+            state_before: Context state before the operation
+            state_after: Context state after the operation
             compliance_tags: Compliance-related tags
-            **kwargs: Additional metadata
+            processing_purpose: Purpose of data processing
+            legal_basis: Legal basis for data processing
+            user_id: Override user ID for this operation
 
         Returns:
-            Entry ID of the logged operation
+            Unique entry ID for the logged event
         """
         entry_id = str(uuid.uuid4())
         timestamp = datetime.now(timezone.utc).isoformat()
 
-        # Calculate content hash
-        content_hash = self._calculate_content_hash({
-            "operation": operation_type,
-            "key": context_key,
-            "before": state_before,
-            "after": state_after
-        })
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
 
-        # Get performance metrics
-        perf_metrics = self._get_performance_metrics()
-
-        # Create audit entry
-        audit_entry = MCPAuditEntry(
-            entry_id=entry_id,
-            session_id=self.session_id,
-            user_id=self.user_id,
-            timestamp=timestamp,
-            operation_type=MCPOperationType.CONTEXT_OPERATION.value,
-            operation_name=f"context_{operation_type}",
-            operation_version=kwargs.get("version"),
-            input_parameters={"key": context_key, "operation": operation_type},
-            output_data={"state_change": state_after is not None},
-            execution_time_ms=kwargs.get("execution_time_ms"),
-            memory_usage_mb=perf_metrics["memory_usage_mb"],
-            cpu_usage_percent=perf_metrics["cpu_usage_percent"],
-            data_sources=data_sources or [],
-            content_hash=content_hash,
-            data_classification=kwargs.get("data_classification"),
-            retention_policy=kwargs.get("retention_policy"),
-            context_state_before=state_before,
-            context_state_after=state_after,
-            error_details=kwargs.get("error_details"),
-            compliance_tags=compliance_tags or [],
-            gdpr_applicable=kwargs.get("gdpr_applicable", False),
-            ccpa_applicable=kwargs.get("ccpa_applicable", False),
-            data_subject_id=kwargs.get("data_subject_id"),
-            processing_purpose=kwargs.get("processing_purpose", "context_management"),
-            legal_basis=kwargs.get("legal_basis")
-        )
-
-        self._store_audit_entry(audit_entry)
-        return entry_id
-
-    def _store_audit_entry(self, audit_entry: MCPAuditEntry) -> None:
-        """Store audit entry in database and optionally in file."""
-        # Calculate expiration date
-        from datetime import timedelta
-        expires_at = datetime.now(timezone.utc) + timedelta(days=self.default_retention_days)
-
-        # Store in database
-        with self._get_db_connection() as conn:
-            cursor = conn.cursor()
-
-            cursor.execute("""
-                INSERT INTO mcp_audit_logs (
-                    entry_id, session_id, user_id, timestamp, operation_type,
-                    operation_name, operation_version, input_parameters, output_data,
-                    execution_time_ms, memory_usage_mb, cpu_usage_percent,
-                    data_sources, content_hash, data_classification, retention_policy,
-                    context_state_before, context_state_after, error_details,
-                    compliance_tags, gdpr_applicable, ccpa_applicable,
-                    data_subject_id, processing_purpose, legal_basis, expires_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                audit_entry.entry_id,
-                audit_entry.session_id,
-                audit_entry.user_id,
-                audit_entry.timestamp,
-                audit_entry.operation_type,
-                audit_entry.operation_name,
-                audit_entry.operation_version,
-                json.dumps(audit_entry.input_parameters),
-                json.dumps(audit_entry.output_data) if audit_entry.output_data else None,
-                audit_entry.execution_time_ms,
-                audit_entry.memory_usage_mb,
-                audit_entry.cpu_usage_percent,
-                json.dumps(audit_entry.data_sources),
-                audit_entry.content_hash,
-                audit_entry.data_classification,
-                audit_entry.retention_policy,
-                json.dumps(audit_entry.context_state_before) if audit_entry.context_state_before else None,
-                json.dumps(audit_entry.context_state_after) if audit_entry.context_state_after else None,
-                audit_entry.error_details,
-                json.dumps(audit_entry.compliance_tags),
-                audit_entry.gdpr_applicable,
-                audit_entry.ccpa_applicable,
-                audit_entry.data_subject_id,
-                audit_entry.processing_purpose,
-                audit_entry.legal_basis,
-                expires_at.isoformat()
-            ))
-
-            # Store data lineage
-            for source in audit_entry.data_sources:
+                # Insert audit log entry
                 cursor.execute("""
-                    INSERT INTO mcp_data_lineage (
-                        entry_id, source_type, source_identifier, source_metadata
-                    ) VALUES (?, ?, ?, ?)
+                    INSERT INTO mcp_audit_logs (
+                        entry_id, session_id, user_id, timestamp, operation_type,
+                        operation_name, input_parameters, context_state_before,
+                        context_state_after, compliance_tags, processing_purpose,
+                        legal_basis
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
-                    audit_entry.entry_id,
-                    "data_source",
-                    source,
-                    json.dumps({"timestamp": audit_entry.timestamp})
+                    entry_id,
+                    self.session_id,
+                    user_id or self.user_id,
+                    timestamp,
+                    MCPOperationType.CONTEXT_OPERATION.value,
+                    f"context_{operation_type}",
+                    json.dumps({"context_key": context_key, "operation": operation_type}),
+                    json.dumps(state_before) if state_before else None,
+                    json.dumps(state_after) if state_after else None,
+                    json.dumps(compliance_tags) if compliance_tags else None,
+                    processing_purpose,
+                    legal_basis
                 ))
 
-            conn.commit()
+                conn.commit()
 
-        # Store in file if configured
-        if hasattr(self, 'file_logger'):
-            log_entry = asdict(audit_entry)
-            self.file_logger.info(json.dumps(log_entry, default=str))
+        except Exception:
+            logger.exception("Failed to log context operation")
+            raise
+
+        return entry_id
 
     def query_audit_logs(
         self,
-        start_time: str | None = None,
-        end_time: str | None = None,
         operation_type: str | None = None,
         user_id: str | None = None,
-        session_id: str | None = None,
-        limit: int = 1000,
+        start_time: str | None = None,
+        end_time: str | None = None,
+        limit: int = 100,
         offset: int = 0
     ) -> list[dict[str, Any]]:
         """
-        Query audit logs with filtering options.
+        Query audit logs with optional filters.
 
         Args:
-            start_time: Start time filter (ISO format)
-            end_time: End time filter (ISO format)
             operation_type: Filter by operation type
             user_id: Filter by user ID
-            session_id: Filter by session ID
+            start_time: Filter by start time (ISO format)
+            end_time: Filter by end time (ISO format)
             limit: Maximum number of results
             offset: Number of results to skip
 
         Returns:
             List of audit log entries
         """
-        with self._get_db_connection() as conn:
-            cursor = conn.cursor()
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
 
-            query = "SELECT * FROM mcp_audit_logs WHERE 1=1"
-            params = []
+                # Build query with filters
+                query = "SELECT * FROM mcp_audit_logs WHERE 1=1"
+                params = []
 
-            if start_time:
-                query += " AND timestamp >= ?"
-                params.append(start_time)
+                if operation_type:
+                    query += " AND operation_type = ?"
+                    params.append(operation_type)
 
-            if end_time:
-                query += " AND timestamp <= ?"
-                params.append(end_time)
+                if user_id:
+                    query += " AND user_id = ?"
+                    params.append(user_id)
 
-            if operation_type:
-                query += " AND operation_type = ?"
-                params.append(operation_type)
+                if start_time:
+                    query += " AND timestamp >= ?"
+                    params.append(start_time)
 
-            if user_id:
-                query += " AND user_id = ?"
-                params.append(user_id)
+                if end_time:
+                    query += " AND timestamp <= ?"
+                    params.append(end_time)
 
-            if session_id:
-                query += " AND session_id = ?"
-                params.append(session_id)
+                query += " ORDER BY timestamp DESC LIMIT ? OFFSET ?"
+                params.extend([limit, offset])
 
-            query += " ORDER BY timestamp DESC LIMIT ? OFFSET ?"
-            params.extend([limit, offset])
+                cursor.execute(query, params)
+                rows = cursor.fetchall()
 
-            cursor.execute(query, params)
-            rows = cursor.fetchall()
+                # Convert to list of dictionaries
+                return [dict(row) for row in rows]
 
-            return [dict(row) for row in rows]
+        except Exception:
+            logger.exception("Failed to query audit logs")
+            return []
 
     def cleanup_expired_logs(self) -> int:
         """
-        Clean up expired audit logs based on retention policies.
+        Clean up expired audit logs.
 
         Returns:
-            Number of logs deleted
+            Number of deleted log entries
         """
-        current_time = datetime.now(timezone.utc).isoformat()
+        try:
+            current_time = datetime.now(timezone.utc).isoformat()
 
-        with self._get_db_connection() as conn:
-            cursor = conn.cursor()
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
 
-            # Delete expired logs
-            cursor.execute("""
-                DELETE FROM mcp_audit_logs
-                WHERE expires_at < ?
-            """, (current_time,))
+                # Delete expired logs
+                cursor.execute("""
+                    DELETE FROM mcp_audit_logs
+                    WHERE expires_at IS NOT NULL AND expires_at < ?
+                """, (current_time,))
 
-            deleted_count = cursor.rowcount
-            conn.commit()
+                deleted_count = cursor.rowcount
+                conn.commit()
 
-            return deleted_count
+                return deleted_count
+
+        except Exception:
+            logger.exception("Failed to cleanup expired logs")
+            return 0
+
+    def get_session_summary(self) -> dict[str, Any]:
+        """Get a summary of the current audit session."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+
+                # Get session statistics
+                cursor.execute("""
+                    SELECT
+                        COUNT(*) as total_operations,
+                        COUNT(CASE WHEN operation_type = ? THEN 1 END) as tool_executions,
+                        COUNT(CASE WHEN operation_type = ? THEN 1 END) as resource_accesses,
+                        COUNT(CASE WHEN operation_type = ? THEN 1 END) as context_operations,
+                        MIN(timestamp) as session_start,
+                        MAX(timestamp) as last_activity
+                    FROM mcp_audit_logs
+                    WHERE session_id = ?
+                """, (
+                    MCPOperationType.TOOL_EXECUTION.value,
+                    MCPOperationType.RESOURCE_ACCESS.value,
+                    MCPOperationType.CONTEXT_OPERATION.value,
+                    self.session_id
+                ))
+
+                stats = cursor.fetchone()
+
+                return {
+                    "session_id": self.session_id,
+                    "user_id": self.user_id,
+                    "total_operations": stats["total_operations"],
+                    "tool_executions": stats["tool_executions"],
+                    "resource_accesses": stats["resource_accesses"],
+                    "context_operations": stats["context_operations"],
+                    "session_start": stats["session_start"],
+                    "last_activity": stats["last_activity"]
+                }
+
+        except Exception as e:
+            logger.exception("Failed to get session summary")
+            return {"error": str(e)}
+
+    def close_session(self) -> None:
+        """Close the current audit session."""
+        try:
+            # Log session end
+            self.log_tool_execution(
+                tool_name="session_end",
+                input_parameters={"session_id": self.session_id},
+                processing_purpose="session_management",
+                legal_basis="legitimate_interests"
+            )
+        except Exception:
+            logger.exception("Failed to close session")
 
 
 def create_audit_logger(
-    db_path: str,
+    db_path: str = "mcp_audit.db",
     session_id: str | None = None,
     user_id: str | None = None,
-    **kwargs
+    enable_performance_tracking: bool = True,
+    enable_content_hashing: bool = True
 ) -> MCPAuditLogger:
     """
-    Factory function to create an MCP audit logger instance.
+    Create and configure an MCP audit logger instance.
 
     Args:
-        db_path: Path to SQLite database for audit logs
-        session_id: Current session identifier
-        user_id: Current user identifier
-        **kwargs: Additional configuration options
+        db_path: Path to the SQLite database file
+        session_id: Unique session identifier
+        user_id: User identifier for the session
+        enable_performance_tracking: Enable performance metrics collection
+        enable_content_hashing: Enable content hashing for integrity verification
 
     Returns:
         Configured MCPAuditLogger instance
@@ -738,5 +617,6 @@ def create_audit_logger(
         db_path=db_path,
         session_id=session_id,
         user_id=user_id,
-        **kwargs
+        enable_performance_tracking=enable_performance_tracking,
+        enable_content_hashing=enable_content_hashing
     )
