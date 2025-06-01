@@ -413,9 +413,9 @@ async def favicon():
 
         admin_api_endpoints_str = ""
         if admin_ui_enabled_bool:
-            admin_api_endpoints_str = """
+            _admin_api_endpoints_raw = """
 # --- Admin API Endpoints ---
-@app.get("/api/export", tags=["_admin"])
+@admin_app.get("/api/export", tags=["_admin"])
 async def export_data():
     import io
     import zipfile
@@ -482,7 +482,7 @@ async def export_data():
         }
     )
 
-@app.get("/api/requests", tags=["_admin"])
+@admin_app.get("/api/requests", tags=["_admin"])
 async def get_request_logs(limit: int = 100, offset: int = 0, method: str = None, path: str = None, include_admin: bool = False, id: int = None):
     try:
 
@@ -545,9 +545,8 @@ async def get_request_logs(limit: int = 100, offset: int = 0, method: str = None
     except Exception as e:
         print(f"Error getting request logs: {e}")
         return []
-
-@app.get("/api/debug", tags=["_admin"])
-async def get_debug_info():
+    @admin_app.get("/api/debug", tags=["_admin"])
+    async def get_debug_info():
     debug_info = {
         "db_path_exists": os.path.exists(str(DB_PATH)),
         "db_directory_exists": os.path.exists(str(db_dir)),
@@ -586,7 +585,7 @@ async def get_debug_info():
 
     return debug_info
 
-@app.get("/api/requests/stats", tags=["_admin"])
+@admin_app.get("/api/requests/stats", tags=["_admin"])
 async def get_request_stats():
     try:
         conn = sqlite3.connect(str(DB_PATH))
@@ -618,9 +617,8 @@ async def get_request_stats():
     except Exception as e:
         print(f"Error getting request stats: {e}")
         return {"error": str(e), "total_requests": 0}
-
-@app.get("/api/logs/search", tags=["_admin"])
-async def search_logs(
+    @admin_app.get("/api/logs/search", tags=["_admin"])
+    async def search_logs(
     q: str = None,
     method: str = None,
     status: int = None,
@@ -748,9 +746,8 @@ async def search_logs(
         }
     except Exception as e:
         return {"error": str(e), "logs": []}
-
-@app.get("/api/logs/analyze", tags=["_admin"])
-async def analyze_logs(
+    @admin_app.get("/api/logs/analyze", tags=["_admin"])
+    async def analyze_logs(
     method: str = None,
     status: int = None,
     path_regex: str = None,
@@ -839,9 +836,8 @@ async def analyze_logs(
 
     except Exception as e:
         return {"error": str(e), "total_requests": 0}
-
-@app.get("/api/mock-data/scenarios", tags=["_admin"])
-async def get_scenarios():
+    @admin_app.get("/api/mock-data/scenarios", tags=["_admin"])
+    async def get_scenarios():
     \"\"\"Get all mock scenarios\"\"\"
     try:
         conn = sqlite3.connect(str(DB_PATH))
@@ -870,9 +866,8 @@ async def get_scenarios():
     except Exception as e:
         print(f"Error getting scenarios: {e}")
         return []
-
-@app.post("/api/mock-data/scenarios", tags=["_admin"])
-async def create_scenario(scenario_data: dict = Body(...)):
+    @admin_app.post("/api/mock-data/scenarios", tags=["_admin"])
+    async def create_scenario(scenario_data: dict = Body(...)):
     \"\"\"Create a new mock scenario\"\"\"
     try:
         name = scenario_data.get("name")
@@ -907,9 +902,8 @@ async def create_scenario(scenario_data: dict = Body(...)):
     except Exception as e:
         print(f"Error creating scenario: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
-@app.put("/api/mock-data/scenarios/{scenario_id}", tags=["_admin"])
-async def update_scenario(scenario_id: int, scenario_data: dict = Body(...)):
+    @admin_app.put("/api/mock-data/scenarios/{scenario_id}", tags=["_admin"])
+    async def update_scenario(scenario_id: int, scenario_data: dict = Body(...)):
     \"\"\"Update an existing mock scenario\"\"\"
     try:
         name = scenario_data.get("name")
@@ -950,9 +944,8 @@ async def update_scenario(scenario_id: int, scenario_data: dict = Body(...)):
     except Exception as e:
         print(f"Error updating scenario: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
-@app.delete("/api/mock-data/scenarios/{scenario_id}", tags=["_admin"])
-async def delete_scenario(scenario_id: int):
+    @admin_app.delete("/api/mock-data/scenarios/{scenario_id}", tags=["_admin"])
+    async def delete_scenario(scenario_id: int):
     \"\"\"Delete a mock scenario\"\"\"
     try:
         conn = sqlite3.connect(str(DB_PATH))
@@ -981,9 +974,8 @@ async def delete_scenario(scenario_id: int):
     except Exception as e:
         print(f"Error deleting scenario: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/api/mock-data/scenarios/{scenario_id}/activate", tags=["_admin"])
-async def activate_scenario(scenario_id: int):
+    @admin_app.post("/api/mock-data/scenarios/{scenario_id}/activate", tags=["_admin"])
+    async def activate_scenario(scenario_id: int):
     \"\"\"Activate a mock scenario (deactivates all others)\"\"\"
     try:
         conn = sqlite3.connect(str(DB_PATH))
@@ -1019,9 +1011,8 @@ async def activate_scenario(scenario_id: int):
     except Exception as e:
         print(f"Error activating scenario: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/api/mock-data/scenarios/{scenario_id}/deactivate", tags=["_admin"])
-async def deactivate_scenario(scenario_id: int):
+    @admin_app.post("/api/mock-data/scenarios/{scenario_id}/deactivate", tags=["_admin"])
+    async def deactivate_scenario(scenario_id: int):
     \"\"\"Deactivate a mock scenario\"\"\"
     try:
         conn = sqlite3.connect(str(DB_PATH))
@@ -1054,9 +1045,8 @@ async def deactivate_scenario(scenario_id: int):
     except Exception as e:
         print(f"Error deactivating scenario: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/api/mock-data/scenarios/active", tags=["_admin"])
-async def get_active_scenario():
+    @admin_app.get("/api/mock-data/scenarios/active", tags=["_admin"])
+    async def get_active_scenario():
     \"\"\"Get the currently active scenario\"\"\"
     try:
         conn = sqlite3.connect(str(DB_PATH))
@@ -1084,9 +1074,8 @@ async def get_active_scenario():
     except Exception as e:
         print(f"Error getting active scenario: {e}")
         return None
-
-@app.get("/api/performance/metrics", tags=["_admin"])
-async def get_performance_metrics(
+    @admin_app.get("/api/performance/metrics", tags=["_admin"])
+    async def get_performance_metrics(
     limit: int = 100,
     offset: int = 0,
     time_from: str = None,
@@ -1141,9 +1130,8 @@ async def get_performance_metrics(
     except Exception as e:
         print(f"Error getting performance metrics: {e}")
         return {"error": str(e), "metrics": []}
-
-@app.get("/api/performance/sessions", tags=["_admin"])
-async def get_performance_sessions(
+    @admin_app.get("/api/performance/sessions", tags=["_admin"])
+    async def get_performance_sessions(
     limit: int = 100,
     offset: int = 0,
     status: str = None
@@ -1194,9 +1182,8 @@ async def get_performance_sessions(
     except Exception as e:
         print(f"Error getting test sessions: {e}")
         return {"error": str(e), "sessions": []}
-
-@app.get("/api/performance/summary", tags=["_admin"])
-async def get_performance_summary(
+    @admin_app.get("/api/performance/summary", tags=["_admin"])
+    async def get_performance_summary(
     time_from: str = None,
     time_to: str = None
 ):
@@ -1299,8 +1286,8 @@ async def get_performance_summary(
     except Exception as e:
         print(f"Error getting performance summary: {e}")
         return {"error": str(e)}
-@app.get("/api/analytics/export", tags=["_admin"])
-async def export_analytics_data(
+    @admin_app.get("/api/analytics/export", tags=["_admin"])
+    async def export_analytics_data(
     format: str = "json",
     time_from: str = None,
     time_to: str = None,
@@ -1398,9 +1385,8 @@ async def export_analytics_data(
 
     except Exception as e:
         return {"error": str(e)}
-
-@app.get("/api/analytics/realtime", tags=["_admin"])
-async def get_realtime_analytics():
+    @admin_app.get("/api/analytics/realtime", tags=["_admin"])
+    async def get_realtime_analytics():
     \"\"\"Get real-time analytics data for dashboard updates\"\"\"
     try:
         conn = sqlite3.connect(str(DB_PATH))
@@ -1441,9 +1427,8 @@ async def get_realtime_analytics():
         }
     except Exception as e:
         return {"error": str(e), "status": "error"}
-
-@app.get("/api/analytics/charts", tags=["_admin"])
-async def get_chart_data(
+    @admin_app.get("/api/analytics/charts", tags=["_admin"])
+    async def get_chart_data(
     chart_type: str = "overview",
     time_range: str = "1h",
     limit: int = 50
@@ -1532,12 +1517,12 @@ async def get_chart_data(
 """
         webhook_api_endpoints_str = ""
         if webhooks_enabled_bool and admin_ui_enabled_bool:
-            webhook_api_endpoints_str = """
-        @app.get("/api/webhooks", tags=["_admin"])
+            _webhook_api_endpoints_raw = """
+        @admin_app.get("/api/webhooks", tags=["_admin"])
         async def admin_get_webhooks():
             return get_webhooks()
 
-        @app.post("/api/webhooks", tags=["_admin"])
+        @admin_app.post("/api/webhooks", tags=["_admin"])
         async def admin_register_webhook(webhook_data: dict = Body(...)):
             event_type = webhook_data.get("event_type")
             url = webhook_data.get("url")
@@ -1546,33 +1531,35 @@ async def get_chart_data(
                 raise HTTPException(status_code=400, detail="event_type and url are required")
             return register_webhook(event_type, url, description)
 
-        @app.delete("/api/webhooks/{webhook_id}", tags=["_admin"])
+        @admin_app.delete("/api/webhooks/{webhook_id}", tags=["_admin"])
         async def admin_delete_webhook(webhook_id: str):
             return delete_webhook(webhook_id)
 
-        @app.post("/api/webhooks/{webhook_id}/test", tags=["_admin"])
+        @admin_app.post("/api/webhooks/{webhook_id}/test", tags=["_admin"])
         async def admin_test_webhook(webhook_id: str):
             return await test_webhook(webhook_id)
 
-        @app.get("/api/webhooks/history", tags=["_admin"])
+        @admin_app.get("/api/webhooks/history", tags=["_admin"])
         async def admin_get_webhook_history():
             return get_webhook_history()
 """
+            webhook_api_endpoints_str = "\n".join(f"        {line}" for line in _webhook_api_endpoints_raw.strip().splitlines())
         storage_api_endpoints_str = ""
         if storage_enabled_bool and admin_ui_enabled_bool:
-            storage_api_endpoints_str = """
-        @app.get("/api/storage/stats", tags=["_admin"])
+            _storage_api_endpoints_raw = """
+        @admin_app.get("/api/storage/stats", tags=["_admin"])
         async def admin_get_storage_stats():
             return get_storage_stats()
 
-        @app.get("/api/storage/collections", tags=["_admin"])
+        @admin_app.get("/api/storage/collections", tags=["_admin"])
         async def admin_get_collections():
             return get_collections()
 """
+            storage_api_endpoints_str = "\n".join(f"        {line}" for line in _storage_api_endpoints_raw.strip().splitlines())
 
-        admin_ui_endpoint_str = (
-            f'''
-@app.get("/", response_class=HTMLResponse, summary="Admin UI", tags=["_system"])
+        if admin_ui_enabled_bool:
+            _admin_ui_endpoint_raw = (
+                f'''@admin_app.get("/", response_class=HTMLResponse, summary="Admin UI", tags=["_system"])
 async def read_admin_ui(request: Request):
     return templates.TemplateResponse("admin.html", {{
         "request": request,
@@ -1581,11 +1568,11 @@ async def read_admin_ui(request: Request):
         "auth_enabled": {auth_enabled_bool},
         "webhooks_enabled": {webhooks_enabled_bool},
         "storage_enabled": {storage_enabled_bool}
-    }})
-'''
-            if admin_ui_enabled_bool
-            else "@app.get(\"/\")\nasync def no_admin(): return {'message': 'Admin UI not enabled'}"
-        )
+    }})'''
+            )
+            admin_ui_endpoint_str = "\n".join(f"        {line}" for line in _admin_ui_endpoint_raw.strip().splitlines())
+        else:
+            admin_ui_endpoint_str = "        @app.get(\"/\")\n        async def no_admin(): return {'message': 'Admin UI not enabled'}"
 
         health_endpoint_str = '@app.get("/health", summary="Health check endpoint", tags=["_system"])\nasync def health_check(): return {"status": "healthy"}\n'
 
@@ -1608,10 +1595,10 @@ async def read_admin_ui(request: Request):
         admin_app.add_middleware(AdminLoggingMiddleware)
 
         # Add admin endpoints
-        {admin_api_endpoints_str.strip() if admin_ui_enabled_bool else ""}
-        {webhook_api_endpoints_str.strip() if webhooks_enabled_bool and admin_ui_enabled_bool else ""}
-        {storage_api_endpoints_str.strip() if storage_enabled_bool and admin_ui_enabled_bool else ""}
-        {admin_ui_endpoint_str.strip() if admin_ui_enabled_bool else ""}
+        {admin_api_endpoints_str if admin_ui_enabled_bool else ""}
+        {webhook_api_endpoints_str if webhooks_enabled_bool and admin_ui_enabled_bool else ""}
+        {storage_api_endpoints_str if storage_enabled_bool and admin_ui_enabled_bool else ""}
+        {admin_ui_endpoint_str if admin_ui_enabled_bool else ""}
 
         # Add health check for admin server
         @admin_app.get("/health", summary="Admin health check", tags=["_system"])
