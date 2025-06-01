@@ -1810,19 +1810,24 @@ def main_cli():
 # Use `mcp dev src/mockloop_mcp/main.py` or `mcp run src/mockloop_mcp/main.py`
 # Or, if this file is intended to be run directly as `python src/mockloop_mcp/main.py`:
 if __name__ == "__main__":
-    # Check if --cli flag is passed, otherwise assume MCP server run
-    if "--cli" in sys.argv:
+    # Check for --stdio flag for Claude Code integration
+    if "--stdio" in sys.argv:
+        # Remove --stdio from sys.argv so it doesn't interfere
+        sys.argv.remove("--stdio")
+
+        # Run in stdio mode for Claude Code
+        import asyncio
+        from mcp.server.stdio import stdio_server
+
+        async def main():
+            async with stdio_server() as (read_stream, write_stream):
+                await server.run(read_stream, write_stream)
+
+        asyncio.run(main())
+    elif "--cli" in sys.argv:
         # Remove --cli from sys.argv so argparse doesn't see it
         sys.argv.remove("--cli")
         main_cli()
     else:
-        # Start the MCP server
+        # Start the MCP server in SSE mode (existing behavior)
         server.run()
-
-
-# To make `python src/mockloop_mcp/main.py` start the server as per SDK docs:
-# (Comment out the main_cli() call above if you uncomment this)
-#
-# if __name__ == "__main__":
-#     print("Starting MockLoop MCP Server...")
-#     mcp_server.run()

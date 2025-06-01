@@ -69,6 +69,15 @@ The world's first AI-native API testing platform powered by the Model Context Pr
    Business API: `http://localhost:8000`
    Admin UI: `http://localhost:8001`
 
+## Add to Claude Code
+**Simply run**
+`claude mcp add mockloop-mcp mockloop-mcp --stdio`
+
+Or if using virtual environment:
+
+`claude mcp add mockloop-mcp /path/to/venv/bin/mockloop_mcp --stdio`
+
+
 ## Documentation
 
 - **[Getting Started](getting-started/installation.md)**: Installation and basic setup
