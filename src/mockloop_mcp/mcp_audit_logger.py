@@ -293,7 +293,8 @@ class MCPAuditLogger:
         gdpr_applicable: bool = False,
         ccpa_applicable: bool = False,
         data_subject_id: str | None = None,
-        retention_policy: str | None = None
+        retention_policy: str | None = None,
+        execution_time_ms: float | None = None
     ) -> str:
         """
         Log a resource access event.
@@ -343,7 +344,11 @@ class MCPAuditLogger:
                     timestamp,
                     MCPOperationType.RESOURCE_ACCESS.value,
                     f"resource_access_{access_type}",
-                    json.dumps({"uri": resource_uri, "access_type": access_type}),
+                    json.dumps({
+                        "uri": resource_uri,
+                        "access_type": access_type,
+                        "execution_time_ms": execution_time_ms
+                    }),
                     json.dumps({"metadata": metadata, "content_preview": content_preview}),
                     json.dumps(data_sources) if data_sources else None,
                     json.dumps(compliance_tags) if compliance_tags else None,
@@ -444,6 +449,121 @@ class MCPAuditLogger:
 
         except Exception:
             logger.exception("Failed to log context operation")
+            raise
+
+        return entry_id
+
+    def log_prompt_invocation(
+        self,
+        prompt_name: str,
+        input_parameters: dict[str, Any] | None = None,
+        execution_result: dict[str, Any] | None = None,
+        execution_time_ms: float | None = None,
+        data_sources: list[str] | None = None,
+        compliance_tags: list[str] | None = None,
+        processing_purpose: str | None = None,
+        legal_basis: str | None = None,
+        user_id: str | None = None,
+        gdpr_applicable: bool = False,
+        ccpa_applicable: bool = False,
+        data_subject_id: str | None = None,
+        retention_policy: str | None = None
+    ) -> str:
+        """
+        Log a prompt invocation event.
+
+        Args:
+            prompt_name: Name of the prompt being invoked
+            input_parameters: Input parameters passed to the prompt
+            execution_result: Result returned by the prompt
+            execution_time_ms: Execution time in milliseconds
+            data_sources: List of data sources accessed
+            compliance_tags: Compliance-related tags
+            processing_purpose: Purpose of data processing
+            legal_basis: Legal basis for data processing
+            user_id: Override user ID for this operation
+            gdpr_applicable: Whether GDPR applies to this operation
+            ccpa_applicable: Whether CCPA applies to this operation
+            data_subject_id: ID of the data subject if applicable
+            retention_policy: Data retention policy
+
+        Returns:
+            Unique entry ID for the logged event
+        """
+        entry_id = str(uuid.uuid4())
+        timestamp = datetime.now(timezone.utc).isoformat()
+
+        # Generate content hash if enabled
+        content_hash = None
+        if self.enable_content_hashing:
+            content_data = {
+                "prompt_name": prompt_name,
+                "input_parameters": input_parameters,
+                "execution_result": execution_result
+            }
+            content_hash = hashlib.sha256(
+                json.dumps(content_data, sort_keys=True).encode()
+            ).hexdigest()
+
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+
+                # Insert audit log entry
+                cursor.execute("""
+                    INSERT INTO mcp_audit_logs (
+                        entry_id, session_id, user_id, timestamp, operation_type,
+                        operation_name, input_parameters, output_data, execution_time_ms,
+                        data_sources, compliance_tags, processing_purpose,
+                        legal_basis, content_hash, gdpr_applicable, ccpa_applicable,
+                        data_subject_id, retention_policy
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    entry_id,
+                    self.session_id,
+                    user_id or self.user_id,
+                    timestamp,
+                    MCPOperationType.PROMPT_EXECUTION.value,
+                    prompt_name,
+                    json.dumps(input_parameters) if input_parameters else None,
+                    json.dumps(execution_result) if execution_result else None,
+                    execution_time_ms,
+                    json.dumps(data_sources) if data_sources else None,
+                    json.dumps(compliance_tags) if compliance_tags else None,
+                    processing_purpose,
+                    legal_basis,
+                    content_hash,
+                    gdpr_applicable,
+                    ccpa_applicable,
+                    data_subject_id,
+                    retention_policy
+                ))
+
+                # Log data lineage if data sources are provided
+                if data_sources:
+                    for source in data_sources:
+                        cursor.execute("""
+                            INSERT INTO mcp_data_lineage (
+                                entry_id, source_uri, source_type, source_identifier,
+                                source_metadata, transformation_applied, transformation_type,
+                                data_flow_direction, timestamp
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """, (
+                            entry_id,
+                            source,
+                            "prompt_source",
+                            source,
+                            json.dumps({"prompt_name": prompt_name}),
+                            "prompt_execution",
+                            "prompt_execution",
+                            "input",
+                            timestamp
+                        ))
+
+                conn.commit()
+
+        except Exception:
+            logger.exception("Failed to log prompt invocation")
             raise
 
         return entry_id
