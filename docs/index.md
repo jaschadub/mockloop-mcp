@@ -7,7 +7,7 @@
 
 ## What is MockLoop MCP?
 
-MockLoop MCP is a Model Context Protocol server that generates mock API servers from OpenAPI specifications and provides AI-powered testing tools. It includes 50 MCP capabilities for automated testing, scenario management, and audit logging.
+The world's first AI-native API testing platform powered by the Model Context Protocol. Revolutionary AI-driven scenario generation, automated test execution, and intelligent analysis capabilities. MockLoop MCP is a Model Context Protocol server that generates mock API servers from OpenAPI specifications and provides AI-powered testing tools. It includes 50 MCP capabilities for automated testing, scenario management, and audit logging. 
 
 ## Core Components
 
