@@ -1539,57 +1539,57 @@ async def export_data():
 """
         webhook_api_endpoints_str = ""
         if webhooks_enabled_bool and admin_ui_enabled_bool:
-            _webhook_api_endpoints_raw = """@admin_app.get("/api/webhooks", tags=["_admin"])
-async def admin_get_webhooks():
-    return get_webhooks()
+            _webhook_api_endpoints_raw = """    @admin_app.get("/api/webhooks", tags=["_admin"])
+    async def admin_get_webhooks():
+        return get_webhooks()
 
-@admin_app.post("/api/webhooks", tags=["_admin"])
-async def admin_register_webhook(webhook_data: dict = Body(...)):
-    event_type = webhook_data.get("event_type")
-    url = webhook_data.get("url")
-    description = webhook_data.get("description")
-    if not event_type or not url:
-        raise HTTPException(status_code=400, detail="event_type and url are required")
-    return register_webhook(event_type, url, description)
+    @admin_app.post("/api/webhooks", tags=["_admin"])
+    async def admin_register_webhook(webhook_data: dict = Body(...)):
+        event_type = webhook_data.get("event_type")
+        url = webhook_data.get("url")
+        description = webhook_data.get("description")
+        if not event_type or not url:
+            raise HTTPException(status_code=400, detail="event_type and url are required")
+        return register_webhook(event_type, url, description)
 
-@admin_app.delete("/api/webhooks/{webhook_id}", tags=["_admin"])
-async def admin_delete_webhook(webhook_id: str):
-    return delete_webhook(webhook_id)
+    @admin_app.delete("/api/webhooks/{webhook_id}", tags=["_admin"])
+    async def admin_delete_webhook(webhook_id: str):
+        return delete_webhook(webhook_id)
 
-@admin_app.post("/api/webhooks/{webhook_id}/test", tags=["_admin"])
-async def admin_test_webhook(webhook_id: str):
-    return await test_webhook(webhook_id)
+    @admin_app.post("/api/webhooks/{webhook_id}/test", tags=["_admin"])
+    async def admin_test_webhook(webhook_id: str):
+        return await test_webhook(webhook_id)
 
-@admin_app.get("/api/webhooks/history", tags=["_admin"])
-async def admin_get_webhook_history():
-    return get_webhook_history()
+    @admin_app.get("/api/webhooks/history", tags=["_admin"])
+    async def admin_get_webhook_history():
+        return get_webhook_history()
 """
             webhook_api_endpoints_str = _webhook_api_endpoints_raw.strip()
         storage_api_endpoints_str = ""
         if storage_enabled_bool and admin_ui_enabled_bool:
-            _storage_api_endpoints_raw = """@admin_app.get("/api/storage/stats", tags=["_admin"])
-async def admin_get_storage_stats():
-    return get_storage_stats()
+            _storage_api_endpoints_raw = """    @admin_app.get("/api/storage/stats", tags=["_admin"])
+    async def admin_get_storage_stats():
+        return get_storage_stats()
 
-@admin_app.get("/api/storage/collections", tags=["_admin"])
-async def admin_get_collections():
-    return get_collections()
+    @admin_app.get("/api/storage/collections", tags=["_admin"])
+    async def admin_get_collections():
+        return get_collections()
 """
             storage_api_endpoints_str = _storage_api_endpoints_raw.strip()
 
         if admin_ui_enabled_bool:
-            admin_ui_endpoint_str = f'''@admin_app.get("/", response_class=HTMLResponse, summary="Admin UI", tags=["_system"])
-async def read_admin_ui(request: Request):
-    return templates.TemplateResponse("admin.html", {{
-        "request": request,
-        "api_title": "{api_title}",
-        "api_version": "{api_version}",
-        "auth_enabled": {auth_enabled_bool},
-        "webhooks_enabled": {webhooks_enabled_bool},
-        "storage_enabled": {storage_enabled_bool}
-    }})'''
+            admin_ui_endpoint_str = f'''    @admin_app.get("/", response_class=HTMLResponse, summary="Admin UI", tags=["_system"])
+    async def read_admin_ui(request: Request):
+        return templates.TemplateResponse("admin.html", {{
+            "request": request,
+            "api_title": "{api_title}",
+            "api_version": "{api_version}",
+            "auth_enabled": {auth_enabled_bool},
+            "webhooks_enabled": {webhooks_enabled_bool},
+            "storage_enabled": {storage_enabled_bool}
+        }})'''
         else:
-            admin_ui_endpoint_str = "        @app.get(\"/\")\n        async def no_admin(): return {'message': 'Admin UI not enabled'}"
+            admin_ui_endpoint_str = "    @app.get(\"/\")\n    async def no_admin(): return {'message': 'Admin UI not enabled'}"
 
         health_endpoint_str = '@app.get("/health", summary="Health check endpoint", tags=["_system"])\nasync def health_check(): return {"status": "healthy"}\n'
 
@@ -1615,10 +1615,10 @@ async def read_admin_ui(request: Request):
         uvicorn.run(admin_app, host="0.0.0.0", port={admin_port})
 
     # Admin endpoints
-{admin_api_endpoints_str if admin_ui_enabled_bool else ""}
-{webhook_api_endpoints_str if webhooks_enabled_bool and admin_ui_enabled_bool else ""}
-{storage_api_endpoints_str if storage_enabled_bool and admin_ui_enabled_bool else ""}
-{admin_ui_endpoint_str if admin_ui_enabled_bool else ""}
+    {admin_api_endpoints_str if admin_ui_enabled_bool else ""}
+    {webhook_api_endpoints_str if webhooks_enabled_bool and admin_ui_enabled_bool else ""}
+    {storage_api_endpoints_str if storage_enabled_bool and admin_ui_enabled_bool else ""}
+    {admin_ui_endpoint_str if admin_ui_enabled_bool else ""}
 
     # Add health check for admin server
     @admin_app.get("/health", summary="Admin health check", tags=["_system"])
