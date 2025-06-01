@@ -1806,24 +1806,59 @@ def main_cli():
     asyncio.run(run_tool_from_cli(args))
 
 
-# To run the MCP server:
-# Use `mcp dev src/mockloop_mcp/main.py` or `mcp run src/mockloop_mcp/main.py`
-# Or, if this file is intended to be run directly as `python src/mockloop_mcp/main.py`:
-if __name__ == "__main__":
+def main():
+    """Main entry point for the mockloop-mcp CLI command."""
     # Check for --stdio flag for Claude Code integration
     if "--stdio" in sys.argv:
         # Remove --stdio from sys.argv so it doesn't interfere
         sys.argv.remove("--stdio")
 
-        # Run in stdio mode for Claude Code
+        # Run in stdio mode for Claude Code using standard MCP server
         import asyncio
         from mcp.server.stdio import stdio_server
+        from mcp.server import Server
+        from mcp.types import Tool
 
-        async def main():
+        # Create standard MCP server for stdio mode
+        mcp_server = Server("MockLoop")
+
+        # Register tools with standard MCP server
+        @mcp_server.list_tools()
+        async def list_tools():
+            return [
+                Tool(
+                    name="generate_mock_api",
+                    description="Generates a FastAPI mock server from an API specification (e.g., OpenAPI). "
+                    "The mock server includes request/response logging and Docker support.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "spec_url_or_path": {"type": "string"},
+                            "output_dir_name": {"type": "string"},
+                            "auth_enabled": {"type": "boolean", "default": True},
+                            "webhooks_enabled": {"type": "boolean", "default": True},
+                            "admin_ui_enabled": {"type": "boolean", "default": True},
+                            "storage_enabled": {"type": "boolean", "default": True},
+                            "business_port": {"type": "integer", "default": 8000},
+                            "admin_port": {"type": "integer"}
+                        },
+                        "required": ["spec_url_or_path"]
+                    }
+                )
+            ]
+
+        @mcp_server.call_tool()
+        async def call_tool(name: str, arguments: dict):
+            if name == "generate_mock_api":
+                return await generate_mock_api_tool(**arguments)
+            else:
+                raise ValueError(f"Unknown tool: {name}")
+
+        async def stdio_main():
             async with stdio_server() as (read_stream, write_stream):
-                await server.run(read_stream, write_stream)
+                await mcp_server.run(read_stream, write_stream, mcp_server.create_initialization_options())
 
-        asyncio.run(main())
+        asyncio.run(stdio_main())
     elif "--cli" in sys.argv:
         # Remove --cli from sys.argv so argparse doesn't see it
         sys.argv.remove("--cli")
@@ -1831,3 +1866,10 @@ if __name__ == "__main__":
     else:
         # Start the MCP server in SSE mode (existing behavior)
         server.run()
+
+
+# To run the MCP server:
+# Use `mcp dev src/mockloop_mcp/main.py` or `mcp run src/mockloop_mcp/main.py`
+# Or, if this file is intended to be run directly as `python src/mockloop_mcp/main.py`:
+if __name__ == "__main__":
+    main()
