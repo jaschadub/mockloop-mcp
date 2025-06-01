@@ -136,6 +136,74 @@ class DatabaseMigrator:
                     )"""
                 ],
             },
+            7: {
+                "description": "Create MCP audit logging tables for compliance tracking",
+                "sql": [
+                    """DROP TABLE IF EXISTS mcp_audit_logs""",
+                    """CREATE TABLE IF NOT EXISTS mcp_audit_logs (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        entry_id TEXT UNIQUE NOT NULL,
+                        session_id TEXT NOT NULL,
+                        user_id TEXT,
+                        timestamp TEXT NOT NULL,
+                        operation_type TEXT NOT NULL,
+                        operation_name TEXT NOT NULL,
+                        operation_version TEXT,
+                        input_parameters TEXT,
+                        output_data TEXT,
+                        execution_time_ms REAL,
+                        memory_usage_mb REAL,
+                        cpu_usage_percent REAL,
+                        data_sources TEXT,
+                        content_hash TEXT,
+                        data_classification TEXT,
+                        retention_policy TEXT,
+                        context_state_before TEXT,
+                        context_state_after TEXT,
+                        error_details TEXT,
+                        compliance_tags TEXT,
+                        gdpr_applicable BOOLEAN DEFAULT 0,
+                        ccpa_applicable BOOLEAN DEFAULT 0,
+                        data_subject_id TEXT,
+                        processing_purpose TEXT,
+                        legal_basis TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        expires_at TIMESTAMP
+                    )""",
+                    """CREATE INDEX IF NOT EXISTS idx_mcp_audit_session
+                       ON mcp_audit_logs(session_id)""",
+                    """CREATE INDEX IF NOT EXISTS idx_mcp_audit_timestamp
+                       ON mcp_audit_logs(timestamp)""",
+                    """CREATE INDEX IF NOT EXISTS idx_mcp_audit_operation
+                       ON mcp_audit_logs(operation_type, operation_name)""",
+                    """CREATE INDEX IF NOT EXISTS idx_mcp_audit_user
+                       ON mcp_audit_logs(user_id)""",
+                    """CREATE INDEX IF NOT EXISTS idx_mcp_audit_expires
+                       ON mcp_audit_logs(expires_at)""",
+                    """DROP TABLE IF EXISTS mcp_data_lineage""",
+                    """CREATE TABLE IF NOT EXISTS mcp_data_lineage (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        entry_id TEXT NOT NULL,
+                        source_type TEXT NOT NULL,
+                        source_identifier TEXT NOT NULL,
+                        source_metadata TEXT,
+                        transformation_applied TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (entry_id) REFERENCES mcp_audit_logs (entry_id)
+                    )""",
+                    """DROP TABLE IF EXISTS mcp_compliance_events""",
+                    """CREATE TABLE IF NOT EXISTS mcp_compliance_events (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        entry_id TEXT NOT NULL,
+                        event_type TEXT NOT NULL,
+                        regulation TEXT NOT NULL,
+                        compliance_status TEXT NOT NULL,
+                        details TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (entry_id) REFERENCES mcp_audit_logs (entry_id)
+                    )"""
+                ],
+            },
         }
 
     def get_current_version(self) -> int:

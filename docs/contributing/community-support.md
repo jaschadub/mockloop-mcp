@@ -15,15 +15,6 @@ Start with our comprehensive documentation:
 
 ### 💬 Community Channels
 
-#### GitHub Discussions
-- **Purpose**: General questions, feature discussions, and community support
-- **Link**: [GitHub Discussions](https://github.com/mockloop/mockloop-mcp/discussions)
-- **Best for**: 
-  - General questions about usage
-  - Feature requests and ideas
-  - Sharing examples and use cases
-  - Community showcase
-
 #### GitHub Issues
 - **Purpose**: Bug reports and specific feature requests
 - **Link**: [GitHub Issues](https://github.com/mockloop/mockloop-mcp/issues)
@@ -35,11 +26,11 @@ Start with our comprehensive documentation:
 
 ### 🔍 Search Before Asking
 
-Before creating a new issue or discussion:
+Before creating a new issue:
 
 1. **Search existing issues**: Check if your problem has already been reported
 2. **Check documentation**: Review relevant documentation sections
-3. **Search discussions**: Look through community discussions for similar topics
+3. **Review examples**: Look through code examples and use cases in the documentation
 
 ## Reporting Issues
 
@@ -119,7 +110,7 @@ For PyPI installation or distribution issues:
 
 We welcome feature suggestions! Please:
 
-1. **Check existing requests**: Search issues and discussions first
+1. **Check existing requests**: Search existing issues first
 2. **Use the template**: Follow our feature request template
 3. **Provide context**: Explain the use case and problem
 4. **Consider alternatives**: Mention any workarounds you've tried
@@ -222,7 +213,7 @@ Even if you're not ready to contribute code, you can help:
 - Performance testing
 
 #### Community Support
-- Answer questions in discussions
+- Answer questions in issues
 - Help with issue triage
 - Share your use cases and examples
 - Mentor new contributors
@@ -272,8 +263,7 @@ Outstanding contributors may be:
 
 | Channel | Purpose | Response Time | Best For |
 |---------|---------|---------------|----------|
-| GitHub Issues | Bug reports, feature requests | 1-3 days | Specific problems |
-| GitHub Discussions | General questions, ideas | 1-2 days | Community support |
+| GitHub Issues | Bug reports, feature requests, questions | 1-3 days | All support needs |
 | Documentation | Self-service help | Immediate | Common questions |
 | Security Email | Security vulnerabilities | 48 hours | Security issues |
 
@@ -317,8 +307,8 @@ A: Check your OpenAPI specification for examples or default values. MockLoop MCP
 For new community members:
 
 - [ ] Read the [Installation Guide](../getting-started/installation.md)
-- [ ] Try the [Quick Start](../getting-started/quick-start.md) tutorial
-- [ ] Join [GitHub Discussions](https://github.com/mockloop/mockloop-mcp/discussions)
+- [ ] Try the [Quick Start](../getting-started/quick-start.md)
+- [ ] Explore the [API Reference](../api/mcp-tools.md) and examples
 - [ ] Star the [repository](https://github.com/mockloop/mockloop-mcp) ⭐
 - [ ] Follow our [Code of Conduct](https://github.com/mockloop/mockloop-mcp/blob/main/CODE_OF_CONDUCT.md)
 - [ ] Consider contributing (see [Contributing Guidelines](guidelines.md))

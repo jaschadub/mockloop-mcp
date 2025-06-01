@@ -26,6 +26,13 @@ pip-selfcheck.json
 generated_mocks/
 *.log
 
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+mcp_audit.db
+context_manager.db
+
 # Coverage reports
 .coverage
 coverage.xml
