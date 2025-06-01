@@ -5,19 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+### Security
 
-### Added
-
-### Changed
-
-### Deprecated
-
-### Removed
+## [2.2.4] - 2025-06-01
 
 ### Fixed
+- Fixed indent errors causing docker containers to fail to start
+- Fixed TestPyPI installation failure caused by broken FastAPI package on TestPyPI
+- Updated GitHub workflow to use `--index-url` for TestPyPI and `--extra-index-url` for PyPI dependencies
+- Updated issue templates with correct TestPyPI installation commands
 
-### Security
+## [2.2.3] - 2025-05-30
+
+### Fixed
+- Fixed critical release workflow issues preventing successful PyPI publication
+- Corrected version extraction and validation in GitHub Actions
+- Updated workflow permissions for trusted publishing
 
 ## [2.2.2] - 2025-05-30
 
@@ -90,7 +93,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Integrated multiple security analysis tools (Bandit, Safety, Semgrep, pip-audit)
 - Configured secure coding practices and validation
 
-[Unreleased]: https://github.com/mockloop/mockloop-mcp/compare/v2.2.2...HEAD
+[Unreleased]: https://github.com/mockloop/mockloop-mcp/compare/v2.2.4...HEAD
+[2.2.4]: https://github.com/mockloop/mockloop-mcp/releases/tag/v2.2.4
+[2.2.3]: https://github.com/mockloop/mockloop-mcp/releases/tag/v2.2.3
 [2.2.2]: https://github.com/mockloop/mockloop-mcp/releases/tag/v2.2.2
 [2.2.1]: https://github.com/mockloop/mockloop-mcp/releases/tag/v2.2.1
 [2.2.0]: https://github.com/mockloop/mockloop-mcp/releases/tag/v2.2.0
