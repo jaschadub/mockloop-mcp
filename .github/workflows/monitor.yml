@@ -50,7 +50,7 @@ jobs:
         
         # Extract key metrics for GitHub output
         if [ -f package_stats.json ]; then
-          LATEST_STATS=$(tail -n 1 package_stats.json | jq -r '.')
+          LATEST_STATS=$(jq -r '.[-1]' package_stats.json)
           VERSION=$(echo "$LATEST_STATS" | jq -r '.current_version')
           HEALTH=$(echo "$LATEST_STATS" | jq -r '.health_status')
           DOWNLOADS=$(echo "$LATEST_STATS" | jq -r '.recent_downloads')
@@ -73,7 +73,7 @@ jobs:
       id: health_check
       run: |
         if [ -f package_stats.json ]; then
-          LATEST_STATS=$(tail -n 1 package_stats.json | jq -r '.')
+          LATEST_STATS=$(jq -r '.[-1]' package_stats.json)
           HEALTH=$(echo "$LATEST_STATS" | jq -r '.health_status')
           DOWNLOADS=$(echo "$LATEST_STATS" | jq -r '.recent_downloads')
           
