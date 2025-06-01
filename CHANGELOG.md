@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [2.2.5] - 2025-06-01
+
+### Added
+- Added `--stdio` support for Claude Code integration
+- Dual-mode MCP server supporting both stdio and SSE communication
+- Backward compatibility with existing SSE-based MCP clients
+
+### Changed
+- Enhanced server startup logic to detect communication mode via command-line flags
+- Maintained existing `--cli` and default SSE functionality
+
 ## [2.2.4] - 2025-06-01
 
 ### Fixed
@@ -93,7 +104,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Integrated multiple security analysis tools (Bandit, Safety, Semgrep, pip-audit)
 - Configured secure coding practices and validation
 
-[Unreleased]: https://github.com/mockloop/mockloop-mcp/compare/v2.2.4...HEAD
+[Unreleased]: https://github.com/mockloop/mockloop-mcp/compare/v2.2.5...HEAD
+[2.2.5]: https://github.com/mockloop/mockloop-mcp/releases/tag/v2.2.5
 [2.2.4]: https://github.com/mockloop/mockloop-mcp/releases/tag/v2.2.4
 [2.2.3]: https://github.com/mockloop/mockloop-mcp/releases/tag/v2.2.3
 [2.2.2]: https://github.com/mockloop/mockloop-mcp/releases/tag/v2.2.2
