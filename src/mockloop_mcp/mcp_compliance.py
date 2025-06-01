@@ -187,21 +187,21 @@ class MCPComplianceReporter:
 
     def export_audit_logs(
         self,
-        export_format: ReportFormat,
         start_date: str | None = None,
         end_date: str | None = None,
         filter_criteria: dict[str, Any] | None = None,
-        include_sensitive_data: bool = False
+        include_sensitive_data: bool = False,
+        export_format: ReportFormat = ReportFormat.JSON
     ) -> str:
         """
         Export audit logs in specified format.
 
         Args:
-            format: Export format (JSON, CSV, XML)
             start_date: Start date filter (ISO format)
             end_date: End date filter (ISO format)
             filter_criteria: Additional filtering criteria
             include_sensitive_data: Whether to include sensitive data
+            export_format: Export format (JSON, CSV, XML)
 
         Returns:
             Path to the exported file
@@ -439,15 +439,15 @@ class MCPComplianceReporter:
                     placeholders = ','.join(['?' for _ in expired_ids])
 
                     # Delete from data lineage table
-                    sql_data_lineage = "DELETE FROM mcp_data_lineage WHERE entry_id IN (" + placeholders + ")"  # noqa: S608
+                    sql_data_lineage = f"DELETE FROM mcp_data_lineage WHERE entry_id IN ({placeholders})"  # nosec B608
                     cursor.execute(sql_data_lineage, expired_ids)
 
                     # Delete from compliance events table
-                    sql_compliance_events = "DELETE FROM mcp_compliance_events WHERE entry_id IN (" + placeholders + ")"  # noqa: S608
+                    sql_compliance_events = f"DELETE FROM mcp_compliance_events WHERE entry_id IN ({placeholders})"  # nosec B608
                     cursor.execute(sql_compliance_events, expired_ids)
 
                     # Delete from audit logs table
-                    sql_audit_logs = "DELETE FROM mcp_audit_logs WHERE entry_id IN (" + placeholders + ")"  # noqa: S608
+                    sql_audit_logs = f"DELETE FROM mcp_audit_logs WHERE entry_id IN ({placeholders})"  # nosec B608
                     cursor.execute(sql_audit_logs, expired_ids)
 
                 conn.commit()
