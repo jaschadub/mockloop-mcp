@@ -71,7 +71,7 @@ class MCPAuditLogger:
             self._log_session_start()
 
     def _init_database(self) -> None:
-        """Initialize the audit database with required tables."""
+        """Initialize the audit database with required tables and handle schema migrations."""
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -138,18 +138,87 @@ class MCPAuditLogger:
                     )
                 """)
 
+                # Check table schemas and handle migrations
+                self._handle_schema_migrations(cursor)
+
                 # Create indexes for better performance
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_mcp_audit_logs_session ON mcp_audit_logs(session_id)")
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_mcp_audit_logs_operation ON mcp_audit_logs(operation_type)")
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_mcp_audit_logs_timestamp ON mcp_audit_logs(timestamp)")
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_mcp_data_lineage_entry ON mcp_data_lineage(entry_id)")
-                cursor.execute("CREATE INDEX IF NOT EXISTS idx_mcp_compliance_events_session ON mcp_compliance_events(session_id)")
+
+                # Check if session_id column exists in mcp_compliance_events before creating index
+                cursor.execute("PRAGMA table_info(mcp_compliance_events)")
+                compliance_columns = [column[1] for column in cursor.fetchall()]
+                if 'session_id' in compliance_columns:
+                    cursor.execute("CREATE INDEX IF NOT EXISTS idx_mcp_compliance_events_session ON mcp_compliance_events(session_id)")
 
                 conn.commit()
 
         except Exception:
             logger.exception("Failed to initialize audit database")
             raise
+
+    def _handle_schema_migrations(self, cursor) -> None:
+        """Handle database schema migrations for backward compatibility."""
+        try:
+            # Check mcp_data_lineage table schema
+            cursor.execute("PRAGMA table_info(mcp_data_lineage)")
+            lineage_columns = [column[1] for column in cursor.fetchall()]
+
+            # If source_uri column doesn't exist, recreate the table
+            if 'source_uri' not in lineage_columns:
+                logger.info("Migrating mcp_data_lineage table schema")
+
+                # Backup existing data if any
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='mcp_data_lineage'")
+                if cursor.fetchone():
+                    cursor.execute("ALTER TABLE mcp_data_lineage RENAME TO mcp_data_lineage_backup")
+
+                # Create new table with correct schema
+                cursor.execute("""
+                    CREATE TABLE mcp_data_lineage (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        entry_id TEXT NOT NULL,
+                        source_uri TEXT NOT NULL,
+                        source_type TEXT,
+                        source_identifier TEXT,
+                        source_metadata TEXT,
+                        transformation_applied TEXT,
+                        destination_uri TEXT,
+                        transformation_type TEXT,
+                        data_flow_direction TEXT,
+                        timestamp TEXT NOT NULL,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (entry_id) REFERENCES mcp_audit_logs (entry_id)
+                    )
+                """)
+
+                # Try to migrate data from backup if it exists and has compatible columns
+                try:
+                    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='mcp_data_lineage_backup'")
+                    if cursor.fetchone():
+                        cursor.execute("PRAGMA table_info(mcp_data_lineage_backup)")
+                        backup_columns = [column[1] for column in cursor.fetchall()]
+
+                        # Find common columns for migration
+                        common_columns = set(backup_columns) & set(lineage_columns)
+                        if common_columns and 'entry_id' in common_columns:
+                            columns_str = ', '.join(common_columns)
+                            cursor.execute(f"""  # nosec
+                                INSERT INTO mcp_data_lineage ({columns_str})
+                                SELECT {columns_str} FROM mcp_data_lineage_backup
+                            """)
+
+                        # Drop backup table
+                        cursor.execute("DROP TABLE mcp_data_lineage_backup")
+                except Exception as e:
+                    logger.warning(f"Could not migrate data from backup table: {e}")
+                    # Continue without migration - better to have working schema
+
+        except Exception as e:
+            logger.warning(f"Schema migration failed: {e}")
+            # Continue - the CREATE TABLE IF NOT EXISTS should handle basic cases
 
     def _log_session_start(self) -> None:
         """Log the start of a new audit session."""
