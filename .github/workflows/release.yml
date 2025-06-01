@@ -191,7 +191,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: [release]
     environment: testpypi
-    
+    permissions:
+      contents: read
+      id-token: write  # Required for trusted publishing to TestPyPI
+
     steps:
     - uses: actions/checkout@v4
 
@@ -223,8 +226,6 @@ jobs:
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         repository-url: https://test.pypi.org/legacy/
-        user: __token__
-        password: ${{ secrets.TEST_PYPI_API_TOKEN }}
 
     - name: Wait for TestPyPI propagation
       run: sleep 60
@@ -268,7 +269,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: [verify-testpypi]
     environment: pypi
-    
+    permissions:
+      contents: read
+      id-token: write  # Required for trusted publishing to PyPI
+
     steps:
     - uses: actions/checkout@v4
 
@@ -285,9 +289,6 @@ jobs:
 
     - name: Publish to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
-      with:
-        user: __token__
-        password: ${{ secrets.PYPI_API_TOKEN }}
 
     - name: Create PyPI release summary
       run: |
