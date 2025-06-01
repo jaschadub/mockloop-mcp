@@ -25,6 +25,7 @@ pip-selfcheck.json
 # Generated files
 generated_mocks/
 *.log
+package_stats.json
 
 # Database files
 *.db
