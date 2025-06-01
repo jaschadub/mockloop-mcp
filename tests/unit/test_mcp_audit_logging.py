@@ -45,12 +45,13 @@ class TestMCPAuditLogger(unittest.TestCase):
             session_id="test_session_123",
             user_id="test_user",
             enable_performance_tracking=True,
-            enable_content_hashing=True
+            enable_content_hashing=True,
         )
 
     def tearDown(self):
         """Clean up test fixtures."""
         import shutil
+
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     def test_database_initialization(self):
@@ -64,21 +65,21 @@ class TestMCPAuditLogger(unittest.TestCase):
 
             # Check mcp_audit_logs table
             cursor.execute("""
-                SELECT name FROM sqlite_master 
+                SELECT name FROM sqlite_master
                 WHERE type='table' AND name='mcp_audit_logs'
             """)
             self.assertIsNotNone(cursor.fetchone())
 
             # Check mcp_data_lineage table
             cursor.execute("""
-                SELECT name FROM sqlite_master 
+                SELECT name FROM sqlite_master
                 WHERE type='table' AND name='mcp_data_lineage'
             """)
             self.assertIsNotNone(cursor.fetchone())
 
             # Check mcp_compliance_events table
             cursor.execute("""
-                SELECT name FROM sqlite_master 
+                SELECT name FROM sqlite_master
                 WHERE type='table' AND name='mcp_compliance_events'
             """)
             self.assertIsNotNone(cursor.fetchone())
@@ -94,7 +95,7 @@ class TestMCPAuditLogger(unittest.TestCase):
             data_sources=["source1", "source2"],
             compliance_tags=["test", "mcp_tool"],
             processing_purpose="testing",
-            legal_basis="legitimate_interests"
+            legal_basis="legitimate_interests",
         )
 
         # Verify the entry was logged
@@ -105,13 +106,18 @@ class TestMCPAuditLogger(unittest.TestCase):
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT * FROM mcp_audit_logs WHERE entry_id = ?
-            """, (entry_id,))
+            """,
+                (entry_id,),
+            )
 
             row = cursor.fetchone()
             self.assertIsNotNone(row)
-            self.assertEqual(row["operation_type"], MCPOperationType.TOOL_EXECUTION.value)
+            self.assertEqual(
+                row["operation_type"], MCPOperationType.TOOL_EXECUTION.value
+            )
             self.assertEqual(row["operation_name"], "test_tool")
             self.assertEqual(row["session_id"], "test_session_123")
             self.assertEqual(row["user_id"], "test_user")
@@ -147,7 +153,7 @@ class TestMCPAuditLogger(unittest.TestCase):
             data_sources=["file:///test/resource.txt"],
             compliance_tags=["resource_access"],
             processing_purpose="data_processing",
-            gdpr_applicable=True
+            gdpr_applicable=True,
         )
 
         # Verify the entry was logged
@@ -158,13 +164,18 @@ class TestMCPAuditLogger(unittest.TestCase):
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT * FROM mcp_audit_logs WHERE entry_id = ?
-            """, (entry_id,))
+            """,
+                (entry_id,),
+            )
 
             row = cursor.fetchone()
             self.assertIsNotNone(row)
-            self.assertEqual(row["operation_type"], MCPOperationType.RESOURCE_ACCESS.value)
+            self.assertEqual(
+                row["operation_type"], MCPOperationType.RESOURCE_ACCESS.value
+            )
             self.assertEqual(row["operation_name"], "resource_access_read")
             self.assertTrue(row["gdpr_applicable"])
 
@@ -183,7 +194,7 @@ class TestMCPAuditLogger(unittest.TestCase):
             context_key="test_context",
             state_before=state_before,
             state_after=state_after,
-            compliance_tags=["context_management"]
+            compliance_tags=["context_management"],
         )
 
         # Verify the entry was logged
@@ -194,13 +205,18 @@ class TestMCPAuditLogger(unittest.TestCase):
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT * FROM mcp_audit_logs WHERE entry_id = ?
-            """, (entry_id,))
+            """,
+                (entry_id,),
+            )
 
             row = cursor.fetchone()
             self.assertIsNotNone(row)
-            self.assertEqual(row["operation_type"], MCPOperationType.CONTEXT_OPERATION.value)
+            self.assertEqual(
+                row["operation_type"], MCPOperationType.CONTEXT_OPERATION.value
+            )
             self.assertEqual(row["operation_name"], "context_update")
 
             # Check context states
@@ -215,7 +231,7 @@ class TestMCPAuditLogger(unittest.TestCase):
         entry_id = self.logger.log_tool_execution(
             tool_name="hash_test",
             input_parameters={"data": "test_content"},
-            execution_result={"output": "processed_content"}
+            execution_result={"output": "processed_content"},
         )
 
         # Query the database to check content hash
@@ -223,9 +239,12 @@ class TestMCPAuditLogger(unittest.TestCase):
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT content_hash FROM mcp_audit_logs WHERE entry_id = ?
-            """, (entry_id,))
+            """,
+                (entry_id,),
+            )
 
             row = cursor.fetchone()
             self.assertIsNotNone(row)
@@ -236,21 +255,15 @@ class TestMCPAuditLogger(unittest.TestCase):
         """Test querying audit logs with filters."""
         # Create multiple log entries
         self.logger.log_tool_execution(
-            tool_name="tool1",
-            input_parameters={"test": "data1"},
-            user_id="user1"
+            tool_name="tool1", input_parameters={"test": "data1"}, user_id="user1"
         )
 
         self.logger.log_tool_execution(
-            tool_name="tool2",
-            input_parameters={"test": "data2"},
-            user_id="user2"
+            tool_name="tool2", input_parameters={"test": "data2"}, user_id="user2"
         )
 
         self.logger.log_resource_access(
-            resource_uri="file:///test.txt",
-            access_type="read",
-            user_id="user1"
+            resource_uri="file:///test.txt", access_type="read", user_id="user1"
         )
 
         # Query all logs
@@ -275,20 +288,23 @@ class TestMCPAuditLogger(unittest.TestCase):
 
             # Insert a log entry that's already expired
             past_time = datetime.now(timezone.utc).replace(year=2020).isoformat()
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO mcp_audit_logs (
-                    entry_id, session_id, timestamp, operation_type, 
+                    entry_id, session_id, timestamp, operation_type,
                     operation_name, input_parameters, expires_at
                 ) VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (
-                "expired_entry",
-                "test_session",
-                past_time,
-                "test_operation",
-                "test_tool",
-                "{}",
-                past_time
-            ))
+            """,
+                (
+                    "expired_entry",
+                    "test_session",
+                    past_time,
+                    "test_operation",
+                    "test_tool",
+                    "{}",
+                    past_time,
+                ),
+            )
             conn.commit()
 
         # Run cleanup
@@ -297,7 +313,9 @@ class TestMCPAuditLogger(unittest.TestCase):
 
         # Verify the expired log was deleted
         remaining_logs = self.logger.query_audit_logs()
-        expired_entries = [log for log in remaining_logs if log["entry_id"] == "expired_entry"]
+        expired_entries = [
+            log for log in remaining_logs if log["entry_id"] == "expired_entry"
+        ]
         self.assertEqual(len(expired_entries), 0)
 
 
@@ -312,15 +330,12 @@ class TestMCPComplianceReporter(unittest.TestCase):
 
         # Initialize audit logger first
         self.audit_logger = MCPAuditLogger(
-            db_path=str(self.db_path),
-            session_id="test_session",
-            user_id="test_user"
+            db_path=str(self.db_path), session_id="test_session", user_id="test_user"
         )
 
         # Initialize compliance reporter
         self.reporter = MCPComplianceReporter(
-            audit_db_path=str(self.db_path),
-            reports_output_dir=str(self.reports_dir)
+            audit_db_path=str(self.db_path), reports_output_dir=str(self.reports_dir)
         )
 
         # Create some test audit data
@@ -329,6 +344,7 @@ class TestMCPComplianceReporter(unittest.TestCase):
     def tearDown(self):
         """Clean up test fixtures."""
         import shutil
+
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     def _create_test_audit_data(self):
@@ -340,7 +356,7 @@ class TestMCPComplianceReporter(unittest.TestCase):
             gdpr_applicable=True,
             data_subject_id="subject_123",
             processing_purpose="email_processing",
-            legal_basis="consent"
+            legal_basis="consent",
         )
 
         self.audit_logger.log_resource_access(
@@ -348,14 +364,14 @@ class TestMCPComplianceReporter(unittest.TestCase):
             access_type="read",
             ccpa_applicable=True,
             processing_purpose="analytics",
-            legal_basis="legitimate_interests"
+            legal_basis="legitimate_interests",
         )
 
         self.audit_logger.log_context_operation(
             operation_type="set",
             context_key="user_preferences",
             state_after={"privacy_level": "high"},
-            processing_purpose="personalization"
+            processing_purpose="personalization",
         )
 
     def test_generate_gdpr_compliance_report(self):
@@ -363,7 +379,7 @@ class TestMCPComplianceReporter(unittest.TestCase):
         report = self.reporter.generate_compliance_report(
             regulation=ComplianceRegulation.GDPR,
             include_violations=True,
-            include_recommendations=True
+            include_recommendations=True,
         )
 
         # Verify report structure
@@ -378,7 +394,7 @@ class TestMCPComplianceReporter(unittest.TestCase):
         report = self.reporter.generate_compliance_report(
             regulation=ComplianceRegulation.CCPA,
             include_violations=True,
-            include_recommendations=True
+            include_recommendations=True,
         )
 
         # Verify report structure
@@ -388,8 +404,7 @@ class TestMCPComplianceReporter(unittest.TestCase):
     def test_export_audit_logs_json(self):
         """Test exporting audit logs in JSON format."""
         export_path = self.reporter.export_audit_logs(
-            export_format=ReportFormat.JSON,
-            include_sensitive_data=False
+            export_format=ReportFormat.JSON, include_sensitive_data=False
         )
 
         # Verify export file exists
@@ -410,8 +425,7 @@ class TestMCPComplianceReporter(unittest.TestCase):
     def test_export_audit_logs_csv(self):
         """Test exporting audit logs in CSV format."""
         export_path = self.reporter.export_audit_logs(
-            export_format=ReportFormat.CSV,
-            include_sensitive_data=False
+            export_format=ReportFormat.CSV, include_sensitive_data=False
         )
 
         # Verify export file exists
@@ -419,6 +433,7 @@ class TestMCPComplianceReporter(unittest.TestCase):
 
         # Verify CSV content
         import csv
+
         with open(export_path) as f:
             reader = csv.DictReader(f)
             rows = list(reader)
@@ -456,7 +471,7 @@ class TestMCPComplianceReporter(unittest.TestCase):
         """Test Privacy Impact Assessment generation."""
         pia_report = self.reporter.generate_privacy_impact_assessment(
             processing_purpose="email_processing",
-            data_types=["email", "personal_identifiers"]
+            data_types=["email", "personal_identifiers"],
         )
 
         # Verify PIA structure
@@ -476,20 +491,23 @@ class TestMCPComplianceReporter(unittest.TestCase):
         with sqlite3.connect(str(self.db_path)) as conn:
             cursor = conn.cursor()
             past_time = datetime.now(timezone.utc).replace(year=2020).isoformat()
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO mcp_audit_logs (
-                    entry_id, session_id, timestamp, operation_type, 
+                    entry_id, session_id, timestamp, operation_type,
                     operation_name, input_parameters, expires_at
                 ) VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (
-                "expired_test",
-                "test_session",
-                past_time,
-                "test_operation",
-                "test_tool",
-                "{}",
-                past_time
-            ))
+            """,
+                (
+                    "expired_test",
+                    "test_session",
+                    past_time,
+                    "test_operation",
+                    "test_tool",
+                    "{}",
+                    past_time,
+                ),
+            )
             conn.commit()
 
         # Run dry run purge
@@ -518,6 +536,7 @@ class TestDatabaseMigration(unittest.TestCase):
     def tearDown(self):
         """Clean up test fixtures."""
         import shutil
+
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     def test_mcp_audit_migration(self):
@@ -531,17 +550,16 @@ class TestDatabaseMigration(unittest.TestCase):
             cursor = conn.cursor()
 
             # Check for MCP audit tables
-            mcp_tables = [
-                "mcp_audit_logs",
-                "mcp_data_lineage",
-                "mcp_compliance_events"
-            ]
+            mcp_tables = ["mcp_audit_logs", "mcp_data_lineage", "mcp_compliance_events"]
 
             for table_name in mcp_tables:
-                cursor.execute("""
-                    SELECT name FROM sqlite_master 
+                cursor.execute(
+                    """
+                    SELECT name FROM sqlite_master
                     WHERE type='table' AND name=?
-                """, (table_name,))
+                """,
+                    (table_name,),
+                )
                 result = cursor.fetchone()
                 self.assertIsNotNone(result, f"Table {table_name} should exist")
 
@@ -561,7 +579,9 @@ class TestDatabaseMigration(unittest.TestCase):
                 break
 
         self.assertIsNotNone(mcp_migration, "MCP audit migration should be available")
-        self.assertTrue(mcp_migration["applied"], "MCP audit migration should be applied")
+        self.assertTrue(
+            mcp_migration["applied"], "MCP audit migration should be applied"
+        )
 
 
 class TestMCPAuditDecorator(unittest.TestCase):
@@ -575,10 +595,11 @@ class TestMCPAuditDecorator(unittest.TestCase):
     def tearDown(self):
         """Clean up test fixtures."""
         import shutil
+
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
-    @patch('src.mockloop_mcp.main.MCP_AUDIT_DB_PATH')
-    @patch('src.mockloop_mcp.main.get_audit_logger')
+    @patch("src.mockloop_mcp.main.MCP_AUDIT_DB_PATH")
+    @patch("src.mockloop_mcp.main.get_audit_logger")
     def test_mcp_audit_decorator(self, mock_get_logger, mock_db_path):
         """Test MCP audit decorator functionality."""
         # Setup mock
@@ -597,6 +618,7 @@ class TestMCPAuditDecorator(unittest.TestCase):
 
         # Test successful execution
         import asyncio
+
         result = asyncio.run(test_function("test_value", param2="custom"))
 
         # Verify the function executed correctly
@@ -604,7 +626,9 @@ class TestMCPAuditDecorator(unittest.TestCase):
         self.assertEqual(result["data"], "test_value_custom")
 
         # Verify audit logging was called
-        self.assertEqual(mock_logger.log_tool_execution.call_count, 2)  # Start and completion
+        self.assertEqual(
+            mock_logger.log_tool_execution.call_count, 2
+        )  # Start and completion
 
         # Check the first call (start)
         start_call = mock_logger.log_tool_execution.call_args_list[0]
@@ -615,7 +639,7 @@ class TestMCPAuditDecorator(unittest.TestCase):
         completion_call = mock_logger.log_tool_execution.call_args_list[1]
         self.assertEqual(completion_call[1]["tool_name"], "test_tool_completion")
 
-    @patch('src.mockloop_mcp.main.get_audit_logger')
+    @patch("src.mockloop_mcp.main.get_audit_logger")
     def test_mcp_audit_decorator_error_handling(self, mock_get_logger):
         """Test MCP audit decorator error handling."""
         # Setup mock
@@ -633,11 +657,14 @@ class TestMCPAuditDecorator(unittest.TestCase):
 
         # Test error handling
         import asyncio
+
         with self.assertRaises(ValueError):
             asyncio.run(error_function())
 
         # Verify error logging was called
-        self.assertEqual(mock_logger.log_tool_execution.call_count, 2)  # Start and error
+        self.assertEqual(
+            mock_logger.log_tool_execution.call_count, 2
+        )  # Start and error
 
         # Check the error call
         error_call = mock_logger.log_tool_execution.call_args_list[1]

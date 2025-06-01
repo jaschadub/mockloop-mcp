@@ -4,10 +4,10 @@ Get up and running with MockLoop MCP in just a few minutes! This guide will walk
 
 ## Prerequisites
 
-Before starting, ensure you have:
-- ✅ [Installed MockLoop MCP from PyPI](installation.md)
-- ✅ An MCP client configured (Cline or Claude Desktop)
-- ✅ A sample OpenAPI specification (we'll provide one)
+Before starting, ensure you have:  
+- ✅ [Installed MockLoop MCP from PyPI](installation.md)  
+- ✅ An MCP client configured (Cline or Claude Desktop)  
+- ✅ A sample OpenAPI specification (we'll provide one)  
 
 ## Step 1: Install MockLoop MCP
 
@@ -264,10 +264,9 @@ docker-compose logs
 
 ### Getting Help
 
-If you encounter issues:
-1. Check the [Troubleshooting Guide](../advanced/troubleshooting.md)
-2. Review [GitHub Issues](https://github.com/mockloop/mockloop-mcp/issues)
-3. Join our community discussions
+If you encounter issues:  
+1. Check the [Troubleshooting Guide](../advanced/troubleshooting.md)  
+2. Review [GitHub Issues](https://github.com/mockloop/mockloop-mcp/issues)  
 
 ## Example Specifications
 

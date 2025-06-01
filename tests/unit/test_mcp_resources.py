@@ -9,7 +9,7 @@ import pytest
 import json
 import asyncio
 from unittest.mock import Mock, patch, AsyncMock
-from typing import Dict, Any
+from typing import Any
 
 # Handle imports for different execution contexts
 try:
@@ -35,7 +35,7 @@ try:
         get_resource_integrity_info,
         _validate_resource_uri,
         _calculate_content_hash,
-        SCENARIO_PACK_CATEGORIES
+        SCENARIO_PACK_CATEGORIES,
     )
     from src.mockloop_mcp.community_scenarios import (
         list_community_scenarios,
@@ -46,13 +46,14 @@ try:
         get_community_stats,
         get_community_architecture_info,
         CommunityScenarioManager,
-        COMMUNITY_CATEGORIES
+        COMMUNITY_CATEGORIES,
     )
 except ImportError:
     # Fallback for direct execution
     import sys
-    import os
-    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
     from mockloop_mcp.mcp_resources import (
         get_4xx_client_errors_pack,
@@ -76,7 +77,7 @@ except ImportError:
         get_resource_integrity_info,
         _validate_resource_uri,
         _calculate_content_hash,
-        SCENARIO_PACK_CATEGORIES
+        SCENARIO_PACK_CATEGORIES,
     )
     from mockloop_mcp.community_scenarios import (
         list_community_scenarios,
@@ -87,7 +88,7 @@ except ImportError:
         get_community_stats,
         get_community_architecture_info,
         CommunityScenarioManager,
-        COMMUNITY_CATEGORIES
+        COMMUNITY_CATEGORIES,
     )
 
 
@@ -240,7 +241,7 @@ class TestMCPResources:
             "scenario-pack://errors/4xx-client-errors",
             "scenario-pack://performance/load-testing",
             "scenario-pack://security/auth-bypass",
-            "scenario-pack://business/edge-cases"
+            "scenario-pack://business/edge-cases",
         ]
 
         for uri in valid_uris:
@@ -257,7 +258,7 @@ class TestMCPResources:
             "scenario-pack://invalid-category/pack",
             "scenario-pack://errors/invalid-pack",
             "scenario-pack://errors",
-            "scenario-pack://errors/pack/extra"
+            "scenario-pack://errors/pack/extra",
         ]
 
         for uri in invalid_uris:
@@ -343,7 +344,7 @@ class TestMCPResources:
             get_csrf_attacks_pack,
             get_edge_cases_pack,
             get_data_validation_pack,
-            get_workflow_testing_pack
+            get_workflow_testing_pack,
         ]
 
         for func in pack_functions:
@@ -380,7 +381,7 @@ class TestCommunityScenarios:
             technology="graphql",
             tags=["api", "testing"],
             min_rating=4.0,
-            max_age_days=30
+            max_age_days=30,
         )
 
         assert result["status"] == "placeholder"
@@ -403,7 +404,7 @@ class TestCommunityScenarios:
             "test-scenario-id",
             version="1.2.0",
             include_metadata=True,
-            validate_integrity=True
+            validate_integrity=True,
         )
 
         assert result["status"] == "placeholder"
@@ -422,9 +423,7 @@ class TestCommunityScenarios:
     async def test_refresh_community_cache_with_options(self):
         """Test refreshing community cache with options (placeholder)."""
         result = await refresh_community_cache(
-            force_refresh=True,
-            categories=["technology", "industry"],
-            max_age_hours=48
+            force_refresh=True, categories=["technology", "industry"], max_age_hours=48
         )
 
         assert result["status"] == "placeholder"
@@ -448,7 +447,7 @@ class TestCommunityScenarios:
             filters={"category": "technology", "min_rating": 4.0},
             sort_by="rating",
             limit=50,
-            offset=10
+            offset=10,
         )
 
         assert result["status"] == "placeholder"
@@ -460,7 +459,7 @@ class TestCommunityScenarios:
         test_scenario = {
             "scenario_name": "test_scenario",
             "description": "Test scenario",
-            "scenario_type": "functional_testing"
+            "scenario_type": "functional_testing",
         }
 
         result = await validate_community_scenario(test_scenario)
@@ -478,7 +477,7 @@ class TestCommunityScenarios:
             test_scenario,
             security_scan=True,
             schema_validation=True,
-            content_analysis=True
+            content_analysis=True,
         )
 
         assert result["status"] == "placeholder"
@@ -519,7 +518,7 @@ class TestCommunityScenarios:
         custom_config = {
             "repository_url": "https://github.com/custom/repo",
             "cache_directory": "/custom/cache",
-            "cache_ttl_hours": 48
+            "cache_ttl_hours": 48,
         }
 
         manager = CommunityScenarioManager(custom_config)
@@ -545,7 +544,7 @@ class TestCommunityScenarios:
 class TestResourceAuditLogging:
     """Test suite for resource audit logging functionality."""
 
-    @patch('src.mockloop_mcp.mcp_resources.create_audit_logger')
+    @patch("src.mockloop_mcp.mcp_resources.create_audit_logger")
     @pytest.mark.asyncio
     async def test_resource_audit_logging(self, mock_create_audit_logger):
         """Test that resource access is properly audited."""
@@ -553,13 +552,13 @@ class TestResourceAuditLogging:
         mock_create_audit_logger.return_value = mock_logger
 
         # Test resource access
-        pack = await get_4xx_client_errors_pack()
+        await get_4xx_client_errors_pack()
 
         # Verify audit logger was created and used
         mock_create_audit_logger.assert_called()
         mock_logger.log_resource_access.assert_called()
 
-    @patch('src.mockloop_mcp.community_scenarios.create_audit_logger')
+    @patch("src.mockloop_mcp.community_scenarios.create_audit_logger")
     @pytest.mark.asyncio
     async def test_community_audit_logging(self, mock_create_audit_logger):
         """Test that community scenario access is properly audited."""
@@ -567,7 +566,7 @@ class TestResourceAuditLogging:
         mock_create_audit_logger.return_value = mock_logger
 
         # Test community scenario access
-        result = await list_community_scenarios()
+        await list_community_scenarios()
 
         # Verify audit logging was attempted
         mock_create_audit_logger.assert_called()

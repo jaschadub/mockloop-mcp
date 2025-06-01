@@ -10,7 +10,7 @@ import json
 import pytest
 import asyncio
 from unittest.mock import Mock, patch, AsyncMock
-from typing import Dict, Any, List
+from typing import Any
 
 # Import the module under test
 from src.mockloop_mcp.mcp_prompts import (
@@ -21,7 +21,7 @@ from src.mockloop_mcp.mcp_prompts import (
     generate_security_test_scenarios,
     validate_json_schema,
     SCENARIO_CONFIG_SCHEMA,
-    OPENAPI_ANALYSIS_SCHEMA
+    OPENAPI_ANALYSIS_SCHEMA,
 )
 
 
@@ -36,13 +36,13 @@ class TestMCPPrompts:
             "info": {
                 "title": "Test API",
                 "version": "1.0.0",
-                "description": "A test API for unit testing"
+                "description": "A test API for unit testing",
             },
             "paths": {
                 "/users": {
                     "get": {
                         "summary": "Get users",
-                        "responses": {"200": {"description": "Success"}}
+                        "responses": {"200": {"description": "Success"}},
                     },
                     "post": {
                         "summary": "Create user",
@@ -53,8 +53,8 @@ class TestMCPPrompts:
                                 }
                             }
                         },
-                        "responses": {"201": {"description": "Created"}}
-                    }
+                        "responses": {"201": {"description": "Created"}},
+                    },
                 },
                 "/users/{id}": {
                     "get": {
@@ -64,26 +64,26 @@ class TestMCPPrompts:
                                 "name": "id",
                                 "in": "path",
                                 "required": True,
-                                "schema": {"type": "integer"}
+                                "schema": {"type": "integer"},
                             }
                         ],
-                        "responses": {"200": {"description": "Success"}}
+                        "responses": {"200": {"description": "Success"}},
                     },
                     "put": {
                         "summary": "Update user",
-                        "responses": {"200": {"description": "Updated"}}
+                        "responses": {"200": {"description": "Updated"}},
                     },
                     "delete": {
                         "summary": "Delete user",
-                        "responses": {"204": {"description": "Deleted"}}
-                    }
+                        "responses": {"204": {"description": "Deleted"}},
+                    },
                 },
                 "/auth/login": {
                     "post": {
                         "summary": "User login",
-                        "responses": {"200": {"description": "Login successful"}}
+                        "responses": {"200": {"description": "Login successful"}},
                     }
-                }
+                },
             },
             "components": {
                 "schemas": {
@@ -92,37 +92,28 @@ class TestMCPPrompts:
                         "properties": {
                             "id": {"type": "integer"},
                             "name": {"type": "string"},
-                            "email": {"type": "string"}
-                        }
+                            "email": {"type": "string"},
+                        },
                     }
                 },
                 "securitySchemes": {
                     "bearerAuth": {
                         "type": "http",
                         "scheme": "bearer",
-                        "bearerFormat": "JWT"
+                        "bearerFormat": "JWT",
                     }
-                }
+                },
             },
-            "security": [{"bearerAuth": []}]
+            "security": [{"bearerAuth": []}],
         }
 
     @pytest.fixture
     def sample_endpoints(self) -> list[dict[str, Any]]:
         """Sample endpoints for testing scenario generation."""
         return [
-            {
-                "path": "/users",
-                "method": "GET"
-            },
-            {
-                "path": "/users",
-                "method": "POST"
-            },
-            {
-                "path": "/users/{id}",
-                "method": "GET"
-            }
+            {"path": "/users", "method": "GET"},
+            {"path": "/users", "method": "POST"},
+            {"path": "/users/{id}", "method": "GET"},
         ]
 
     @pytest.fixture
@@ -140,17 +131,17 @@ class TestMCPPrompts:
                         "status_code": 200,
                         "response_time_ms": 100,
                         "response_data": {"users": []},
-                        "headers": {"Content-Type": "application/json"}
-                    }
+                        "headers": {"Content-Type": "application/json"},
+                    },
                 }
             ],
             "test_parameters": {
                 "concurrent_users": 10,
                 "duration_seconds": 120,
                 "ramp_up_time": 20,
-                "error_rate_threshold": 0.1
+                "error_rate_threshold": 0.1,
             },
-            "validation_rules": []
+            "validation_rules": [],
         }
 
     @pytest.mark.asyncio
@@ -159,7 +150,7 @@ class TestMCPPrompts:
         result = await analyze_openapi_for_testing(
             openapi_spec=sample_openapi_spec,
             testing_focus="comprehensive",
-            risk_assessment=True
+            risk_assessment=True,
         )
 
         # Validate structure
@@ -194,12 +185,14 @@ class TestMCPPrompts:
         assert is_valid, f"Schema validation failed: {error}"
 
     @pytest.mark.asyncio
-    async def test_analyze_openapi_for_testing_security_focus(self, sample_openapi_spec):
+    async def test_analyze_openapi_for_testing_security_focus(
+        self, sample_openapi_spec
+    ):
         """Test OpenAPI analysis with security focus."""
         result = await analyze_openapi_for_testing(
             openapi_spec=sample_openapi_spec,
             testing_focus="security",
-            risk_assessment=True
+            risk_assessment=True,
         )
 
         # Should contain security-focused scenarios
@@ -216,7 +209,7 @@ class TestMCPPrompts:
         result = await analyze_openapi_for_testing(
             openapi_spec=invalid_spec,
             testing_focus="comprehensive",
-            risk_assessment=True
+            risk_assessment=True,
         )
 
         # Should return valid structure even on error
@@ -235,7 +228,7 @@ class TestMCPPrompts:
             scenario_type="functional_testing",
             endpoints=sample_endpoints,
             test_parameters=None,
-            scenario_name="test_functional_scenario"
+            scenario_name="test_functional_scenario",
         )
 
         # Validate structure
@@ -267,14 +260,14 @@ class TestMCPPrompts:
             "concurrent_users": 100,
             "duration_seconds": 300,
             "ramp_up_time": 60,
-            "error_rate_threshold": 0.05
+            "error_rate_threshold": 0.05,
         }
 
         result = await generate_scenario_config(
             scenario_type="load_testing",
             endpoints=sample_endpoints,
             test_parameters=custom_params,
-            scenario_name=None  # Should auto-generate
+            scenario_name=None,  # Should auto-generate
         )
 
         # Should auto-generate name
@@ -295,7 +288,7 @@ class TestMCPPrompts:
             scenario_type="functional_testing",
             endpoints=[],
             test_parameters=None,
-            scenario_name="error_test"
+            scenario_name="error_test",
         )
 
         # Should return valid minimal configuration
@@ -309,20 +302,22 @@ class TestMCPPrompts:
         performance_requirements = {
             "max_response_time_ms": 1000,
             "target_throughput_rps": 1000,
-            "error_rate_threshold": 0.01
+            "error_rate_threshold": 0.01,
         }
 
         result = await optimize_scenario_for_load(
             base_scenario=sample_scenario_config,
             target_load=target_load,
-            performance_requirements=performance_requirements
+            performance_requirements=performance_requirements,
         )
 
         # Validate optimization
         assert result["scenario_type"] == "load_testing"
         assert "load_optimized" in result["scenario_name"]
         assert result["test_parameters"]["concurrent_users"] == target_load
-        assert result["test_parameters"]["duration_seconds"] >= 300  # Should scale with load
+        assert (
+            result["test_parameters"]["duration_seconds"] >= 300
+        )  # Should scale with load
         assert result["test_parameters"]["error_rate_threshold"] == 0.01
 
         # Validate load-specific validation rules
@@ -345,7 +340,7 @@ class TestMCPPrompts:
         result = await optimize_scenario_for_load(
             base_scenario=invalid_scenario,
             target_load=100,
-            performance_requirements=None
+            performance_requirements=None,
         )
 
         # Should return the base scenario with minimal optimizations
@@ -357,7 +352,7 @@ class TestMCPPrompts:
         result = await generate_error_scenarios(
             api_endpoints=sample_endpoints,
             error_types=["timeout", "server_error", "rate_limit"],
-            severity_level="medium"
+            severity_level="medium",
         )
 
         # Validate structure
@@ -389,7 +384,7 @@ class TestMCPPrompts:
         result = await generate_error_scenarios(
             api_endpoints=sample_endpoints,
             error_types=None,  # Should use defaults
-            severity_level="high"
+            severity_level="high",
         )
 
         # High severity should have more error types
@@ -409,7 +404,7 @@ class TestMCPPrompts:
         result = await generate_security_test_scenarios(
             api_spec=sample_openapi_spec,
             security_focus=security_focus,
-            compliance_requirements=compliance_requirements
+            compliance_requirements=compliance_requirements,
         )
 
         # Validate structure
@@ -428,7 +423,9 @@ class TestMCPPrompts:
 
         # Should have compliance validation rules
         validation_rules = result["validation_rules"]
-        compliance_rules = [rule for rule in validation_rules if rule["rule_type"] == "compliance"]
+        compliance_rules = [
+            rule for rule in validation_rules if rule["rule_type"] == "compliance"
+        ]
         assert len(compliance_rules) == len(compliance_requirements)
 
         # Security scenarios should expect high error rates
@@ -439,12 +436,14 @@ class TestMCPPrompts:
         assert is_valid, f"Schema validation failed: {error}"
 
     @pytest.mark.asyncio
-    async def test_generate_security_test_scenarios_default_focus(self, sample_openapi_spec):
+    async def test_generate_security_test_scenarios_default_focus(
+        self, sample_openapi_spec
+    ):
         """Test security scenario generation with default focus areas."""
         result = await generate_security_test_scenarios(
             api_spec=sample_openapi_spec,
             security_focus=None,  # Should use defaults
-            compliance_requirements=None
+            compliance_requirements=None,
         )
 
         # Should use default security focus areas
@@ -453,7 +452,9 @@ class TestMCPPrompts:
 
         # Should have default validation rules
         validation_rules = result["validation_rules"]
-        security_rules = [rule for rule in validation_rules if rule["rule_type"] == "security"]
+        security_rules = [
+            rule for rule in validation_rules if rule["rule_type"] == "security"
+        ]
         assert len(security_rules) >= 5
 
     def test_validate_json_schema_valid(self):
@@ -466,11 +467,9 @@ class TestMCPPrompts:
                 {
                     "path": "/test",
                     "method": "GET",
-                    "response_config": {
-                        "status_code": 200
-                    }
+                    "response_config": {"status_code": 200},
                 }
-            ]
+            ],
         }
 
         is_valid, error = validate_json_schema(valid_data, SCENARIO_CONFIG_SCHEMA)
@@ -489,9 +488,11 @@ class TestMCPPrompts:
         assert error is not None
         assert "required" in error.lower()
 
-    @patch('src.mockloop_mcp.mcp_prompts.create_audit_logger')
+    @patch("src.mockloop_mcp.mcp_prompts.create_audit_logger")
     @pytest.mark.asyncio
-    async def test_audit_logging_integration(self, mock_create_audit_logger, sample_openapi_spec):
+    async def test_audit_logging_integration(
+        self, mock_create_audit_logger, sample_openapi_spec
+    ):
         """Test that audit logging is properly integrated."""
         # Mock the audit logger
         mock_audit_logger = Mock()
@@ -499,14 +500,16 @@ class TestMCPPrompts:
         mock_create_audit_logger.return_value = mock_audit_logger
 
         # Call a prompt function
-        result = await analyze_openapi_for_testing(
+        await analyze_openapi_for_testing(
             openapi_spec=sample_openapi_spec,
             testing_focus="comprehensive",
-            risk_assessment=True
+            risk_assessment=True,
         )
 
         # Verify audit logging was called
-        assert mock_audit_logger.log_prompt_invocation.call_count >= 2  # Start and completion
+        assert (
+            mock_audit_logger.log_prompt_invocation.call_count >= 2
+        )  # Start and completion
 
         # Verify the calls include proper parameters
         calls = mock_audit_logger.log_prompt_invocation.call_args_list
@@ -515,13 +518,15 @@ class TestMCPPrompts:
         assert "ai_generation" in start_call[1]["compliance_tags"]
 
     @pytest.mark.asyncio
-    async def test_concurrent_prompt_execution(self, sample_openapi_spec, sample_endpoints):
+    async def test_concurrent_prompt_execution(
+        self, sample_openapi_spec, sample_endpoints
+    ):
         """Test that multiple prompts can be executed concurrently."""
         # Execute multiple prompts concurrently
         tasks = [
             analyze_openapi_for_testing(sample_openapi_spec, "functional"),
             generate_scenario_config("load_testing", sample_endpoints),
-            generate_error_scenarios(sample_endpoints, ["timeout"], "low")
+            generate_error_scenarios(sample_endpoints, ["timeout"], "low"),
         ]
 
         results = await asyncio.gather(*tasks)
@@ -541,7 +546,7 @@ class TestMCPPrompts:
         result = await analyze_openapi_for_testing(
             openapi_spec=sample_openapi_spec,
             testing_focus="comprehensive",
-            risk_assessment=True
+            risk_assessment=True,
         )
         end_time = time.time()
 

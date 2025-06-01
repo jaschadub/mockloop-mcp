@@ -70,11 +70,20 @@ USER_AGENTS = [
 
 # Sample client IPs
 CLIENT_IPS = [
-    "192.168.1.100", "192.168.1.101", "192.168.1.102",
-    "10.0.0.50", "10.0.0.51", "10.0.0.52",
-    "172.16.0.10", "172.16.0.11", "172.16.0.12",
-    "203.0.113.1", "203.0.113.2", "203.0.113.3",
+    "192.168.1.100",
+    "192.168.1.101",
+    "192.168.1.102",
+    "10.0.0.50",
+    "10.0.0.51",
+    "10.0.0.52",
+    "172.16.0.10",
+    "172.16.0.11",
+    "172.16.0.12",
+    "203.0.113.1",
+    "203.0.113.2",
+    "203.0.113.3",
 ]
+
 
 def generate_sample_headers(user_agent, client_ip):
     """Generate realistic HTTP headers."""
@@ -86,87 +95,156 @@ def generate_sample_headers(user_agent, client_ip):
         "accept-encoding": "gzip, deflate",
         "connection": "keep-alive",
         "x-forwarded-for": client_ip,
-        "content-type": "application/json" if random.choice([True, False]) else "text/plain",
+        "content-type": "application/json"
+        if random.choice([True, False])
+        else "text/plain",
     }
+
 
 def generate_sample_response_body(path, method):
     """Generate realistic response body based on endpoint."""
     if "/pet" in path and method == "GET":
         if "findByStatus" in path:
-            return json.dumps([{
-                "id": random.randint(1, 1000),
-                "name": random.choice(["Fluffy", "Buddy", "Max", "Bella", "Charlie", "Luna"]),
-                "status": random.choice(["available", "pending", "sold"]),
-                "category": {"id": random.randint(1, 10), "name": random.choice(["Dogs", "Cats", "Birds"])},
-                "tags": [{"id": random.randint(1, 20), "name": f"tag{random.randint(1, 5)}"}]
-            }])
+            return json.dumps(
+                [
+                    {
+                        "id": random.randint(1, 1000),
+                        "name": random.choice(
+                            ["Fluffy", "Buddy", "Max", "Bella", "Charlie", "Luna"]
+                        ),
+                        "status": random.choice(["available", "pending", "sold"]),
+                        "category": {
+                            "id": random.randint(1, 10),
+                            "name": random.choice(["Dogs", "Cats", "Birds"]),
+                        },
+                        "tags": [
+                            {
+                                "id": random.randint(1, 20),
+                                "name": f"tag{random.randint(1, 5)}",
+                            }
+                        ],
+                    }
+                ]
+            )
         elif "/user" in path:
-            return json.dumps({
+            return json.dumps(
+                {
+                    "id": random.randint(1, 1000),
+                    "username": f"user{random.randint(1, 100)}",
+                    "firstName": random.choice(
+                        ["John", "Jane", "Bob", "Alice", "Charlie"]
+                    ),
+                    "lastName": random.choice(
+                        ["Doe", "Smith", "Johnson", "Brown", "Davis"]
+                    ),
+                    "email": f"user{random.randint(1, 100)}@example.com",
+                    "phone": f"+1-555-{random.randint(100, 999)}-{random.randint(1000, 9999)}",
+                    "userStatus": random.randint(0, 2),
+                }
+            )
+        else:
+            return json.dumps(
+                {
+                    "id": random.randint(1, 1000),
+                    "name": random.choice(
+                        ["Fluffy", "Buddy", "Max", "Bella", "Charlie", "Luna"]
+                    ),
+                    "status": random.choice(["available", "pending", "sold"]),
+                    "category": {
+                        "id": random.randint(1, 10),
+                        "name": random.choice(["Dogs", "Cats", "Birds"]),
+                    },
+                    "photoUrls": [
+                        f"https://example.com/photo{random.randint(1, 10)}.jpg"
+                    ],
+                    "tags": [
+                        {
+                            "id": random.randint(1, 20),
+                            "name": f"tag{random.randint(1, 5)}",
+                        }
+                    ],
+                }
+            )
+    elif "/store/inventory" in path:
+        return json.dumps(
+            {
+                "available": random.randint(10, 100),
+                "pending": random.randint(5, 50),
+                "sold": random.randint(20, 200),
+            }
+        )
+    elif "/user" in path and method == "GET":
+        return json.dumps(
+            {
                 "id": random.randint(1, 1000),
                 "username": f"user{random.randint(1, 100)}",
                 "firstName": random.choice(["John", "Jane", "Bob", "Alice", "Charlie"]),
-                "lastName": random.choice(["Doe", "Smith", "Johnson", "Brown", "Davis"]),
+                "lastName": random.choice(
+                    ["Doe", "Smith", "Johnson", "Brown", "Davis"]
+                ),
                 "email": f"user{random.randint(1, 100)}@example.com",
                 "phone": f"+1-555-{random.randint(100, 999)}-{random.randint(1000, 9999)}",
-                "userStatus": random.randint(0, 2)
-            })
-        else:
-            return json.dumps({
-                "id": random.randint(1, 1000),
-                "name": random.choice(["Fluffy", "Buddy", "Max", "Bella", "Charlie", "Luna"]),
-                "status": random.choice(["available", "pending", "sold"]),
-                "category": {"id": random.randint(1, 10), "name": random.choice(["Dogs", "Cats", "Birds"])},
-                "photoUrls": [f"https://example.com/photo{random.randint(1, 10)}.jpg"],
-                "tags": [{"id": random.randint(1, 20), "name": f"tag{random.randint(1, 5)}"}]
-            })
-    elif "/store/inventory" in path:
-        return json.dumps({
-            "available": random.randint(10, 100),
-            "pending": random.randint(5, 50),
-            "sold": random.randint(20, 200)
-        })
-    elif "/user" in path and method == "GET":
-        return json.dumps({
-            "id": random.randint(1, 1000),
-            "username": f"user{random.randint(1, 100)}",
-            "firstName": random.choice(["John", "Jane", "Bob", "Alice", "Charlie"]),
-            "lastName": random.choice(["Doe", "Smith", "Johnson", "Brown", "Davis"]),
-            "email": f"user{random.randint(1, 100)}@example.com",
-            "phone": f"+1-555-{random.randint(100, 999)}-{random.randint(1000, 9999)}",
-            "userStatus": random.randint(0, 2)
-        })
+                "userStatus": random.randint(0, 2),
+            }
+        )
     else:
-        return json.dumps({"message": "success", "data": {"id": random.randint(1, 1000)}})
+        return json.dumps(
+            {"message": "success", "data": {"id": random.randint(1, 1000)}}
+        )
+
 
 def generate_sample_request_body(path, method):
     """Generate realistic request body for POST/PUT requests."""
     if method in ["POST", "PUT"]:
         if "/pet" in path:
-            return json.dumps({
-                "id": random.randint(1, 1000),
-                "name": random.choice(["Fluffy", "Buddy", "Max", "Bella", "Charlie", "Luna"]),
-                "status": random.choice(["available", "pending", "sold"]),
-                "category": {"id": random.randint(1, 10), "name": random.choice(["Dogs", "Cats", "Birds"])},
-                "photoUrls": [f"https://example.com/photo{random.randint(1, 10)}.jpg"],
-                "tags": [{"id": random.randint(1, 20), "name": f"tag{random.randint(1, 5)}"}]
-            })
+            return json.dumps(
+                {
+                    "id": random.randint(1, 1000),
+                    "name": random.choice(
+                        ["Fluffy", "Buddy", "Max", "Bella", "Charlie", "Luna"]
+                    ),
+                    "status": random.choice(["available", "pending", "sold"]),
+                    "category": {
+                        "id": random.randint(1, 10),
+                        "name": random.choice(["Dogs", "Cats", "Birds"]),
+                    },
+                    "photoUrls": [
+                        f"https://example.com/photo{random.randint(1, 10)}.jpg"
+                    ],
+                    "tags": [
+                        {
+                            "id": random.randint(1, 20),
+                            "name": f"tag{random.randint(1, 5)}",
+                        }
+                    ],
+                }
+            )
         elif "/store/inventory" in path:
-            return json.dumps({
-                "available": random.randint(10, 100),
-                "pending": random.randint(5, 50),
-                "sold": random.randint(20, 200)
-            })
+            return json.dumps(
+                {
+                    "available": random.randint(10, 100),
+                    "pending": random.randint(5, 50),
+                    "sold": random.randint(20, 200),
+                }
+            )
         elif "/user" in path and method == "GET":
-            return json.dumps({
-                "id": random.randint(1, 1000),
-                "username": f"user{random.randint(1, 100)}",
-                "firstName": random.choice(["John", "Jane", "Bob", "Alice", "Charlie"]),
-                "lastName": random.choice(["Doe", "Smith", "Johnson", "Brown", "Davis"]),
-                "email": f"user{random.randint(1, 100)}@example.com",
-                "phone": f"+1-555-{random.randint(100, 999)}-{random.randint(1000, 9999)}",
-                "userStatus": random.randint(0, 2)
-            })
+            return json.dumps(
+                {
+                    "id": random.randint(1, 1000),
+                    "username": f"user{random.randint(1, 100)}",
+                    "firstName": random.choice(
+                        ["John", "Jane", "Bob", "Alice", "Charlie"]
+                    ),
+                    "lastName": random.choice(
+                        ["Doe", "Smith", "Johnson", "Brown", "Davis"]
+                    ),
+                    "email": f"user{random.randint(1, 100)}@example.com",
+                    "phone": f"+1-555-{random.randint(100, 999)}-{random.randint(1000, 9999)}",
+                    "userStatus": random.randint(0, 2),
+                }
+            )
     return None
+
 
 def generate_test_logs(conn, num_logs=500):
     """Generate realistic test logs with performance metrics."""
@@ -198,7 +276,7 @@ def generate_test_logs(conn, num_logs=500):
         # Random response characteristics
         status_code = random.choices(
             [200, 201, 400, 404, 500],
-            weights=[70, 15, 8, 5, 2]  # Mostly successful responses
+            weights=[70, 15, 8, 5, 2],  # Mostly successful responses
         )[0]
 
         process_time_ms = random.randint(1, 500)  # 1-500ms response time
@@ -213,61 +291,74 @@ def generate_test_logs(conn, num_logs=500):
         response_body = generate_sample_response_body(path, method)
 
         # Random session info (some requests have sessions)
-        session_id = f"session_{random.randint(1, 20)}" if random.random() < 0.3 else None
-        test_scenario = random.choice(["load_test", "stress_test", None, None, None])  # 40% have scenarios
-        correlation_id = f"corr_{random.randint(1000, 9999)}" if random.random() < 0.2 else None
+        session_id = (
+            f"session_{random.randint(1, 20)}" if random.random() < 0.3 else None
+        )
+        test_scenario = random.choice(
+            ["load_test", "stress_test", None, None, None]
+        )  # 40% have scenarios
+        correlation_id = (
+            f"corr_{random.randint(1000, 9999)}" if random.random() < 0.2 else None
+        )
 
         # Insert request log
         request_id = f"req_{int(time.time() * 1000)}_{i}"
-        cursor.execute('''
+        cursor.execute(
+            """
             INSERT INTO request_logs (
                 id, timestamp, method, path, status_code, process_time_ms,
                 client_ip, client_port, headers, query_params, request_body,
                 response_body, session_id, correlation_id, test_scenario
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (
-            request_id,
-            random_time.strftime('%Y-%m-%dT%H:%M:%S'),
-            method,
-            path,
-            status_code,
-            process_time_ms,
-            client_ip,
-            str(random.randint(40000, 65000)),  # Random client port
-            json.dumps(headers),
-            "status=available" if "findByStatus" in path else "",
-            request_body,
-            response_body,
-            session_id,
-            correlation_id,
-            test_scenario
-        ))
+        """,
+            (
+                request_id,
+                random_time.strftime("%Y-%m-%dT%H:%M:%S"),
+                method,
+                path,
+                status_code,
+                process_time_ms,
+                client_ip,
+                str(random.randint(40000, 65000)),  # Random client port
+                json.dumps(headers),
+                "status=available" if "findByStatus" in path else "",
+                request_body,
+                response_body,
+                session_id,
+                correlation_id,
+                test_scenario,
+            ),
+        )
 
         # Insert performance metrics
-        cursor.execute('''
+        cursor.execute(
+            """
             INSERT INTO performance_metrics (
                 request_id, response_time_ms, memory_usage_mb, cpu_usage_percent,
                 db_queries, cache_hits, cache_misses, request_size_bytes,
                 response_size_bytes, timestamp
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (
-            request_id,
-            process_time_ms,
-            random.uniform(45.0, 55.0),  # Memory usage 45-55MB
-            random.uniform(0.5, 5.0),    # CPU usage 0.5-5%
-            random.randint(0, 3),        # DB queries
-            random.randint(0, 5),        # Cache hits
-            random.randint(0, 2),        # Cache misses
-            len(request_body) if request_body else 0,
-            len(response_body) if response_body else 0,
-            random_time.strftime('%Y-%m-%dT%H:%M:%S')
-        ))
+        """,
+            (
+                request_id,
+                process_time_ms,
+                random.uniform(45.0, 55.0),  # Memory usage 45-55MB
+                random.uniform(0.5, 5.0),  # CPU usage 0.5-5%
+                random.randint(0, 3),  # DB queries
+                random.randint(0, 5),  # Cache hits
+                random.randint(0, 2),  # Cache misses
+                len(request_body) if request_body else 0,
+                len(response_body) if response_body else 0,
+                random_time.strftime("%Y-%m-%dT%H:%M:%S"),
+            ),
+        )
 
         if (i + 1) % 100 == 0:
             print(f"Generated {i + 1} logs...")
 
     conn.commit()
     print(f"Successfully generated {num_logs} test logs!")
+
 
 def create_demo_scenarios(conn, num_scenarios=2):
     """Create demo scenarios."""
@@ -289,7 +380,7 @@ def create_demo_scenarios(conn, num_scenarios=2):
                             "status": "available",
                             "category": {"id": 1, "name": "Dogs"},
                             "photoUrls": ["https://example.com/fluffy.jpg"],
-                            "tags": [{"id": 1, "name": "friendly"}]
+                            "tags": [{"id": 1, "name": "friendly"}],
                         },
                         {
                             "id": 2,
@@ -297,11 +388,11 @@ def create_demo_scenarios(conn, num_scenarios=2):
                             "status": "available",
                             "category": {"id": 1, "name": "Dogs"},
                             "photoUrls": ["https://example.com/buddy.jpg"],
-                            "tags": [{"id": 2, "name": "playful"}]
-                        }
-                    ]
+                            "tags": [{"id": 2, "name": "playful"}],
+                        },
+                    ],
                 }
-            }
+            },
         },
         {
             "name": "Error Simulation",
@@ -309,21 +400,17 @@ def create_demo_scenarios(conn, num_scenarios=2):
             "config": {
                 "/pet/{petId}": {
                     "status": 404,
-                    "data": {
-                        "code": 404,
-                        "type": "error",
-                        "message": "Pet not found"
-                    }
+                    "data": {"code": 404, "type": "error", "message": "Pet not found"},
                 },
                 "/store/inventory": {
                     "status": 500,
                     "data": {
                         "code": 500,
                         "type": "error",
-                        "message": "Internal server error"
-                    }
-                }
-            }
+                        "message": "Internal server error",
+                    },
+                },
+            },
         },
         {
             "name": "Performance Testing",
@@ -331,29 +418,33 @@ def create_demo_scenarios(conn, num_scenarios=2):
             "config": {
                 "/pet/findByStatus": {
                     "status": 200,
-                    "data": []  # Empty response for faster processing
+                    "data": [],  # Empty response for faster processing
                 },
                 "/store/inventory": {
                     "status": 200,
-                    "data": {"available": 100, "pending": 0, "sold": 0}
-                }
-            }
-        }
+                    "data": {"available": 100, "pending": 0, "sold": 0},
+                },
+            },
+        },
     ]
 
     for scenario in scenarios[:num_scenarios]:
-        cursor.execute('''
+        cursor.execute(
+            """
             INSERT INTO mock_scenarios (name, description, config, is_active)
             VALUES (?, ?, ?, ?)
-        ''', (
-            scenario["name"],
-            scenario["description"],
-            json.dumps(scenario["config"]),
-            0
-        ))
+        """,
+            (
+                scenario["name"],
+                scenario["description"],
+                json.dumps(scenario["config"]),
+                0,
+            ),
+        )
 
     conn.commit()
     print(f"Successfully created {num_scenarios} demo scenarios!")
+
 
 def update_test_sessions(conn):
     """Create some test sessions based on the generated logs."""
@@ -362,53 +453,67 @@ def update_test_sessions(conn):
     print("Creating test sessions...")
 
     # Get unique session IDs from logs
-    cursor.execute("SELECT DISTINCT session_id FROM request_logs WHERE session_id IS NOT NULL")
+    cursor.execute(
+        "SELECT DISTINCT session_id FROM request_logs WHERE session_id IS NOT NULL"
+    )
     session_ids = [row[0] for row in cursor.fetchall()]
 
     for session_id in session_ids:
         # Get session stats
-        cursor.execute('''
+        cursor.execute(
+            """
             SELECT COUNT(*), AVG(process_time_ms), MIN(timestamp), MAX(timestamp)
             FROM request_logs
             WHERE session_id = ?
-        ''', (session_id,))
+        """,
+            (session_id,),
+        )
 
         stats = cursor.fetchone()
         if stats:
             total_requests, avg_response_time, start_time, end_time = stats
 
             # Determine scenario name
-            cursor.execute('''
+            cursor.execute(
+                """
                 SELECT test_scenario FROM request_logs
                 WHERE session_id = ? AND test_scenario IS NOT NULL
                 LIMIT 1
-            ''', (session_id,))
+            """,
+                (session_id,),
+            )
 
             scenario_result = cursor.fetchone()
             scenario_name = scenario_result[0] if scenario_result else "general_testing"
 
             # Insert test session
-            cursor.execute('''
+            cursor.execute(
+                """
                 INSERT INTO test_sessions (
                     session_id, start_time, end_time, total_requests,
                     avg_response_time_ms, scenario_name, metadata
                 ) VALUES (?, ?, ?, ?, ?, ?, ?)
-            ''', (
-                session_id,
-                start_time,
-                end_time,
-                total_requests,
-                avg_response_time,
-                scenario_name,
-                json.dumps({
-                    "client_info": "Generated test session",
-                    "test_type": scenario_name,
-                    "duration_minutes": random.randint(5, 60)
-                })
-            ))
+            """,
+                (
+                    session_id,
+                    start_time,
+                    end_time,
+                    total_requests,
+                    avg_response_time,
+                    scenario_name,
+                    json.dumps(
+                        {
+                            "client_info": "Generated test session",
+                            "test_type": scenario_name,
+                            "duration_minutes": random.randint(5, 60),
+                        }
+                    ),
+                ),
+            )
 
     conn.commit()
     print(f"Successfully created {len(session_ids)} test sessions!")
+
 
 def init_database(conn):
     """Initialize database tables if they don't exist."""
@@ -417,7 +522,7 @@ def init_database(conn):
     print("Initializing database tables...")
 
     # Create the base table
-    cursor.execute('''
+    cursor.execute("""
     CREATE TABLE IF NOT EXISTS request_logs (
         id TEXT PRIMARY KEY,
         timestamp TEXT NOT NULL,
@@ -436,10 +541,10 @@ def init_database(conn):
         test_scenario TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
-    ''')
+    """)
 
     # Create performance metrics table
-    cursor.execute('''
+    cursor.execute("""
     CREATE TABLE IF NOT EXISTS performance_metrics (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         request_id TEXT NOT NULL,
@@ -454,10 +559,10 @@ def init_database(conn):
         timestamp TEXT NOT NULL,
         FOREIGN KEY (request_id) REFERENCES request_logs (id)
     )
-    ''')
+    """)
 
     # Create test sessions table
-    cursor.execute('''
+    cursor.execute("""
     CREATE TABLE IF NOT EXISTS test_sessions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         session_id TEXT UNIQUE NOT NULL,
@@ -469,10 +574,10 @@ def init_database(conn):
         metadata TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
-    ''')
+    """)
 
     # Create mock scenarios table
-    cursor.execute('''
+    cursor.execute("""
     CREATE TABLE IF NOT EXISTS mock_scenarios (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
@@ -482,10 +587,11 @@ def init_database(conn):
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
-    ''')
+    """)
 
     conn.commit()
     print("Database tables initialized successfully!")
+
 
 def parse_args():
     """Parse command line arguments."""
@@ -498,31 +604,32 @@ Examples:
   %(prog)s --num-logs 1000                    # Generate 1000 logs
   %(prog)s --db-path /custom/path/db.sqlite   # Use custom database path
   %(prog)s --scenarios 3                      # Create 3 demo scenarios
-        """
+        """,
     )
 
     parser.add_argument(
         "--db-path",
         type=Path,
         default=DEFAULT_DB_PATH,
-        help=f"Path to SQLite database file (default: {DEFAULT_DB_PATH})"
+        help=f"Path to SQLite database file (default: {DEFAULT_DB_PATH})",
     )
 
     parser.add_argument(
         "--num-logs",
         type=int,
         default=500,
-        help="Number of test logs to generate (default: 500)"
+        help="Number of test logs to generate (default: 500)",
     )
 
     parser.add_argument(
         "--scenarios",
         type=int,
         default=2,
-        help="Number of demo scenarios to create (default: 2, max: 3)"
+        help="Number of demo scenarios to create (default: 2, max: 3)",
     )
 
     return parser.parse_args()
+
 
 def main():
     """Main function."""
@@ -568,6 +675,7 @@ def main():
         sys.exit(1)
     finally:
         conn.close()
+
 
 if __name__ == "__main__":
     main()
