@@ -1533,30 +1533,41 @@ async def get_chart_data(
         webhook_api_endpoints_str = ""
         if webhooks_enabled_bool and admin_ui_enabled_bool:
             webhook_api_endpoints_str = """
-@app.get("/api/webhooks", tags=["_admin"])
-async def admin_get_webhooks(): return get_webhooks()
-@app.post("/api/webhooks", tags=["_admin"])
-async def admin_register_webhook(webhook_data: dict = Body(...)):
-    event_type = webhook_data.get("event_type")
-    url = webhook_data.get("url")
-    description = webhook_data.get("description")
-    if not event_type or not url:
-        raise HTTPException(status_code=400, detail="event_type and url are required")
-    return register_webhook(event_type, url, description)
-@app.delete("/api/webhooks/{webhook_id}", tags=["_admin"])
-async def admin_delete_webhook(webhook_id: str): return delete_webhook(webhook_id)
-@app.post("/api/webhooks/{webhook_id}/test", tags=["_admin"])
-async def admin_test_webhook(webhook_id: str): return await test_webhook(webhook_id)
-@app.get("/api/webhooks/history", tags=["_admin"])
-async def admin_get_webhook_history(): return get_webhook_history()
+        @app.get("/api/webhooks", tags=["_admin"])
+        async def admin_get_webhooks():
+            return get_webhooks()
+
+        @app.post("/api/webhooks", tags=["_admin"])
+        async def admin_register_webhook(webhook_data: dict = Body(...)):
+            event_type = webhook_data.get("event_type")
+            url = webhook_data.get("url")
+            description = webhook_data.get("description")
+            if not event_type or not url:
+                raise HTTPException(status_code=400, detail="event_type and url are required")
+            return register_webhook(event_type, url, description)
+
+        @app.delete("/api/webhooks/{webhook_id}", tags=["_admin"])
+        async def admin_delete_webhook(webhook_id: str):
+            return delete_webhook(webhook_id)
+
+        @app.post("/api/webhooks/{webhook_id}/test", tags=["_admin"])
+        async def admin_test_webhook(webhook_id: str):
+            return await test_webhook(webhook_id)
+
+        @app.get("/api/webhooks/history", tags=["_admin"])
+        async def admin_get_webhook_history():
+            return get_webhook_history()
 """
         storage_api_endpoints_str = ""
         if storage_enabled_bool and admin_ui_enabled_bool:
             storage_api_endpoints_str = """
-@app.get("/api/storage/stats", tags=["_admin"])
-async def admin_get_storage_stats(): return get_storage_stats()
-@app.get("/api/storage/collections", tags=["_admin"])
-async def admin_get_collections(): return get_collections()
+        @app.get("/api/storage/stats", tags=["_admin"])
+        async def admin_get_storage_stats():
+            return get_storage_stats()
+
+        @app.get("/api/storage/collections", tags=["_admin"])
+        async def admin_get_collections():
+            return get_collections()
 """
 
         admin_ui_endpoint_str = (
