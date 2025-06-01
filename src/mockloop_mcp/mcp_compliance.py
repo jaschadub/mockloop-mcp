@@ -439,15 +439,15 @@ class MCPComplianceReporter:
                     placeholders = ','.join(['?' for _ in expired_ids])
 
                     # Delete from data lineage table
-                    sql_data_lineage = f"DELETE FROM mcp_data_lineage WHERE entry_id IN ({placeholders})"  # nosec B608
+                    sql_data_lineage = f"DELETE FROM mcp_data_lineage WHERE entry_id IN ({placeholders})"  # nosec B608  # noqa: S608
                     cursor.execute(sql_data_lineage, expired_ids)
 
                     # Delete from compliance events table
-                    sql_compliance_events = f"DELETE FROM mcp_compliance_events WHERE entry_id IN ({placeholders})"  # nosec B608
+                    sql_compliance_events = f"DELETE FROM mcp_compliance_events WHERE entry_id IN ({placeholders})"  # nosec B608  # noqa: S608
                     cursor.execute(sql_compliance_events, expired_ids)
 
                     # Delete from audit logs table
-                    sql_audit_logs = f"DELETE FROM mcp_audit_logs WHERE entry_id IN ({placeholders})"  # nosec B608
+                    sql_audit_logs = f"DELETE FROM mcp_audit_logs WHERE entry_id IN ({placeholders})"  # nosec B608  # noqa: S608
                     cursor.execute(sql_audit_logs, expired_ids)
 
                 conn.commit()
