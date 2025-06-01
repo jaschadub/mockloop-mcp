@@ -1810,12 +1810,12 @@ def main():
     """Main entry point for the mockloop-mcp CLI command."""
     import sys
     import os
-    
+
     # Auto-detect stdio mode when run by Claude or other MCP clients
     # This happens when stdin is not a terminal (piped) and no explicit flags are given
     is_stdin_piped = not sys.stdin.isatty()
     has_explicit_flags = any(arg.startswith('-') for arg in sys.argv[1:])
-    
+
     # Check for explicit --stdio flag or auto-detect stdio mode
     if "--stdio" in sys.argv or (is_stdin_piped and not has_explicit_flags):
         # Remove --stdio from sys.argv if present
