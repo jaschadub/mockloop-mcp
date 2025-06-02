@@ -1173,17 +1173,13 @@ async def create_mcp_plugin(
                 }
 
         # Create proxy configuration
-        proxy_mode = ProxyMode(mode.upper())
+        proxy_mode = ProxyMode(mode.lower())
 
         # Set up authentication configuration
         auth_cfg = None
         if auth_config:
             auth_type_str = auth_config.get("type", "none")
-            auth_type = (
-                AuthType(auth_type_str.upper())
-                if auth_type_str != "none"
-                else AuthType.NONE
-            )
+            auth_type = AuthType(auth_type_str.lower()) if auth_type_str != "none" else AuthType.NONE
 
             auth_cfg = AuthConfig(
                 auth_type=auth_type,
@@ -2848,8 +2844,12 @@ def _validate_plugin_parameters(
 
 
 async def _load_openapi_spec(spec_url_or_path: str) -> dict[str, Any]:
-    """Load OpenAPI specification from URL or file path."""
+    """Load OpenAPI specification from URL, file path, or JSON string."""
     try:
+        # Check if it's a JSON string (starts with { or [)
+        if spec_url_or_path.strip().startswith(("{", "[")):
+            return json.loads(spec_url_or_path)
+        
         # Check if it's a URL
         if spec_url_or_path.startswith(("http://", "https://")):
             import aiohttp
@@ -3044,7 +3044,7 @@ def _generate_hybrid_routing_rules(api_spec: dict[str, Any]) -> list[dict[str, A
 
                 rule = RouteRule(
                     pattern=f"{method.upper()} {path}",
-                    mode=ProxyMode(mode.upper()),
+                    mode=ProxyMode(mode.lower()),
                     condition=None,
                     priority=1,
                 )
