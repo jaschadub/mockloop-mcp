@@ -542,20 +542,30 @@ async def execute_test_plan(
     server_url: str,
     test_focus: str = "comprehensive",
     auto_generate_scenarios: bool = True,
-    execute_immediately: bool = True
+    execute_immediately: bool = True,
+    mode: str = "auto",
+    validation_mode: str = "strict",
+    comparison_config: dict[str, Any] | None = None,
+    parallel_execution: bool = False,
+    report_differences: bool = True
 ) -> dict[str, Any]:
     """
-    Combines scenario generation and deployment in one operation.
+    Enhanced test plan execution with proxy-aware testing and validation against both mock and live APIs.
 
     Args:
         openapi_spec: OpenAPI specification to analyze
-        server_url: Target MockLoop server URL
+        server_url: Target MockLoop server URL or live API URL
         test_focus: Focus area for testing ("performance", "security", "functional", "comprehensive")
         auto_generate_scenarios: Whether to auto-generate scenarios from OpenAPI spec
         execute_immediately: Whether to execute tests immediately after deployment
+        mode: Plugin mode - "auto", "mock", "proxy", or "hybrid" (default: "auto")
+        validation_mode: Validation strictness - "strict", "soft", or "report_only" (default: "strict")
+        comparison_config: Configuration for response comparison with ignore_fields and tolerance
+        parallel_execution: Whether to execute tests in parallel for performance (default: False)
+        report_differences: Whether to report differences between expected and actual responses (default: True)
 
     Returns:
-        Complete test plan execution result
+        Complete test plan execution result with proxy-aware capabilities and validation
     """
     try:
         execution_result = {
@@ -563,21 +573,42 @@ async def execute_test_plan(
             "test_plan_id": str(uuid.uuid4()),
             "server_url": server_url,
             "test_focus": test_focus,
+            "mode": mode,
+            "validation_mode": validation_mode,
             "analysis_result": None,
             "generated_scenarios": [],
             "deployed_scenarios": [],
             "execution_results": [],
-            "performance_metrics": {}
+            "performance_metrics": {},
+            "proxy_detection": {},
+            "validation_results": [],
+            "comparison_results": [],
+            "differences_report": []
         }
 
         start_time = time.time()
 
-        # Step 1: Analyze OpenAPI specification
+        # Step 1: Detect mode automatically if set to "auto"
+        detected_mode = mode
+        if mode == "auto":
+            detected_mode = await _detect_plugin_mode(server_url, openapi_spec)
+            execution_result["proxy_detection"] = {
+                "original_mode": mode,
+                "detected_mode": detected_mode,
+                "detection_method": "automatic"
+            }
+
+        # Step 2: Set up comparison configuration
+        comparison_cfg = comparison_config or {}
+        ignore_fields = comparison_cfg.get("ignore_fields", ["timestamp", "request_id", "trace_id"])
+        tolerance = comparison_cfg.get("tolerance", {"response_time_ms": 100, "numeric_variance": 0.01})
+
+        # Step 3: Analyze OpenAPI specification
         if auto_generate_scenarios:
             analysis_result = await analyze_openapi_for_testing(openapi_spec, test_focus, True)
             execution_result["analysis_result"] = analysis_result
 
-            # Step 2: Generate scenarios based on analysis
+            # Step 4: Generate scenarios based on analysis and mode
             testable_scenarios = analysis_result.get("testable_scenarios", [])
             for scenario_info in testable_scenarios[:3]:  # Limit to top 3 scenarios
                 # Extract endpoints from OpenAPI spec
@@ -587,29 +618,95 @@ async def execute_test_plan(
                     for method in methods:
                         endpoints.append({"path": path, "method": method.upper()})
 
-                # Generate scenario configuration
-                scenario_config = await generate_scenario_config(
+                # Generate scenario configuration with mode-specific enhancements
+                scenario_config = await _generate_enhanced_scenario_config(
                     scenario_type=scenario_info.get("scenario_type", "functional_testing"),
                     endpoints=endpoints[:5],  # Limit endpoints per scenario
-                    scenario_name=f"auto_{scenario_info.get('scenario_type', 'test')}_{int(time.time())}"
+                    scenario_name=f"auto_{scenario_info.get('scenario_type', 'test')}_{int(time.time())}",
+                    mode=detected_mode,
+                    openapi_spec=openapi_spec
                 )
 
                 execution_result["generated_scenarios"].append(scenario_config)
 
-        # Step 3: Deploy scenarios
+        # Step 5: Deploy scenarios based on mode
         for scenario_config in execution_result["generated_scenarios"]:
-            deploy_result = await deploy_scenario(server_url, scenario_config, validate_before_deploy=True)
-            execution_result["deployed_scenarios"].append(deploy_result)
+            if detected_mode in ["mock", "hybrid"]:
+                # Deploy to mock server
+                deploy_result = await deploy_scenario(server_url, scenario_config, validate_before_deploy=True)
+                execution_result["deployed_scenarios"].append(deploy_result)
 
-            # Step 4: Execute tests if requested
-            if execute_immediately and deploy_result.get("deployed"):
-                test_result = await run_test_iteration(
-                    server_url=server_url,
-                    scenario_name=scenario_config["scenario_name"],
-                    duration_seconds=60,  # Short test for immediate execution
-                    monitor_performance=True
-                )
-                execution_result["execution_results"].append(test_result)
+            # Step 6: Execute tests with proxy-aware validation
+            if execute_immediately:
+                if parallel_execution:
+                    # Execute tests in parallel
+                    test_tasks = []
+                    for scenario in execution_result["generated_scenarios"]:
+                        task = _execute_proxy_aware_test(
+                            server_url=server_url,
+                            scenario_config=scenario,
+                            mode=detected_mode,
+                            validation_mode=validation_mode,
+                            comparison_config=comparison_cfg,
+                            openapi_spec=openapi_spec
+                        )
+                        test_tasks.append(task)
+
+                    test_results = await asyncio.gather(*test_tasks, return_exceptions=True)
+                    for result in test_results:
+                        if isinstance(result, Exception):
+                            execution_result["execution_results"].append({
+                                "status": "error",
+                                "error": str(result)
+                            })
+                        else:
+                            execution_result["execution_results"].append(result)
+                else:
+                    # Execute tests sequentially
+                    for scenario_config_item in execution_result["generated_scenarios"]:
+                        test_result = await _execute_proxy_aware_test(
+                            server_url=server_url,
+                            scenario_config=scenario_config_item,
+                            mode=detected_mode,
+                            validation_mode=validation_mode,
+                            comparison_config=comparison_cfg,
+                            openapi_spec=openapi_spec
+                        )
+                        execution_result["execution_results"].append(test_result)
+
+        # Step 7: Perform response validation and comparison
+        if report_differences and execution_result["execution_results"]:
+            validation_results = []
+            comparison_results = []
+            differences_report = []
+
+            for test_result in execution_result["execution_results"]:
+                if test_result.get("status") == "success":
+                    # Validate responses against OpenAPI spec
+                    validation_result = await _validate_responses_against_spec(
+                        test_result.get("request_logs", []),
+                        openapi_spec,
+                        validation_mode
+                    )
+                    validation_results.append(validation_result)
+
+                    # Compare mock vs live API responses if in hybrid mode
+                    if detected_mode == "hybrid" and test_result.get("mock_responses") and test_result.get("live_responses"):
+                        comparison_result = await _compare_responses(
+                            test_result["mock_responses"],
+                            test_result["live_responses"],
+                            ignore_fields,
+                            tolerance
+                        )
+                        comparison_results.append(comparison_result)
+
+                        # Generate differences report
+                        if comparison_result.get("differences"):
+                            differences_report.extend(comparison_result["differences"])
+
+            execution_result["validation_results"] = validation_results
+            execution_result["comparison_results"] = comparison_results
+            execution_result["differences_report"] = differences_report
 
         # Calculate overall performance metrics
         end_time = time.time()
@@ -2810,6 +2907,573 @@ async def _register_mcp_plugin(plugin_config: PluginConfig) -> dict[str, Any]:
             "error": str(e),
             "registration_time": datetime.now(timezone.utc).isoformat()
         }
+
+
+# Enhanced Execute Test Plan Helper Functions
+
+async def _detect_plugin_mode(server_url: str, openapi_spec: dict[str, Any]) -> str:
+    """
+    Detect the mode of the target plugin automatically.
+
+    Args:
+        server_url: Target server URL
+        openapi_spec: OpenAPI specification
+
+    Returns:
+        Detected mode: "mock", "proxy", or "hybrid"
+    """
+    try:
+        # Check if server_url is a MockLoop server
+        connectivity_result = await check_server_connectivity(server_url)
+        if connectivity_result.get("status") == "healthy":
+            # Check if it's a MockLoop server by looking for admin endpoints
+            servers = await discover_running_servers([int(server_url.split(":")[-1])], check_health=True)
+            for server in servers:
+                if server.get("is_mockloop_server"):
+                    return "mock"
+
+        # Check if it's a live API by examining the URL and spec
+        parsed_url = urlparse(server_url)
+        if parsed_url.scheme in ["http", "https"] and parsed_url.netloc:
+            # Check if the URL matches any servers in the OpenAPI spec
+            servers = openapi_spec.get("servers", [])
+            for server in servers:
+                if server.get("url") and server["url"] in server_url:
+                    return "proxy"
+
+        # Default to mock mode if detection is unclear
+        return "mock"
+
+    except Exception:
+        logger.debug("Error detecting plugin mode, defaulting to mock")
+        return "mock"
+
+
+async def _generate_enhanced_scenario_config(
+    scenario_type: str,
+    endpoints: list[dict[str, Any]],
+    scenario_name: str,
+    mode: str,
+    openapi_spec: dict[str, Any]
+) -> dict[str, Any]:
+    """
+    Generate enhanced scenario configuration with mode-specific features.
+
+    Args:
+        scenario_type: Type of scenario to generate
+        endpoints: List of endpoints to include
+        scenario_name: Name for the scenario
+        mode: Plugin mode (mock, proxy, hybrid)
+        openapi_spec: OpenAPI specification
+
+    Returns:
+        Enhanced scenario configuration
+    """
+    # Start with basic scenario configuration
+    base_config = await generate_scenario_config(scenario_type, endpoints, scenario_name)
+
+    # Add mode-specific enhancements
+    if mode == "proxy":
+        # Add proxy-specific configurations
+        base_config["proxy_config"] = {
+            "target_url": openapi_spec.get("servers", [{}])[0].get("url", ""),
+            "timeout": 30,
+            "retry_count": 3,
+            "validate_ssl": True
+        }
+    elif mode == "hybrid":
+        # Add hybrid-specific configurations
+        base_config["hybrid_config"] = {
+            "mock_fallback": True,
+            "comparison_enabled": True,
+            "route_rules": [
+                {"pattern": "GET *", "mode": "mock"},
+                {"pattern": "POST *", "mode": "proxy"},
+                {"pattern": "PUT *", "mode": "proxy"},
+                {"pattern": "DELETE *", "mode": "proxy"}
+            ]
+        }
+
+    # Add validation configuration
+    base_config["validation_config"] = {
+        "schema_validation": True,
+        "response_validation": True,
+        "status_code_validation": True
+    }
+
+    return base_config
+
+
+async def _execute_proxy_aware_test(
+    server_url: str,
+    scenario_config: dict[str, Any],
+    mode: str,
+    validation_mode: str,
+    comparison_config: dict[str, Any],
+    openapi_spec: dict[str, Any]
+) -> dict[str, Any]:
+    """
+    Execute a test with proxy-aware capabilities.
+
+    Args:
+        server_url: Target server URL
+        scenario_config: Scenario configuration
+        mode: Plugin mode
+        validation_mode: Validation strictness
+        comparison_config: Comparison configuration
+        openapi_spec: OpenAPI specification
+
+    Returns:
+        Test execution result with proxy-aware data
+    """
+    test_result = {
+        "status": "success",
+        "scenario_name": scenario_config.get("scenario_name", "unknown"),
+        "mode": mode,
+        "validation_mode": validation_mode,
+        "mock_responses": [],
+        "live_responses": [],
+        "request_logs": [],
+        "validation_errors": [],
+        "performance_metrics": {}
+    }
+
+    try:
+        if mode == "mock":
+            # Execute against mock server
+            iteration_result = await run_test_iteration(
+                server_url=server_url,
+                scenario_name=scenario_config["scenario_name"],
+                duration_seconds=60,
+                monitor_performance=True,
+                collect_logs=True
+            )
+            test_result.update(iteration_result)
+
+        elif mode == "proxy":
+            # Execute against live API
+            proxy_result = await _execute_proxy_test(server_url, scenario_config, openapi_spec)
+            test_result["live_responses"] = proxy_result.get("responses", [])
+            test_result["request_logs"] = proxy_result.get("logs", [])
+            test_result["performance_metrics"] = proxy_result.get("metrics", {})
+
+        elif mode == "hybrid":
+            # Execute against both mock and live API
+            mock_result = await run_test_iteration(
+                server_url=server_url,
+                scenario_name=scenario_config["scenario_name"],
+                duration_seconds=30,
+                monitor_performance=True,
+                collect_logs=True
+            )
+
+            proxy_result = await _execute_proxy_test(server_url, scenario_config, openapi_spec)
+
+            test_result["mock_responses"] = mock_result.get("request_logs", [])
+            test_result["live_responses"] = proxy_result.get("responses", [])
+            test_result["request_logs"] = mock_result.get("request_logs", []) + proxy_result.get("logs", [])
+            test_result["performance_metrics"] = {
+                "mock": mock_result.get("performance_metrics", {}),
+                "live": proxy_result.get("metrics", {})
+            }
+
+        return test_result
+
+    except Exception as e:
+        logger.exception("Error executing proxy-aware test")
+        return {
+            **test_result,
+            "status": "error",
+            "error": str(e)
+        }
+
+
+async def _execute_proxy_test(
+    server_url: str,
+    scenario_config: dict[str, Any],
+    openapi_spec: dict[str, Any]
+) -> dict[str, Any]:
+    """
+    Execute test against a live API through proxy.
+
+    Args:
+        server_url: Target API URL
+        scenario_config: Scenario configuration
+        openapi_spec: OpenAPI specification
+
+    Returns:
+        Proxy test execution result
+    """
+    import aiohttp
+
+    result = {
+        "responses": [],
+        "logs": [],
+        "metrics": {}
+    }
+
+    start_time = time.time()
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            # Execute requests based on scenario endpoints
+            endpoints = scenario_config.get("endpoints", [])
+            for endpoint in endpoints[:3]:  # Limit to 3 endpoints for demo
+                path = endpoint.get("path", "/")
+                method = endpoint.get("method", "GET").upper()
+
+                # Construct full URL
+                base_url = server_url.rstrip("/")
+                full_url = f"{base_url}{path}"
+
+                try:
+                    async with session.request(method, full_url, timeout=30) as response:
+                        response_data = {
+                            "url": full_url,
+                            "method": method,
+                            "status_code": response.status,
+                            "headers": dict(response.headers),
+                            "response_time_ms": 0,  # Simplified
+                            "timestamp": time.time()
+                        }
+
+                        # Try to get response body
+                        try:
+                            if response.content_type == "application/json":
+                                response_data["body"] = await response.json()
+                            else:
+                                response_data["body"] = await response.text()
+                        except Exception:
+                            response_data["body"] = None
+
+                        result["responses"].append(response_data)
+                        result["logs"].append(response_data)
+
+                except Exception as e:
+                    error_data = {
+                        "url": full_url,
+                        "method": method,
+                        "status_code": 0,
+                        "error": str(e),
+                        "timestamp": time.time()
+                    }
+                    result["responses"].append(error_data)
+                    result["logs"].append(error_data)
+
+        end_time = time.time()
+        result["metrics"] = {
+            "total_time_ms": (end_time - start_time) * 1000,
+            "requests_made": len(result["responses"]),
+            "successful_requests": len([r for r in result["responses"] if r.get("status_code", 0) < 400])
+        }
+
+    except Exception as e:
+        logger.exception("Error executing proxy test")
+        result["error"] = str(e)
+
+    return result
+
+
+async def _validate_responses_against_spec(
+    request_logs: list[dict[str, Any]],
+    openapi_spec: dict[str, Any],
+    validation_mode: str
+) -> dict[str, Any]:
+    """
+    Validate responses against OpenAPI specification.
+
+    Args:
+        request_logs: List of request/response logs
+        openapi_spec: OpenAPI specification
+        validation_mode: Validation strictness
+
+    Returns:
+        Validation result
+    """
+    validation_result = {
+        "status": "success",
+        "validation_mode": validation_mode,
+        "total_responses": len(request_logs),
+        "valid_responses": 0,
+        "invalid_responses": 0,
+        "validation_errors": [],
+        "schema_violations": [],
+        "status_code_mismatches": []
+    }
+
+    paths = openapi_spec.get("paths", {})
+
+    for log in request_logs:
+        path = log.get("path", log.get("url", "")).split("?")[0]  # Remove query params
+        method = log.get("method", "GET").lower()
+        status_code = log.get("status_code", 0)
+
+        # Find matching path in OpenAPI spec
+        spec_path = None
+        for spec_path_key in paths:
+            if spec_path_key == path or _path_matches_pattern(path, spec_path_key):
+                spec_path = spec_path_key
+                break
+
+        if not spec_path:
+            validation_result["validation_errors"].append({
+                "type": "path_not_found",
+                "path": path,
+                "method": method,
+                "message": f"Path {path} not found in OpenAPI specification"
+            })
+            validation_result["invalid_responses"] += 1
+            continue
+
+        # Check if method is defined
+        path_spec = paths[spec_path]
+        if method not in path_spec:
+            validation_result["validation_errors"].append({
+                "type": "method_not_allowed",
+                "path": path,
+                "method": method,
+                "message": f"Method {method.upper()} not defined for path {path}"
+            })
+            validation_result["invalid_responses"] += 1
+            continue
+
+        # Check status code
+        method_spec = path_spec[method]
+        responses = method_spec.get("responses", {})
+        if str(status_code) not in responses and "default" not in responses:
+            validation_result["status_code_mismatches"].append({
+                "path": path,
+                "method": method,
+                "actual_status": status_code,
+                "expected_statuses": list(responses.keys())
+            })
+            if validation_mode == "strict":
+                validation_result["invalid_responses"] += 1
+                continue
+
+        # Basic schema validation (simplified)
+        response_body = log.get("body")
+        if response_body and str(status_code) in responses:
+            response_spec = responses[str(status_code)]
+            content_spec = response_spec.get("content", {})
+            if "application/json" in content_spec:
+                # Simplified schema validation
+                schema = content_spec["application/json"].get("schema", {})
+                if schema and not _validate_json_schema(response_body, schema):
+                    validation_result["schema_violations"].append({
+                        "path": path,
+                        "method": method,
+                        "status_code": status_code,
+                        "message": "Response body does not match schema"
+                    })
+                    if validation_mode == "strict":
+                        validation_result["invalid_responses"] += 1
+                        continue
+
+        validation_result["valid_responses"] += 1
+
+    # Set overall status based on validation mode
+    if validation_mode == "strict" and validation_result["invalid_responses"] > 0:
+        validation_result["status"] = "failed"
+    elif validation_mode == "soft" and validation_result["invalid_responses"] > validation_result["valid_responses"]:
+        validation_result["status"] = "warning"
+
+    return validation_result
+
+
+async def _compare_responses(
+    mock_responses: list[dict[str, Any]],
+    live_responses: list[dict[str, Any]],
+    ignore_fields: list[str],
+    tolerance: dict[str, Any]
+) -> dict[str, Any]:
+    """
+    Compare mock and live API responses.
+
+    Args:
+        mock_responses: Responses from mock server
+        live_responses: Responses from live API
+        ignore_fields: Fields to ignore in comparison
+        tolerance: Tolerance settings for numeric comparisons
+
+    Returns:
+        Comparison result
+    """
+    comparison_result = {
+        "status": "success",
+        "total_comparisons": 0,
+        "matching_responses": 0,
+        "differing_responses": 0,
+        "differences": [],
+        "summary": {}
+    }
+
+    # Create lookup for live responses by path and method
+    live_lookup = {}
+    for response in live_responses:
+        key = f"{response.get('method', 'GET')}:{response.get('path', response.get('url', ''))}"
+        live_lookup[key] = response
+
+    for mock_response in mock_responses:
+        key = f"{mock_response.get('method', 'GET')}:{mock_response.get('path', mock_response.get('url', ''))}"
+        live_response = live_lookup.get(key)
+
+        if not live_response:
+            comparison_result["differences"].append({
+                "type": "missing_live_response",
+                "path": mock_response.get("path", ""),
+                "method": mock_response.get("method", ""),
+                "message": "No corresponding live response found"
+            })
+            comparison_result["differing_responses"] += 1
+            continue
+
+        comparison_result["total_comparisons"] += 1
+
+        # Compare status codes
+        mock_status = mock_response.get("status_code", 0)
+        live_status = live_response.get("status_code", 0)
+        if mock_status != live_status:
+            comparison_result["differences"].append({
+                "type": "status_code_mismatch",
+                "path": mock_response.get("path", ""),
+                "method": mock_response.get("method", ""),
+                "mock_value": mock_status,
+                "live_value": live_status
+            })
+
+        # Compare response bodies (simplified)
+        mock_body = mock_response.get("body")
+        live_body = live_response.get("body")
+
+        if mock_body != live_body:
+            # Perform deep comparison ignoring specified fields
+            differences = _deep_compare_objects(mock_body, live_body, ignore_fields, tolerance)
+            if differences:
+                comparison_result["differences"].extend([
+                    {
+                        "type": "body_difference",
+                        "path": mock_response.get("path", ""),
+                        "method": mock_response.get("method", ""),
+                        "field": diff["field"],
+                        "mock_value": diff["mock_value"],
+                        "live_value": diff["live_value"]
+                    }
+                    for diff in differences
+                ])
+                comparison_result["differing_responses"] += 1
+            else:
+                comparison_result["matching_responses"] += 1
+        else:
+            comparison_result["matching_responses"] += 1
+
+    # Generate summary
+    comparison_result["summary"] = {
+        "match_percentage": (comparison_result["matching_responses"] / max(comparison_result["total_comparisons"], 1)) * 100,
+        "total_differences": len(comparison_result["differences"]),
+        "critical_differences": len([d for d in comparison_result["differences"] if d["type"] == "status_code_mismatch"])
+    }
+
+    return comparison_result
+
+
+def _path_matches_pattern(path: str, pattern: str) -> bool:
+    """Check if a path matches an OpenAPI path pattern."""
+    import re
+    # Convert OpenAPI path pattern to regex
+    regex_pattern = pattern.replace("{", "(?P<").replace("}", ">[^/]+)")
+    regex_pattern = f"^{regex_pattern}$"
+    return bool(re.match(regex_pattern, path))
+
+
+def _validate_json_schema(data: Any, schema: dict[str, Any]) -> bool:
+    """Simplified JSON schema validation."""
+    # This is a very basic implementation
+    # In a real implementation, you'd use a proper JSON schema validator
+    if "type" in schema:
+        expected_type = schema["type"]
+        if (expected_type == "object" and not isinstance(data, dict)) or (expected_type == "array" and not isinstance(data, list)) or (expected_type == "string" and not isinstance(data, str)) or (expected_type == "number" and not isinstance(data, int | float)) or (expected_type == "boolean" and not isinstance(data, bool)):
+            return False
+
+    return True
+
+
+def _deep_compare_objects(
+    obj1: Any,
+    obj2: Any,
+    ignore_fields: list[str],
+    tolerance: dict[str, Any],
+    path: str = ""
+) -> list[dict[str, Any]]:
+    """Deep compare two objects and return differences."""
+    differences = []
+
+    if not isinstance(obj1, type(obj2)):
+        differences.append({
+            "field": path or "root",
+            "mock_value": obj1,
+            "live_value": obj2,
+            "difference_type": "type_mismatch"
+        })
+        return differences
+
+    if isinstance(obj1, dict) and isinstance(obj2, dict):
+        all_keys = set(obj1.keys()) | set(obj2.keys())
+        for key in all_keys:
+            if key in ignore_fields:
+                continue
+
+            field_path = f"{path}.{key}" if path else key
+
+            if key not in obj1:
+                differences.append({
+                    "field": field_path,
+                    "mock_value": None,
+                    "live_value": obj2[key],
+                    "difference_type": "missing_in_mock"
+                })
+            elif key not in obj2:
+                differences.append({
+                    "field": field_path,
+                    "mock_value": obj1[key],
+                    "live_value": None,
+                    "difference_type": "missing_in_live"
+                })
+            else:
+                differences.extend(_deep_compare_objects(obj1[key], obj2[key], ignore_fields, tolerance, field_path))
+
+    elif isinstance(obj1, list) and isinstance(obj2, list):
+        if len(obj1) != len(obj2):
+            differences.append({
+                "field": f"{path}.length" if path else "length",
+                "mock_value": len(obj1),
+                "live_value": len(obj2),
+                "difference_type": "length_mismatch"
+            })
+
+        for i, (item1, item2) in enumerate(zip(obj1, obj2, strict=False)):
+            item_path = f"{path}[{i}]" if path else f"[{i}]"
+            differences.extend(_deep_compare_objects(item1, item2, ignore_fields, tolerance, item_path))
+
+    elif isinstance(obj1, int | float) and isinstance(obj2, int | float):
+        numeric_tolerance = tolerance.get("numeric_variance", 0.01)
+        if abs(obj1 - obj2) > numeric_tolerance:
+            differences.append({
+                "field": path or "root",
+                "mock_value": obj1,
+                "live_value": obj2,
+                "difference_type": "numeric_difference"
+            })
+
+    elif obj1 != obj2:
+        differences.append({
+            "field": path or "root",
+            "mock_value": obj1,
+            "live_value": obj2,
+            "difference_type": "value_mismatch"
+        })
+
+    return differences
 
 
 def _calculate_progress_percentage(progress: dict[str, Any]) -> float:
