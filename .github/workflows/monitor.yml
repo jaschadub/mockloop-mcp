@@ -240,7 +240,7 @@ jobs:
           if [ -n "$(git status --porcelain)" ]; then
             git add .github/badges/
             git commit -m "chore: update package monitoring badges [skip ci]"
-            git push
+            git push https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
           fi
 
   generate-report:
