@@ -315,21 +315,6 @@ def mcp_audit_tool(tool_name: str):
     return decorator
 
 
-# Define input and output structures for the tool
-# These can be Pydantic models for more robust validation if the SDK supports it,
-# or TypedDicts as used here.
-class GenerateMockApiInput(TypedDict):
-    spec_url_or_path: str
-    output_dir_name: str | None
-    # Example: Add more parameters like target_port: Optional[int]
-
-
-class GenerateMockApiOutput(TypedDict):
-    generated_mock_path: str
-    message: str
-    status: str  # "success" or "error"
-
-
 # New TypedDict definitions for enhanced tools
 class QueryMockLogsInput(TypedDict):
     server_url: str
@@ -399,8 +384,6 @@ server = FastMCP(
     name="generate_mock_api",
     description="Generates a FastAPI mock server from an API specification (e.g., OpenAPI). "
     "The mock server includes request/response logging and Docker support.",
-    # input_schema=GenerateMockApiInput, # FastMCP infers from type hints
-    # output_schema=GenerateMockApiOutput, # FastMCP infers from return type hint
 )
 @mcp_audit_tool("generate_mock_api")
 async def generate_mock_api_tool(
@@ -413,7 +396,7 @@ async def generate_mock_api_tool(
     business_port: int = 8000,
     admin_port: int | None = None,
     # ctx: Context # MCP Context, can be added if tool needs to report progress, etc.
-) -> GenerateMockApiOutput:
+) -> str:
     """
     MCP Tool to generate a mock API server.
 
@@ -421,7 +404,6 @@ async def generate_mock_api_tool(
         spec_url_or_path: URL or local file path to the API specification.
         output_dir_name: Optional name for the generated mock server directory.
                          If None, a name is derived from the API title and version.
-        # ctx: The MCP Context object, automatically injected if type-hinted.
     """
     try:
         # Helper to robustly convert to boolean
@@ -434,76 +416,35 @@ async def generate_mock_api_tool(
                 return value != 0
             return bool(value)
 
-        # Explicitly convert boolean flags at the tool entry point
-        # auth_enabled_bool = _tool_to_bool(auth_enabled)
-        # webhooks_enabled_bool = _tool_to_bool(webhooks_enabled)
-        # admin_ui_enabled_bool = _tool_to_bool(admin_ui_enabled)
-        # storage_enabled_bool = _tool_to_bool(storage_enabled)
-
-        # DEBUG: Hardcode to True to test propagation to generator.py
-        auth_enabled_debug = True
-        webhooks_enabled_debug = True
-        admin_ui_enabled_debug = True
-        storage_enabled_debug = True
-
-        # If using ctx for logging to MCP client:
-        # await ctx.info(f"Loading API specification from: {spec_url_or_path}")
-
-        # Print received boolean flags for debugging
+        # Convert boolean flags
+        auth_enabled_bool = _tool_to_bool(auth_enabled)
+        webhooks_enabled_bool = _tool_to_bool(webhooks_enabled)
+        admin_ui_enabled_bool = _tool_to_bool(admin_ui_enabled)
+        storage_enabled_bool = _tool_to_bool(storage_enabled)
 
         parsed_spec = load_api_specification(spec_url_or_path)
-
-        # await ctx.info(f"Generating mock API server...")
-        if output_dir_name:
-            # await ctx.info(f"Using custom output directory name: {output_dir_name}")
-            pass
 
         generated_path = generate_mock_api(
             spec_data=parsed_spec,
             mock_server_name=output_dir_name,
-            auth_enabled=auth_enabled_debug,  # Pass debug hardcoded True
-            webhooks_enabled=webhooks_enabled_debug,  # Pass debug hardcoded True
-            admin_ui_enabled=admin_ui_enabled_debug,  # Pass debug hardcoded True
-            storage_enabled=storage_enabled_debug,  # Pass debug hardcoded True
+            auth_enabled=auth_enabled_bool,
+            webhooks_enabled=webhooks_enabled_bool,
+            admin_ui_enabled=admin_ui_enabled_bool,
+            storage_enabled=storage_enabled_bool,
             business_port=business_port,
             admin_port=admin_port,
-            # output_base_dir can be configured if needed, defaults to "generated_mocks"
         )
 
         resolved_path = str(generated_path.resolve())
-        # await ctx.info(f"Mock API server generated successfully at: {resolved_path}")
 
-        return {
-            "generated_mock_path": resolved_path,
-            "message": f"Mock API server generated successfully at {resolved_path}. "
-            f"Navigate to this directory and use 'docker-compose up --build' to run it.",
-            "status": "success",
-        }
+        return f"Mock API server generated successfully at {resolved_path}. Navigate to this directory and use 'docker-compose up --build' to run it."
 
     except APIParsingError as e:
-        # await ctx.error(f"Error parsing API specification: {e}")
-        return {
-            "generated_mock_path": "",
-            "message": f"Error parsing API specification: {e}",
-            "status": "error",
-        }
+        return f"Error parsing API specification: {e}"
     except APIGenerationError as e:
-        # await ctx.error(f"Error generating mock API: {e}")
-        return {
-            "generated_mock_path": "",
-            "message": f"Error generating mock API: {e}",
-            "status": "error",
-        }
+        return f"Error generating mock API: {e}"
     except Exception as e:
-        import traceback
-
-        traceback.format_exc()
-        # await ctx.error(f"An unexpected error occurred: {e}\n{error_details}")
-        return {
-            "generated_mock_path": "",
-            "message": f"An unexpected error occurred: {e}",
-            "status": "error",
-        }
+        return f"An unexpected error occurred: {e}"
 
 
 @server.tool(
@@ -1794,21 +1735,13 @@ async def run_tool_from_cli(args):
     # This simulates how the MCP server would call the tool.
     # The actual MCP server handles the async nature and context injection.
 
-    # Create a dummy context if your tool expects one and you want to test that part.
-    # class DummyContext:
-    #     async def info(self, msg): print(f"CTX.INFO: {msg}")
-    #     async def error(self, msg): print(f"CTX.ERROR: {msg}")
-    # dummy_ctx = DummyContext()
-
     result = await generate_mock_api_tool(
         spec_url_or_path=args.spec_source,
         output_dir_name=args.output_name,
-        # ctx=dummy_ctx # if tool expects context
     )
-    if result["generated_mock_path"]:
-        pass
+    print(result)
 
-    if result["status"] == "error":
+    if "Error" in result:
         sys.exit(1)
 
 
