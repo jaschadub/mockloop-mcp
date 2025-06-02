@@ -287,6 +287,23 @@ Dynamic response management without server restart.
 - Runtime configuration management
 - Zero-downtime modifications
 
+## 🌐 MCP Proxy Functionality
+
+MockLoop MCP includes powerful proxy capabilities, allowing seamless switching between mock and live API environments. This feature is invaluable for comprehensive testing strategies, enabling developers to:
+
+- Develop against mock APIs when live services are unavailable or unstable.
+- Transition to live APIs for integration and end-to-end testing.
+- Utilize a hybrid mode to selectively mock or proxy specific endpoints based on routing rules.
+- Compare responses between mock and live services to ensure consistency and identify discrepancies.
+
+**Key Features:**
+
+- **Multiple Modes**: Operate in `mock`, `proxy`, or `hybrid` mode.
+- **Dynamic Configuration**: Configure proxy behavior, target URLs, authentication, and routing rules through the [`create_mcp_plugin`](src/mockloop_mcp/mcp_tools.py:997) tool.
+- **Authentication Handling**: Supports various authentication schemes (API Key, Bearer Token, Basic Auth, OAuth2) for proxied requests.
+- **Routing Rules**: Define sophisticated rules in `hybrid` mode to determine whether a request should be mocked or proxied.
+
+For a detailed guide on using the MCP Proxy, including configuration and examples, please refer to the [MCP Proxy Guide](docs/mcp-proxy-guide.md).
 ## 🤖 AI Framework Integration
 
 MockLoop MCP provides native integration with popular AI frameworks:

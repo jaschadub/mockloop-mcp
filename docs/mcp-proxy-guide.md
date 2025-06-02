@@ -65,15 +65,31 @@ plugin_result = await create_mcp_plugin(
 )
 ```
 
-### 2. Switch to Proxy Mode
+### 2. Operating in Different Modes
 
+The proxy mode (mock, proxy, or hybrid) is typically set when creating the MCP plugin using the `mode` parameter in the [`create_mcp_plugin()`](../src/mockloop_mcp/mcp_tools.py:997) tool.
+
+**Example: Creating a plugin directly in Proxy Mode**
 ```python
-# Switch to live API mode
-from mockloop_mcp.proxy import ProxyHandler, ProxyMode
-
-handler = ProxyHandler(mode=ProxyMode.PROXY)
-handler.switch_mode(ProxyMode.PROXY)
+# Create a plugin configured for Proxy Mode
+proxy_plugin_result = await create_mcp_plugin(
+    spec_url_or_path="https://api.shodan.io/openapi.json",
+    mode="proxy",  # Set mode to proxy
+    plugin_name="shodan_api_proxy_instance", # Consider a distinct name for clarity
+    target_url="https://api.shodan.io", # Required for proxy/hybrid modes
+    auth_config={ # Ensure authentication is correctly configured for the live API
+        "auth_type": "api_key",
+        "credentials": {"api_key": "YOUR_ACTUAL_SHODAN_API_KEY"}, # Use your live API key
+        "location": "query",
+        "name": "key"
+    }
+)
+# The plugin 'shodan_api_proxy_instance' will now operate by forwarding requests to 'https://api.shodan.io'.
 ```
+
+If you need to change the operational mode for an API after its initial plugin configuration, you would typically re-configure by calling [`create_mcp_plugin()`](../src/mockloop_mcp/mcp_tools.py:997) again with the new desired `mode` and potentially other updated configurations.
+
+While the underlying [`ProxyHandler`](../src/mockloop_mcp/proxy/proxy_handler.py:23) class (see API Reference below) contains a [`switch_mode()`](../src/mockloop_mcp/proxy/proxy_handler.py:80) method, direct manipulation of `ProxyHandler` instances is generally an advanced use case. The recommended approach for managing proxy behavior is through the `create_mcp_plugin` tool.
 
 ### 3. Execute Proxy-Aware Tests
 
@@ -423,7 +439,7 @@ CMD ["python", "run_proxy_tests.py"]
 ### Core Classes
 
 - [`ProxyConfig`](../src/mockloop_mcp/proxy/config.py): Main configuration class
-- [`ProxyHandler`](../src/mockloop_mcp/proxy/proxy_handler.py): Request handling and routing
+- [`ProxyHandler`](../src/mockloop_mcp/proxy/proxy_handler.py:23): Request handling and routing. Note: The detailed implementation for specific request handling methods ([`_handle_mock_request()`](src/mockloop_mcp/proxy/proxy_handler.py:65), [`_handle_proxy_request()`](src/mockloop_mcp/proxy/proxy_handler.py:70), [`_handle_hybrid_request()`](src/mockloop_mcp/proxy/proxy_handler.py:75)) within this class may be under development. Users typically interact with proxy capabilities through higher-level tools like [`create_mcp_plugin()`](../src/mockloop_mcp/mcp_tools.py:997).
 - [`AuthHandler`](../src/mockloop_mcp/proxy/auth_handler.py): Authentication management
 - [`PluginManager`](../src/mockloop_mcp/proxy/plugin_manager.py): Plugin lifecycle management
 

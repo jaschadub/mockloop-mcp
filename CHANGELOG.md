@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.6] - 2025-06-01
+
+### Added
+- Comprehensive MCP Proxy functionality enabling mock, proxy, and hybrid modes for API testing.
+  - Includes core proxy handling ([`ProxyHandler`](src/mockloop_mcp/proxy/proxy_handler.py:23)), configuration ([`ProxyConfig`](src/mockloop_mcp/proxy/config.py:128), [`AuthConfig`](src/mockloop_mcp/proxy/config.py:32), [`RouteRule`](src/mockloop_mcp/proxy/config.py:100)), authentication management ([`AuthHandler`](src/mockloop_mcp/proxy/auth_handler.py:25)), and plugin management ([`PluginManager`](src/mockloop_mcp/proxy/plugin_manager.py:15)).
+  - Integrated proxy capabilities into MCP tools: [`create_mcp_plugin()`](src/mockloop_mcp/mcp_tools.py:997) and [`execute_test_plan()`](src/mockloop_mcp/mcp_tools.py:539).
+- Detailed documentation guide for MCP Proxy: [`docs/mcp-proxy-guide.md`](docs/mcp-proxy-guide.md).
+- New example scripts in [`examples/mcp-proxy/`](examples/mcp-proxy) demonstrating:
+  - Plugin creation in `proxy` and `hybrid` modes: [`create_plugin_modes_example.py`](examples/mcp-proxy/create_plugin_modes_example.py).
+  - Executing test plans with a `proxy` mode plugin: [`execute_plan_with_proxy_example.py`](examples/mcp-proxy/execute_plan_with_proxy_example.py).
+  - Configuring `hybrid` mode with routing rules: [`hybrid_mode_routing_example.py`](examples/mcp-proxy/hybrid_mode_routing_example.py).
+- New end-to-end integration tests for MCP Proxy in [`tests/integration/test_mcp_proxy_integration.py`](tests/integration/test_mcp_proxy_integration.py), covering `proxy` and `hybrid` mode configurations and execution.
+
+### Changed
+- Updated [`README.md`](README.md) to include a new section detailing the MCP Proxy functionality and linking to the guide.
+- Refined existing example [`examples/mcp-proxy/basic-mock-example.py`](examples/mcp-proxy/basic-mock-example.py) to serve as the primary `mock` mode example and updated its "Next Steps" to reference new, more specific proxy examples.
+- Modified [`examples/mcp-proxy/create_plugin_modes_example.py`](examples/mcp-proxy/create_plugin_modes_example.py) to focus solely on `proxy` and `hybrid` modes, deferring `mock` mode to `basic-mock-example.py`.
 ### Security
 
 ## [2.2.5] - 2025-06-01

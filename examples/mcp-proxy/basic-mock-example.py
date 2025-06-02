@@ -248,9 +248,11 @@ async def main():
     print("   • Offline development capability")
     
     print("\n✨ Next Steps:")
-    print("   1. Run proxy-validation-example.py to test against live API")
-    print("   2. Try hybrid-workflow-example.py for mixed mock/proxy testing")
-    print("   3. Explore authentication-examples.py for auth scenarios")
+    print("   1. Explore `create_plugin_modes_example.py` to see PROXY and HYBRID mode plugin creation.")
+    print("   2. Run `execute_plan_with_proxy_example.py` to test PROXY mode against a live API.")
+    print("   3. Examine `hybrid_mode_routing_example.py` for HYBRID mode with custom routing.")
+    print("   4. Review `authentication-example.py` for various auth scenarios.")
+    print("   5. Check `proxy-validation-example.py` and `hybrid-workflow-example.py` for other advanced use cases.")
 
 
 if __name__ == "__main__":
