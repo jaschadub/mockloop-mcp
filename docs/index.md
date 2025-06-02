@@ -71,11 +71,11 @@ The world's first AI-native API testing platform powered by the Model Context Pr
 
 ## Add to Claude Code
 **Simply run**
-`claude mcp add mockloop-mcp mockloop-mcp --stdio`
+`claude mcp add -t stdio mockloop-mcp mockloop-mcp `
 
 Or if using virtual environment:
 
-`claude mcp add mockloop-mcp /path/to/venv/bin/mockloop_mcp --stdio`
+`claude mcp add -t stdio mockloop-mcp /path/to/venv/bin/mockloop_mcp`
 
 
 ## Documentation
