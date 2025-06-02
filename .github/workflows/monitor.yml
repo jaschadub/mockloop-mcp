@@ -17,293 +17,293 @@ on:
         type: boolean
 
 permissions:
-  contents: read
+  contents: write
   issues: write
   pull-requests: write
 
 jobs:
   monitor-package:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-        
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install requests
-        
-    - name: Run package monitoring
-      id: monitor
-      run: |
-        python scripts/monitor_package.py \
-          --package "${{ github.event.inputs.package_name || 'mockloop-mcp' }}" \
-          --format json \
-          --output package_stats.json \
-          ${{ github.event.inputs.generate_report == 'true' && '--health-report' || '' }}
-        
-        # Extract key metrics for GitHub output
-        if [ -f package_stats.json ]; then
-          LATEST_STATS=$(jq -r '.[-1]' package_stats.json)
-          VERSION=$(echo "$LATEST_STATS" | jq -r '.current_version')
-          HEALTH=$(echo "$LATEST_STATS" | jq -r '.health_status')
-          DOWNLOADS=$(echo "$LATEST_STATS" | jq -r '.recent_downloads')
-          
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "health=$HEALTH" >> $GITHUB_OUTPUT
-          echo "downloads=$DOWNLOADS" >> $GITHUB_OUTPUT
-          echo "timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_OUTPUT
-        fi
-        
-    - name: Upload monitoring results
-      uses: actions/upload-artifact@v4
-      if: success() && hashFiles('package_stats.json') != ''
-      with:
-        name: package-monitoring-results
-        path: package_stats.json
-        retention-days: 30
-        
-    - name: Check for health issues
-      id: health_check
-      run: |
-        if [ -f package_stats.json ]; then
-          LATEST_STATS=$(jq -r '.[-1]' package_stats.json)
-          HEALTH=$(echo "$LATEST_STATS" | jq -r '.health_status')
-          DOWNLOADS=$(echo "$LATEST_STATS" | jq -r '.recent_downloads')
-          
-          # Set alert conditions
-          ALERT_NEEDED=false
-          ALERT_MESSAGE=""
-          
-          if [ "$HEALTH" = "STALE" ]; then
-            ALERT_NEEDED=true
-            ALERT_MESSAGE="Package is STALE - no updates in over a year"
-          elif [ "$HEALTH" = "AGING" ]; then
-            ALERT_NEEDED=true
-            ALERT_MESSAGE="Package is AGING - no updates in over 6 months"
-          elif [ "$HEALTH" = "UNAVAILABLE" ]; then
-            ALERT_NEEDED=true
-            ALERT_MESSAGE="Package is UNAVAILABLE on PyPI"
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests
+
+      - name: Run package monitoring
+        id: monitor
+        run: |
+          python scripts/monitor_package.py \
+            --package "${{ github.event.inputs.package_name || 'mockloop-mcp' }}" \
+            --format json \
+            --output package_stats.json \
+            ${{ github.event.inputs.generate_report == 'true' && '--health-report' || '' }}
+
+          # Extract key metrics for GitHub output
+          if [ -f package_stats.json ]; then
+            LATEST_STATS=$(jq -r '.[-1]' package_stats.json)
+            VERSION=$(echo "$LATEST_STATS" | jq -r '.current_version')
+            HEALTH=$(echo "$LATEST_STATS" | jq -r '.health_status')
+            DOWNLOADS=$(echo "$LATEST_STATS" | jq -r '.recent_downloads')
+
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "health=$HEALTH" >> $GITHUB_OUTPUT
+            echo "downloads=$DOWNLOADS" >> $GITHUB_OUTPUT
+            echo "timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_OUTPUT
           fi
-          
-          if [ "$DOWNLOADS" -lt 50 ]; then
-            ALERT_NEEDED=true
-            if [ -n "$ALERT_MESSAGE" ]; then
-              ALERT_MESSAGE="$ALERT_MESSAGE; Low download count ($DOWNLOADS in last 30 days)"
-            else
-              ALERT_MESSAGE="Low download count ($DOWNLOADS in last 30 days)"
+
+      - name: Upload monitoring results
+        uses: actions/upload-artifact@v4
+        if: success() && hashFiles('package_stats.json') != ''
+        with:
+          name: package-monitoring-results
+          path: package_stats.json
+          retention-days: 30
+
+      - name: Check for health issues
+        id: health_check
+        run: |
+          if [ -f package_stats.json ]; then
+            LATEST_STATS=$(jq -r '.[-1]' package_stats.json)
+            HEALTH=$(echo "$LATEST_STATS" | jq -r '.health_status')
+            DOWNLOADS=$(echo "$LATEST_STATS" | jq -r '.recent_downloads')
+
+            # Set alert conditions
+            ALERT_NEEDED=false
+            ALERT_MESSAGE=""
+
+            if [ "$HEALTH" = "STALE" ]; then
+              ALERT_NEEDED=true
+              ALERT_MESSAGE="Package is STALE - no updates in over a year"
+            elif [ "$HEALTH" = "AGING" ]; then
+              ALERT_NEEDED=true
+              ALERT_MESSAGE="Package is AGING - no updates in over 6 months"
+            elif [ "$HEALTH" = "UNAVAILABLE" ]; then
+              ALERT_NEEDED=true
+              ALERT_MESSAGE="Package is UNAVAILABLE on PyPI"
             fi
+
+            if [ "$DOWNLOADS" -lt 50 ]; then
+              ALERT_NEEDED=true
+              if [ -n "$ALERT_MESSAGE" ]; then
+                ALERT_MESSAGE="$ALERT_MESSAGE; Low download count ($DOWNLOADS in last 30 days)"
+              else
+                ALERT_MESSAGE="Low download count ($DOWNLOADS in last 30 days)"
+              fi
+            fi
+
+            echo "alert_needed=$ALERT_NEEDED" >> $GITHUB_OUTPUT
+            echo "alert_message=$ALERT_MESSAGE" >> $GITHUB_OUTPUT
           fi
-          
-          echo "alert_needed=$ALERT_NEEDED" >> $GITHUB_OUTPUT
-          echo "alert_message=$ALERT_MESSAGE" >> $GITHUB_OUTPUT
-        fi
-        
-    - name: Create issue for health problems
-      if: steps.health_check.outputs.alert_needed == 'true'
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const title = `📦 Package Health Alert: ${{ steps.monitor.outputs.health }}`;
-          const body = `
-          ## Package Health Alert
-          
-          **Package:** mockloop-mcp
-          **Current Status:** ${{ steps.monitor.outputs.health }}
-          **Current Version:** ${{ steps.monitor.outputs.version }}
-          **Recent Downloads:** ${{ steps.monitor.outputs.downloads }}
-          **Check Time:** ${{ steps.monitor.outputs.timestamp }}
-          
-          ### Issue Details
-          ${{ steps.health_check.outputs.alert_message }}
-          
-          ### Recommended Actions
-          - Review package maintenance status
-          - Consider releasing updates if needed
-          - Check for any PyPI distribution issues
-          - Review download trends and marketing efforts
-          
-          ### Monitoring Data
-          This issue was automatically created by the package monitoring workflow.
-          Check the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for detailed statistics.
-          
-          ---
-          *This issue will be automatically closed when the health status improves.*
-          `;
-          
-          // Check if similar issue already exists
-          const issues = await github.rest.issues.listForRepo({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            labels: ['package-health', 'automated'],
-            state: 'open'
-          });
-          
-          const existingIssue = issues.data.find(issue => 
-            issue.title.includes('Package Health Alert')
-          );
-          
-          if (existingIssue) {
-            // Update existing issue
-            await github.rest.issues.createComment({
+
+      - name: Create issue for health problems
+        if: steps.health_check.outputs.alert_needed == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = `📦 Package Health Alert: ${{ steps.monitor.outputs.health }}`;
+            const body = `
+            ## Package Health Alert
+
+            **Package:** mockloop-mcp
+            **Current Status:** ${{ steps.monitor.outputs.health }}
+            **Current Version:** ${{ steps.monitor.outputs.version }}
+            **Recent Downloads:** ${{ steps.monitor.outputs.downloads }}
+            **Check Time:** ${{ steps.monitor.outputs.timestamp }}
+
+            ### Issue Details
+            ${{ steps.health_check.outputs.alert_message }}
+
+            ### Recommended Actions
+            - Review package maintenance status
+            - Consider releasing updates if needed
+            - Check for any PyPI distribution issues
+            - Review download trends and marketing efforts
+
+            ### Monitoring Data
+            This issue was automatically created by the package monitoring workflow.
+            Check the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for detailed statistics.
+
+            ---
+            *This issue will be automatically closed when the health status improves.*
+            `;
+
+            // Check if similar issue already exists
+            const issues = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: existingIssue.number,
-              body: `## Updated Health Check\n\n${body}`
+              labels: ['package-health', 'automated'],
+              state: 'open'
             });
-          } else {
-            // Create new issue
-            await github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: title,
-              body: body,
-              labels: ['package-health', 'automated', 'needs-triage']
-            });
-          }
-          
-    - name: Close resolved health issues
-      if: steps.health_check.outputs.alert_needed == 'false'
-      uses: actions/github-script@v7
-      with:
-        script: |
-          // Find open health alert issues
-          const issues = await github.rest.issues.listForRepo({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            labels: ['package-health', 'automated'],
-            state: 'open'
-          });
-          
-          for (const issue of issues.data) {
-            if (issue.title.includes('Package Health Alert')) {
+
+            const existingIssue = issues.data.find(issue =>
+              issue.title.includes('Package Health Alert')
+            );
+
+            if (existingIssue) {
+              // Update existing issue
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                issue_number: issue.number,
-                body: `## ✅ Health Status Resolved
-                
-                Package health has improved:
-                - **Status:** ${{ steps.monitor.outputs.health }}
-                - **Version:** ${{ steps.monitor.outputs.version }}
-                - **Downloads:** ${{ steps.monitor.outputs.downloads }}
-                - **Check Time:** ${{ steps.monitor.outputs.timestamp }}
-                
-                Automatically closing this issue.`
+                issue_number: existingIssue.number,
+                body: `## Updated Health Check\n\n${body}`
               });
-              
-              await github.rest.issues.update({
+            } else {
+              // Create new issue
+              await github.rest.issues.create({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                issue_number: issue.number,
-                state: 'closed',
-                labels: [...issue.labels.map(l => l.name), 'resolved']
+                title: title,
+                body: body,
+                labels: ['package-health', 'automated', 'needs-triage']
               });
             }
-          }
-          
-    - name: Update package status badge
-      run: |
-        # Create a simple status badge update
-        mkdir -p .github/badges
-        
-        HEALTH="${{ steps.monitor.outputs.health }}"
-        VERSION="${{ steps.monitor.outputs.version }}"
-        DOWNLOADS="${{ steps.monitor.outputs.downloads }}"
-        
-        # Determine badge color based on health
-        case "$HEALTH" in
-          "HEALTHY") COLOR="brightgreen" ;;
-          "AGING") COLOR="yellow" ;;
-          "STALE") COLOR="orange" ;;
-          "UNAVAILABLE") COLOR="red" ;;
-          *) COLOR="lightgrey" ;;
-        esac
-        
-        # Create badge URLs (these would be used in README)
-        echo "Health: https://img.shields.io/badge/health-$HEALTH-$COLOR" > .github/badges/health.txt
-        echo "Version: https://img.shields.io/badge/version-$VERSION-blue" > .github/badges/version.txt
-        echo "Downloads: https://img.shields.io/badge/downloads-$DOWNLOADS-blue" > .github/badges/downloads.txt
-        
-    - name: Commit badge updates
-      if: github.event_name == 'schedule'
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        
-        if [ -n "$(git status --porcelain)" ]; then
-          git add .github/badges/
-          git commit -m "chore: update package monitoring badges [skip ci]"
-          git push
-        fi
+
+      - name: Close resolved health issues
+        if: steps.health_check.outputs.alert_needed == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Find open health alert issues
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: ['package-health', 'automated'],
+              state: 'open'
+            });
+
+            for (const issue of issues.data) {
+              if (issue.title.includes('Package Health Alert')) {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  body: `## ✅ Health Status Resolved
+
+                  Package health has improved:
+                  - **Status:** ${{ steps.monitor.outputs.health }}
+                  - **Version:** ${{ steps.monitor.outputs.version }}
+                  - **Downloads:** ${{ steps.monitor.outputs.downloads }}
+                  - **Check Time:** ${{ steps.monitor.outputs.timestamp }}
+
+                  Automatically closing this issue.`
+                });
+
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  state: 'closed',
+                  labels: [...issue.labels.map(l => l.name), 'resolved']
+                });
+              }
+            }
+
+      - name: Update package status badge
+        run: |
+          # Create a simple status badge update
+          mkdir -p .github/badges
+
+          HEALTH="${{ steps.monitor.outputs.health }}"
+          VERSION="${{ steps.monitor.outputs.version }}"
+          DOWNLOADS="${{ steps.monitor.outputs.downloads }}"
+
+          # Determine badge color based on health
+          case "$HEALTH" in
+            "HEALTHY") COLOR="brightgreen" ;;
+            "AGING") COLOR="yellow" ;;
+            "STALE") COLOR="orange" ;;
+            "UNAVAILABLE") COLOR="red" ;;
+            *) COLOR="lightgrey" ;;
+          esac
+
+          # Create badge URLs (these would be used in README)
+          echo "Health: https://img.shields.io/badge/health-$HEALTH-$COLOR" > .github/badges/health.txt
+          echo "Version: https://img.shields.io/badge/version-$VERSION-blue" > .github/badges/version.txt
+          echo "Downloads: https://img.shields.io/badge/downloads-$DOWNLOADS-blue" > .github/badges/downloads.txt
+
+      - name: Commit badge updates
+        if: github.event_name == 'schedule'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+          if [ -n "$(git status --porcelain)" ]; then
+            git add .github/badges/
+            git commit -m "chore: update package monitoring badges [skip ci]"
+            git push
+          fi
 
   generate-report:
     runs-on: ubuntu-latest
     needs: monitor-package
     if: github.event.inputs.generate_report == 'true' || github.event_name == 'schedule'
-    
+
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      
-    - name: Download monitoring results
-      uses: actions/download-artifact@v4
-      with:
-        name: package-monitoring-results
-        
-    - name: Generate comprehensive report
-      run: |
-        cat > monitoring_report.md << 'EOF'
-        # MockLoop MCP Package Monitoring Report
-        
-        **Generated:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
-        **Workflow Run:** [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-        
-        ## Current Status
-        
-        | Metric | Value |
-        |--------|-------|
-        | Package Health | ${{ needs.monitor-package.outputs.health || 'Unknown' }} |
-        | Current Version | ${{ needs.monitor-package.outputs.version || 'Unknown' }} |
-        | Recent Downloads | ${{ needs.monitor-package.outputs.downloads || 'Unknown' }} |
-        | Last Check | ${{ needs.monitor-package.outputs.timestamp || 'Unknown' }} |
-        
-        ## Health Status Definitions
-        
-        - **HEALTHY**: Package updated within last 6 months
-        - **AGING**: Package updated 6-12 months ago
-        - **STALE**: Package not updated in over a year
-        - **UNAVAILABLE**: Package not found on PyPI
-        
-        ## Monitoring Details
-        
-        This report is generated automatically every 6 hours to track:
-        - Package availability on PyPI
-        - Download statistics and trends
-        - Version freshness and update frequency
-        - Dependency health and compatibility
-        - Overall package ecosystem health
-        
-        ## Actions Taken
-        
-        - ✅ Package statistics collected
-        - ✅ Health status evaluated
-        - ✅ Download metrics tracked
-        - ✅ Automated alerts configured
-        
-        For detailed statistics, check the monitoring artifacts in this workflow run.
-        EOF
-        
-    - name: Upload report
-      uses: actions/upload-artifact@v4
-      if: success() && hashFiles('monitoring_report.md') != ''
-      with:
-        name: monitoring-report
-        path: monitoring_report.md
-        retention-days: 90
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download monitoring results
+        uses: actions/download-artifact@v4
+        with:
+          name: package-monitoring-results
+
+      - name: Generate comprehensive report
+        run: |
+          cat > monitoring_report.md << 'EOF'
+          # MockLoop MCP Package Monitoring Report
+
+          **Generated:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          **Workflow Run:** [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+          ## Current Status
+
+          | Metric | Value |
+          |--------|-------|
+          | Package Health | ${{ needs.monitor-package.outputs.health || 'Unknown' }} |
+          | Current Version | ${{ needs.monitor-package.outputs.version || 'Unknown' }} |
+          | Recent Downloads | ${{ needs.monitor-package.outputs.downloads || 'Unknown' }} |
+          | Last Check | ${{ needs.monitor-package.outputs.timestamp || 'Unknown' }} |
+
+          ## Health Status Definitions
+
+          - **HEALTHY**: Package updated within last 6 months
+          - **AGING**: Package updated 6-12 months ago
+          - **STALE**: Package not updated in over a year
+          - **UNAVAILABLE**: Package not found on PyPI
+
+          ## Monitoring Details
+
+          This report is generated automatically every 6 hours to track:
+          - Package availability on PyPI
+          - Download statistics and trends
+          - Version freshness and update frequency
+          - Dependency health and compatibility
+          - Overall package ecosystem health
+
+          ## Actions Taken
+
+          - ✅ Package statistics collected
+          - ✅ Health status evaluated
+          - ✅ Download metrics tracked
+          - ✅ Automated alerts configured
+
+          For detailed statistics, check the monitoring artifacts in this workflow run.
+          EOF
+
+      - name: Upload report
+        uses: actions/upload-artifact@v4
+        if: success() && hashFiles('monitoring_report.md') != ''
+        with:
+          name: monitoring-report
+          path: monitoring_report.md
+          retention-days: 90
