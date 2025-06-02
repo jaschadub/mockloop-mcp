@@ -6,8 +6,8 @@ __version__ = "2.2.1"
 from .proxy import PluginManager, ProxyHandler, AuthHandler, ProxyConfig
 
 __all__ = [
-    "PluginManager",
-    "ProxyHandler",
     "AuthHandler",
+    "PluginManager",
     "ProxyConfig",
+    "ProxyHandler",
 ]

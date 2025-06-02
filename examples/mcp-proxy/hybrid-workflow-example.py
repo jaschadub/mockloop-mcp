@@ -19,10 +19,10 @@ from mockloop_mcp.proxy.config import ProxyConfig, AuthConfig, AuthType, RouteRu
 
 async def main():
     """Demonstrate hybrid workflow with intelligent routing."""
-    
+
     print("🔀 Hybrid Workflow Example - Smart Mock-to-Proxy Routing")
     print("=" * 60)
-    
+
     # Define a comprehensive API specification
     api_spec = {
         "openapi": "3.0.0",
@@ -189,10 +189,10 @@ async def main():
             }
         }
     }
-    
+
     # Step 1: Create hybrid plugin with intelligent routing rules
     print("📝 Step 1: Creating hybrid plugin with routing rules...")
-    
+
     # Define routing rules for hybrid mode
     routing_rules = [
         {
@@ -224,7 +224,7 @@ async def main():
             "description": "Default to mock for all other endpoints"
         }
     ]
-    
+
     try:
         hybrid_plugin = await create_mcp_plugin(
             spec_url_or_path=json.dumps(api_spec),
@@ -244,26 +244,26 @@ async def main():
                 "routing_rules": routing_rules
             }
         )
-        
-        print(f"✅ Hybrid plugin created successfully!")
+
+        print("✅ Hybrid plugin created successfully!")
         print(f"   Plugin ID: {hybrid_plugin.get('plugin_id', 'N/A')}")
         print(f"   Mode: {hybrid_plugin.get('mode', 'N/A')}")
         print(f"   Routing rules: {len(routing_rules)}")
-        
+
         # Display routing rules
         print("\n📋 Routing Rules Configuration:")
         for i, rule in enumerate(routing_rules, 1):
             print(f"   {i}. {rule['pattern']} → {rule['mode']} (priority: {rule['priority']})")
             if rule['condition']:
                 print(f"      Condition: {rule['condition']}")
-        
+
     except Exception as e:
         print(f"❌ Failed to create hybrid plugin: {e}")
         return
-    
+
     # Step 2: Test different routing scenarios
     print("\n🧪 Step 2: Testing routing scenarios...")
-    
+
     test_scenarios = [
         {
             "name": "Product Browsing (Mock Mode)",
@@ -290,11 +290,11 @@ async def main():
             "expected_mode": "mock"
         }
     ]
-    
+
     for scenario in test_scenarios:
         print(f"\n   🔍 Testing: {scenario['name']}")
         print(f"      Expected mode: {scenario['expected_mode']}")
-        
+
         try:
             # Simulate test execution for this scenario
             scenario_results = await execute_test_plan(
@@ -312,21 +312,21 @@ async def main():
                 # Pass scenario-specific headers
                 request_headers=scenario["headers"]
             )
-            
+
             detected_mode = scenario_results.get('detected_mode', 'unknown')
             print(f"      ✅ Detected mode: {detected_mode}")
-            
+
             if detected_mode == scenario['expected_mode']:
-                print(f"      🎯 Routing worked as expected!")
+                print("      🎯 Routing worked as expected!")
             else:
                 print(f"      ⚠️  Unexpected routing (expected {scenario['expected_mode']})")
-                
+
         except Exception as e:
             print(f"      ❌ Scenario failed: {e}")
-    
+
     # Step 3: Demonstrate gradual migration
     print("\n🔄 Step 3: Demonstrating gradual migration...")
-    
+
     migration_phases = [
         {
             "phase": "Development Phase",
@@ -353,15 +353,15 @@ async def main():
             "proxy_percentage": 100
         }
     ]
-    
+
     print("📈 Migration phases:")
     for phase in migration_phases:
         print(f"   • {phase['phase']}: {phase['proxy_percentage']}% proxy, {phase['mock_percentage']}% mock")
         print(f"     {phase['description']}")
-    
+
     # Step 4: Performance and reliability comparison
     print("\n⚡ Step 4: Performance and reliability analysis...")
-    
+
     try:
         # Simulate performance testing
         performance_results = await execute_test_plan(
@@ -375,7 +375,7 @@ async def main():
             auto_generate_scenarios=True,
             execute_immediately=True
         )
-        
+
         # Display performance metrics
         metrics = performance_results.get('performance_metrics', {})
         print("📊 Performance Analysis:")
@@ -383,20 +383,20 @@ async def main():
         print(f"   Proxy endpoints avg response time: {metrics.get('proxy_avg_time', 'N/A')}ms")
         print(f"   Overall success rate: {metrics.get('success_rate', 'N/A')}%")
         print(f"   Routing accuracy: {metrics.get('routing_accuracy', 'N/A')}%")
-        
+
         # Reliability metrics
         reliability = performance_results.get('reliability_metrics', {})
-        print(f"\n🛡️  Reliability Analysis:")
+        print("\n🛡️  Reliability Analysis:")
         print(f"   Mock endpoint availability: {reliability.get('mock_availability', 'N/A')}%")
         print(f"   Proxy endpoint availability: {reliability.get('proxy_availability', 'N/A')}%")
         print(f"   Fallback success rate: {reliability.get('fallback_rate', 'N/A')}%")
-        
+
     except Exception as e:
         print(f"❌ Performance analysis failed: {e}")
-    
+
     # Step 5: Advanced routing conditions
     print("\n🎯 Step 5: Advanced routing conditions...")
-    
+
     advanced_conditions = [
         {
             "name": "Time-based routing",
@@ -419,16 +419,16 @@ async def main():
             "description": "Use proxy for internal users, mock for external"
         }
     ]
-    
+
     print("🔧 Advanced routing conditions:")
     for condition in advanced_conditions:
         print(f"   • {condition['name']}")
         print(f"     Condition: {condition['condition']}")
         print(f"     Use case: {condition['description']}")
-    
+
     # Step 6: Error handling and fallback strategies
     print("\n🛡️ Step 6: Error handling and fallback strategies...")
-    
+
     fallback_strategies = [
         {
             "scenario": "Proxy endpoint unavailable",
@@ -451,16 +451,16 @@ async def main():
             "implementation": "Timeout detection with fast failover"
         }
     ]
-    
+
     print("🔄 Fallback strategies:")
     for strategy in fallback_strategies:
         print(f"   • {strategy['scenario']}")
         print(f"     Strategy: {strategy['strategy']}")
         print(f"     Implementation: {strategy['implementation']}")
-    
+
     # Step 7: Monitoring and observability
     print("\n📊 Step 7: Monitoring and observability...")
-    
+
     monitoring_metrics = [
         "Request routing decisions (mock vs proxy)",
         "Response time differences between modes",
@@ -470,11 +470,11 @@ async def main():
         "Cache hit/miss ratios",
         "Network latency and availability"
     ]
-    
+
     print("📈 Key monitoring metrics:")
     for metric in monitoring_metrics:
         print(f"   • {metric}")
-    
+
     print("\n🎯 Benefits of Hybrid Mode:")
     print("   • Gradual migration from mock to live API")
     print("   • Risk mitigation through intelligent routing")
@@ -482,7 +482,7 @@ async def main():
     print("   • Comprehensive testing across different scenarios")
     print("   • Fallback capabilities for reliability")
     print("   • Cost optimization by reducing unnecessary API calls")
-    
+
     print("\n✨ Next Steps:")
     print("   1. Try authentication-examples.py for auth scenarios")
     print("   2. Set up monitoring dashboards for hybrid mode")

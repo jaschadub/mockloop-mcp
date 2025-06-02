@@ -16,10 +16,10 @@ from mockloop_mcp.mcp_tools import create_mcp_plugin, execute_test_plan
 
 async def main():
     """Demonstrate basic mock plugin creation and testing."""
-    
+
     print("🚀 Basic Mock Example - Creating MCP Plugin")
     print("=" * 50)
-    
+
     # Define a simple API specification
     api_spec = {
         "openapi": "3.0.0",
@@ -137,10 +137,10 @@ async def main():
             }
         }
     }
-    
+
     # Step 1: Create MCP plugin in mock mode
     print("📝 Step 1: Creating MCP plugin in mock mode...")
-    
+
     try:
         plugin_result = await create_mcp_plugin(
             spec_url_or_path=json.dumps(api_spec),  # Pass spec as JSON string
@@ -150,19 +150,19 @@ async def main():
             auth_config=None,  # No authentication for this example
             proxy_config=None  # No proxy config needed for mock mode
         )
-        
-        print(f"✅ Plugin created successfully!")
+
+        print("✅ Plugin created successfully!")
         print(f"   Plugin ID: {plugin_result.get('plugin_id', 'N/A')}")
         print(f"   Mode: {plugin_result.get('mode', 'N/A')}")
         print(f"   Endpoints: {len(plugin_result.get('endpoints', []))}")
-        
+
     except Exception as e:
         print(f"❌ Failed to create plugin: {e}")
         return
-    
+
     # Step 2: Execute test plan with mock responses
     print("\n🧪 Step 2: Executing test plan with mock responses...")
-    
+
     try:
         test_results = await execute_test_plan(
             openapi_spec=api_spec,
@@ -173,13 +173,13 @@ async def main():
             auto_generate_scenarios=True,
             execute_immediately=True
         )
-        
-        print(f"✅ Test execution completed!")
+
+        print("✅ Test execution completed!")
         print(f"   Total tests: {test_results.get('total_tests', 0)}")
         print(f"   Passed: {test_results.get('passed', 0)}")
         print(f"   Failed: {test_results.get('failed', 0)}")
         print(f"   Duration: {test_results.get('duration', 0):.2f}s")
-        
+
         # Display test details
         if test_results.get('test_details'):
             print("\n📊 Test Details:")
@@ -189,14 +189,14 @@ async def main():
                 print(f"      Response: {test.get('status_code', 'N/A')}")
                 if test.get('response_time'):
                     print(f"      Time: {test.get('response_time', 0):.3f}s")
-        
+
     except Exception as e:
         print(f"❌ Test execution failed: {e}")
         return
-    
+
     # Step 3: Demonstrate mock response customization
     print("\n🎨 Step 3: Mock response customization example...")
-    
+
     # Show how to customize mock responses
     custom_responses = {
         "/users": {
@@ -234,19 +234,19 @@ async def main():
             }
         }
     }
-    
+
     print("📝 Custom mock responses configured:")
     for endpoint, methods in custom_responses.items():
         for method, config in methods.items():
             print(f"   {method} {endpoint} → {config['status_code']}")
-    
+
     print("\n🎯 Key Benefits of Mock Mode:")
     print("   • Fast development without external dependencies")
     print("   • Predictable responses for consistent testing")
     print("   • Easy testing of edge cases and error scenarios")
     print("   • No API rate limits or authentication requirements")
     print("   • Offline development capability")
-    
+
     print("\n✨ Next Steps:")
     print("   1. Explore `create_plugin_modes_example.py` to see PROXY and HYBRID mode plugin creation.")
     print("   2. Run `execute_plan_with_proxy_example.py` to test PROXY mode against a live API.")

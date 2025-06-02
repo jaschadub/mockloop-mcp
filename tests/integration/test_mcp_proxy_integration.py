@@ -279,7 +279,7 @@ class TestMCPProxyIntegration:
         """Test ProxyConfig creation and serialization."""
         # Create auth config
         auth_config = AuthConfig.from_dict(auth_configs["api_key"])
-        
+
         # Create endpoint configs
         endpoint1 = EndpointConfig(
             path="/users",
@@ -287,7 +287,7 @@ class TestMCPProxyIntegration:
             proxy_url="https://api.example.com/users",
             timeout=30
         )
-        
+
         endpoint2 = EndpointConfig(
             path="/users/{id}",
             method="GET",
@@ -301,7 +301,7 @@ class TestMCPProxyIntegration:
             mode=ProxyMode.MOCK,
             priority=10
         )
-        
+
         rule2 = RouteRule(
             pattern="/users/{id}",
             mode=ProxyMode.PROXY,
@@ -428,7 +428,7 @@ class TestMCPProxyIntegration:
         """Test execute_test_plan in mock mode."""
         with patch('mockloop_mcp.mcp_tools.discover_mock_servers') as mock_discover, \
              patch('mockloop_mcp.mcp_tools.query_mock_logs') as mock_query:
-            
+
             mock_discover.return_value = {
                 "servers": [{"url": "http://localhost:8000", "status": "healthy"}]
             }
@@ -453,7 +453,7 @@ class TestMCPProxyIntegration:
         """Test execute_test_plan in proxy mode with validation."""
         with patch('mockloop_mcp.mcp_tools.discover_mock_servers') as mock_discover, \
              patch('mockloop_mcp.mcp_tools.query_mock_logs') as mock_query:
-            
+
             mock_discover.return_value = {
                 "servers": [{"url": "http://localhost:8000", "status": "healthy"}]
             }
@@ -483,7 +483,7 @@ class TestMCPProxyIntegration:
         """Test execute_test_plan in hybrid mode with comparison."""
         with patch('mockloop_mcp.mcp_tools.discover_mock_servers') as mock_discover, \
              patch('mockloop_mcp.mcp_tools.query_mock_logs') as mock_query:
-            
+
             mock_discover.return_value = {
                 "servers": [{"url": "http://localhost:8000", "status": "healthy"}]
             }
@@ -515,7 +515,7 @@ class TestMCPProxyIntegration:
         """Test execute_test_plan with automatic mode detection."""
         with patch('mockloop_mcp.mcp_tools.discover_mock_servers') as mock_discover, \
              patch('mockloop_mcp.mcp_tools.query_mock_logs') as mock_query:
-            
+
             mock_discover.return_value = {
                 "servers": [{"url": "http://localhost:8000", "status": "healthy", "mode": "hybrid"}]
             }
@@ -564,7 +564,7 @@ class TestMCPProxyIntegration:
 
     def test_error_handling_invalid_spec(self):
         """Test error handling with invalid API specifications."""
-        with pytest.raises(Exception):
+        with pytest.raises((ValueError, json.JSONDecodeError)):
             asyncio.run(create_mcp_plugin(
                 spec_url_or_path="invalid-json",
                 mode="mock",
@@ -581,7 +581,7 @@ class TestMCPProxyIntegration:
             "credentials": {}
         }
 
-        with pytest.raises(Exception):
+        with pytest.raises((ValueError, KeyError)):
             asyncio.run(create_mcp_plugin(
                 spec_url_or_path=json.dumps(sample_api_spec),
                 mode="proxy",
@@ -615,7 +615,7 @@ class TestMCPProxyIntegration:
         """Test performance monitoring integration."""
         with patch('mockloop_mcp.mcp_tools.discover_mock_servers') as mock_discover, \
              patch('mockloop_mcp.mcp_tools.query_mock_logs') as mock_query:
-            
+
             mock_discover.return_value = {
                 "servers": [{"url": "http://localhost:8000", "status": "healthy"}]
             }
@@ -714,7 +714,9 @@ class TestMCPProxyIntegration:
             mock_plugin_manager_instance.create_plugin.return_value = f"mcp_{plugin_name}_id"
             mock_plugin_manager_cls.return_value = mock_plugin_manager_instance
             mock_register.return_value = {"status": "success", "registered": True}
-            mock_gen_api.return_value = Path(f"/tmp/{plugin_name}_mock")
+            import tempfile
+            with tempfile.TemporaryDirectory() as temp_dir:
+                mock_gen_api.return_value = Path(temp_dir) / f"{plugin_name}_mock"
 
 
             plugin_result = await create_mcp_plugin(
@@ -740,7 +742,7 @@ class TestMCPProxyIntegration:
                 mock_response.headers = {"content-type": "application/json"}
                 mock_response.json.return_value = {"id": 1, "title": "delectus aut autem", "completed": False}
                 mock_response.text.return_value = json.dumps({"id": 1, "title": "delectus aut autem", "completed": False})
-                
+
                 # __aenter__ and __aexit__ are needed for async context manager
                 mock_session_instance = AsyncMock()
                 mock_session_instance.__aenter__.return_value = mock_response
@@ -763,7 +765,7 @@ class TestMCPProxyIntegration:
                     )
 
                 assert test_plan_result["status"] in ["success", "partial_success", "completed"] # 'completed' is from older version
-                
+
                 # Verify aiohttp.request was called, indicating an attempt to hit the external API
                 mock_aiohttp_request.assert_called()
                 called_url = mock_aiohttp_request.call_args[0][1]
@@ -774,11 +776,11 @@ class TestMCPProxyIntegration:
                 assert len(test_plan_result.get("execution_results", [])) > 0
                 first_exec_result = test_plan_result["execution_results"][0]
                 # The structure of execution_results can vary, check for logs or responses
-                if "request_logs" in first_exec_result and first_exec_result["request_logs"]:
+                if first_exec_result.get("request_logs"):
                      actual_response_body = first_exec_result["request_logs"][0].get("body")
                      assert actual_response_body is not None
                      assert actual_response_body.get("id") == 1
-                elif "live_responses" in first_exec_result and first_exec_result["live_responses"]: # Older structure
+                elif first_exec_result.get("live_responses"): # Older structure
                      actual_response_body = first_exec_result["live_responses"][0].get("body")
                      assert actual_response_body is not None
                      assert actual_response_body.get("id") == 1
@@ -818,7 +820,9 @@ class TestMCPProxyIntegration:
             mock_plugin_manager_instance.create_plugin.return_value = f"mcp_{plugin_name}_id"
             mock_plugin_manager_cls.return_value = mock_plugin_manager_instance
             mock_register.return_value = {"status": "success", "registered": True}
-            mock_gen_api.return_value = Path(f"/tmp/{plugin_name}_mock")
+            import tempfile
+            with tempfile.TemporaryDirectory() as temp_dir:
+                mock_gen_api.return_value = Path(temp_dir) / f"{plugin_name}_mock"
 
             plugin_result = await create_mcp_plugin(
                 spec_url_or_path=json.dumps(hybrid_spec),
@@ -832,7 +836,7 @@ class TestMCPProxyIntegration:
             assert plugin_result["status"] == "success"
             assert plugin_result["mode"] == "hybrid"
             assert plugin_result["plugin_name"] == plugin_name
-            
+
             # Verify that the output proxy_config reflects the input route_rules
             output_proxy_config = plugin_result.get("proxy_config", {})
             assert output_proxy_config.get("mode") == "hybrid" # from proxy_cfg_dict

@@ -101,7 +101,7 @@ async def main():
 
         if hybrid_plugin_result.get("status") == "success":
             print("\nPlugin configured for HYBRID mode with routing rules:")
-            print(f"- Requests to '/mocked/data' should be handled by MOCK logic.")
+            print("- Requests to '/mocked/data' should be handled by MOCK logic.")
             print(f"- Requests to '/proxied/todos/*' should be PROXIED to {JSONPLACEHOLDER_TARGET_URL}.")
         else:
             print("Failed to create hybrid plugin.")
