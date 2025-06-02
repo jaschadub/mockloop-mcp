@@ -368,7 +368,7 @@ class TestMCPProxyIntegration:
         # Verify the function returns a valid response
         assert authenticated_request is not None
         assert "headers" in authenticated_request
-        
+
         # Test that credentials were stored
         assert "test_api" in auth_handler.credentials
         assert auth_handler.credentials["test_api"]["auth_type"] == AuthType.API_KEY

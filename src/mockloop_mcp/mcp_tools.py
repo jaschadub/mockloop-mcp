@@ -2849,7 +2849,7 @@ async def _load_openapi_spec(spec_url_or_path: str) -> dict[str, Any]:
         # Check if it's a JSON string (starts with { or [)
         if spec_url_or_path.strip().startswith(("{", "[")):
             return json.loads(spec_url_or_path)
-        
+
         # Check if it's a URL
         if spec_url_or_path.startswith(("http://", "https://")):
             import aiohttp
