@@ -12,8 +12,9 @@ from dataclasses import asdict, dataclass
 import json
 from pathlib import Path
 import re
-import subprocess
+import subprocess  # nosec B404 - needed for validation commands
 import sys
+from urllib.parse import urlparse
 
 
 @dataclass
@@ -64,10 +65,36 @@ class PyPIValidator:
         """Add a recommendation."""
         self.recommendations.append(recommendation)
 
+    def _check_for_valid_badges(self, content: str) -> bool:
+        """Check for valid PyPI badges using proper URL parsing."""
+        # Find all URLs in markdown format [text](url) and HTML format src="url"
+        url_patterns = [
+            r'\[.*?\]\((https?://[^\)]+)\)',  # Markdown links
+            r'src=["\']([^"\']+)["\']',       # HTML src attributes
+            r'href=["\']([^"\']+)["\']'       # HTML href attributes
+        ]
+
+        valid_badge_hosts = {'pypi.org', 'img.shields.io'}
+
+        for pattern in url_patterns:
+            matches = re.findall(pattern, content)
+            for url in matches:
+                try:
+                    parsed_url = urlparse(url)
+                    # Check if the hostname exactly matches our allowed hosts
+                    if parsed_url.hostname in valid_badge_hosts:
+                        return True
+                except (ValueError, TypeError) as e:
+                    # Log specific URL parsing errors for debugging
+                    print(f"Warning: Failed to parse URL '{url}': {e}")
+                    continue
+
+        return False
+
     def run_command(self, command: list[str], cwd: Path | None = None) -> tuple[bool, str, str]:
         """Run a command and return success, stdout, stderr."""
         try:
-            result = subprocess.run(
+            result = subprocess.run(  # nosec B603 - command list is controlled, no shell injection risk
                 command,
                 cwd=cwd or self.project_root,
                 capture_output=True,
@@ -400,12 +427,13 @@ class PyPIValidator:
                         severity="warning"
                     )
 
-            # Check for PyPI badges
-            if "pypi.org" in readme_content or "img.shields.io" in readme_content:
+            # Check for PyPI badges using proper URL parsing
+            has_pypi_badges = self._check_for_valid_badges(readme_content)
+            if has_pypi_badges:
                 self.add_result(
                     "readme_badges",
                     True,
-                    "README contains PyPI badges"
+                    "README contains valid PyPI badges"
                 )
             else:
                 self.add_result(
