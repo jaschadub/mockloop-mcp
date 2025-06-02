@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.7] - 2025-06-02
+
+### Fixed
+- Version synchronization across project files
+- Updated version consistency between pyproject.toml and __init__.py
+
+### Changed
+- Maintenance release with version alignment improvements
+
 ## [2.2.6] - 2025-06-01
 
 ### Added
@@ -121,7 +130,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Integrated multiple security analysis tools (Bandit, Safety, Semgrep, pip-audit)
 - Configured secure coding practices and validation
 
-[Unreleased]: https://github.com/mockloop/mockloop-mcp/compare/v2.2.5...HEAD
+[Unreleased]: https://github.com/mockloop/mockloop-mcp/compare/v2.2.7...HEAD
+[2.2.7]: https://github.com/mockloop/mockloop-mcp/releases/tag/v2.2.7
+[2.2.6]: https://github.com/mockloop/mockloop-mcp/releases/tag/v2.2.6
 [2.2.5]: https://github.com/mockloop/mockloop-mcp/releases/tag/v2.2.5
 [2.2.4]: https://github.com/mockloop/mockloop-mcp/releases/tag/v2.2.4
 [2.2.3]: https://github.com/mockloop/mockloop-mcp/releases/tag/v2.2.3
