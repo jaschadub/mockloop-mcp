@@ -27,21 +27,26 @@ jinja_env = Environment(loader=FileSystemLoader(TEMPLATE_DIR), autoescape=False)
 
 # Add base64 encode filter for admin UI template
 import base64
+
+
 def b64encode_filter(s):
     """Base64 encode filter for Jinja2 templates"""
     if isinstance(s, str):
-        s = s.encode('utf-8')
-    return base64.b64encode(s).decode('ascii')
+        s = s.encode("utf-8")
+    return base64.b64encode(s).decode("ascii")
 
-jinja_env.filters['b64encode'] = b64encode_filter
+
+jinja_env.filters["b64encode"] = b64encode_filter
+
 
 # Add Python boolean conversion filter
 def python_bool_filter(value):
     """Convert JavaScript-style boolean values to Python boolean values"""
     if isinstance(value, str):
-        js_to_python = {'true': True, 'false': False, 'null': None}
+        js_to_python = {"true": True, "false": False, "null": None}
         return js_to_python.get(value, value)
     return value
+
 
 def convert_js_to_python(obj):
     """Recursively convert JavaScript-style boolean values to Python values"""
@@ -50,12 +55,13 @@ def convert_js_to_python(obj):
     elif isinstance(obj, list):
         return [convert_js_to_python(item) for item in obj]
     elif isinstance(obj, str):
-        js_to_python = {'true': True, 'false': False, 'null': None}
+        js_to_python = {"true": True, "false": False, "null": None}
         return js_to_python.get(obj, obj)
     return obj
 
-jinja_env.filters['python_bool'] = python_bool_filter
-jinja_env.filters['convert_js_to_python'] = convert_js_to_python
+
+jinja_env.filters["python_bool"] = python_bool_filter
+jinja_env.filters["convert_js_to_python"] = convert_js_to_python
 
 
 def _to_bool(value: Any) -> bool:
@@ -226,10 +232,14 @@ def generate_mock_api(
 
         if admin_ui_enabled_bool:
             # Load analytics charts and functions templates
-            analytics_charts_template = jinja_env.get_template("analytics_charts_template.j2")
+            analytics_charts_template = jinja_env.get_template(
+                "analytics_charts_template.j2"
+            )
             analytics_charts_code = analytics_charts_template.render()
 
-            analytics_functions_template = jinja_env.get_template("analytics_functions_template.j2")
+            analytics_functions_template = jinja_env.get_template(
+                "analytics_functions_template.j2"
+            )
             analytics_functions_code = analytics_functions_template.render()
 
             admin_ui_template = jinja_env.get_template("admin_ui_template.j2")
@@ -255,13 +265,12 @@ def generate_mock_api(
             # Generate log analyzer module for admin UI analytics
             log_analyzer_template = jinja_env.get_template("log_analyzer_template.j2")
             log_analyzer_code = log_analyzer_template.render()
-            with open(
-                mock_server_dir / "log_analyzer.py", "w", encoding="utf-8"
-            ) as f:
+            with open(mock_server_dir / "log_analyzer.py", "w", encoding="utf-8") as f:
                 f.write(log_analyzer_code)
 
             # Copy favicon.ico to prevent 404s in admin UI
             import shutil
+
             favicon_source_paths = [
                 Path(__file__).parent.parent.parent / "favicon.ico",  # Project root
                 Path(__file__).parent / "favicon.ico",  # Template directory
@@ -319,19 +328,25 @@ def generate_mock_api(
                         for content_type, content_schema in content.items():
                             if "application/json" in content_type:
                                 if "example" in content_schema:
-                                    converted_example = convert_js_to_python(content_schema["example"])
+                                    converted_example = convert_js_to_python(
+                                        content_schema["example"]
+                                    )
                                     example_response = repr(converted_example)
                                     break
                                 schema = content_schema.get("schema", {})
                                 if "example" in schema:
-                                    converted_example = convert_js_to_python(schema["example"])
+                                    converted_example = convert_js_to_python(
+                                        schema["example"]
+                                    )
                                     example_response = repr(converted_example)
                                     break
                                 examples = content_schema.get("examples", {})
                                 if examples:
                                     first_example = next(iter(examples.values()), {})
                                     if "value" in first_example:
-                                        converted_example = convert_js_to_python(first_example["value"])
+                                        converted_example = convert_js_to_python(
+                                            first_example["value"]
+                                        )
                                         example_response = repr(converted_example)
                                         break
                         if example_response:
@@ -402,7 +417,9 @@ async def favicon():
 
         # Generate separate admin logging middleware if admin UI is enabled
         if admin_ui_enabled_bool:
-            admin_middleware_template = jinja_env.get_template("admin_middleware_log_template.j2")
+            admin_middleware_template = jinja_env.get_template(
+                "admin_middleware_log_template.j2"
+            )
             admin_logging_middleware_code = admin_middleware_template.render()
             with open(
                 mock_server_dir / "admin_logging_middleware.py", "w", encoding="utf-8"

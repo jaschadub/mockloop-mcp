@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 class ProxyMode(Enum):
     """Proxy operation modes."""
+
     MOCK = "mock"
     PROXY = "proxy"
     HYBRID = "hybrid"
@@ -62,17 +63,23 @@ class ProxyHandler:
         else:  # HYBRID
             return await self._handle_hybrid_request(request_data)
 
-    async def _handle_mock_request(self, _request_data: dict[str, Any]) -> dict[str, Any]:
+    async def _handle_mock_request(
+        self, _request_data: dict[str, Any]
+    ) -> dict[str, Any]:
         """Handle request using mock endpoints."""
         # TODO: Implement mock request handling
         return {"status": 200, "data": {"message": "Mock response"}}
 
-    async def _handle_proxy_request(self, _request_data: dict[str, Any]) -> dict[str, Any]:
+    async def _handle_proxy_request(
+        self, _request_data: dict[str, Any]
+    ) -> dict[str, Any]:
         """Handle request by proxying to real API."""
         # TODO: Implement proxy request handling
         return {"status": 200, "data": {"message": "Proxied response"}}
 
-    async def _handle_hybrid_request(self, _request_data: dict[str, Any]) -> dict[str, Any]:
+    async def _handle_hybrid_request(
+        self, _request_data: dict[str, Any]
+    ) -> dict[str, Any]:
         """Handle request using hybrid mock/proxy logic."""
         # TODO: Implement hybrid request handling based on rules
         return {"status": 200, "data": {"message": "Hybrid response"}}
@@ -114,5 +121,5 @@ class ProxyHandler:
             "mode": self.mode.value,
             "mock_endpoints": len(self.mock_endpoints),
             "proxy_endpoints": len(self.proxy_endpoints),
-            "route_rules": len(self.route_rules)
+            "route_rules": len(self.route_rules),
         }

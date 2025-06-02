@@ -201,7 +201,7 @@ class DatabaseMigrator:
                         details TEXT,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         FOREIGN KEY (entry_id) REFERENCES mcp_audit_logs (entry_id)
-                    )"""
+                    )""",
                 ],
             },
         }
@@ -306,7 +306,9 @@ class DatabaseMigrator:
 
                                 # Validate column name to prevent SQL injection
                                 if not column_name.isidentifier():
-                                    raise ValueError(f"Invalid column name: {column_name}")
+                                    raise ValueError(
+                                        f"Invalid column name: {column_name}"
+                                    )
 
                                 # Use safe PRAGMA query with validated table name
                                 cursor.execute(f"PRAGMA table_info({table_name})")

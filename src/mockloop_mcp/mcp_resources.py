@@ -51,25 +51,25 @@ SCENARIO_PACK_CATEGORIES = {
         "4xx-client-errors": "HTTP 4xx client error scenarios",
         "5xx-server-errors": "HTTP 5xx server error scenarios",
         "network-timeouts": "Network timeout scenarios",
-        "rate-limiting": "Rate limiting scenarios"
+        "rate-limiting": "Rate limiting scenarios",
     },
     "performance": {
         "load-testing": "Load testing scenarios",
         "stress-testing": "Stress testing scenarios",
         "spike-testing": "Spike testing scenarios",
-        "endurance-testing": "Endurance testing scenarios"
+        "endurance-testing": "Endurance testing scenarios",
     },
     "security": {
         "auth-bypass": "Authentication bypass scenarios",
         "injection-attacks": "SQL/NoSQL injection scenarios",
         "xss-attacks": "Cross-site scripting scenarios",
-        "csrf-attacks": "CSRF attack scenarios"
+        "csrf-attacks": "CSRF attack scenarios",
     },
     "business": {
         "edge-cases": "Edge case scenarios",
         "data-validation": "Data validation scenarios",
-        "workflow-testing": "Business workflow scenarios"
-    }
+        "workflow-testing": "Business workflow scenarios",
+    },
 }
 
 
@@ -80,13 +80,14 @@ def mcp_resource_audit(resource_uri: str):
     Args:
         resource_uri: URI of the MCP resource being audited
     """
+
     def decorator(func):
         @wraps(func)
         async def wrapper(*args, **kwargs):
             audit_logger = create_audit_logger(
                 db_path="mcp_audit.db",
                 session_id=f"mcp_resource_{resource_uri.replace('://', '_').replace('/', '_')}",
-                user_id="mcp_system"
+                user_id="mcp_system",
             )
             start_time = time.time()
             entry_id = None
@@ -101,7 +102,7 @@ def mcp_resource_audit(resource_uri: str):
                         data_sources=["built_in_scenarios"],
                         compliance_tags=["mcp_resource", "scenario_pack"],
                         processing_purpose="scenario_pack_access",
-                        legal_basis="legitimate_interests"
+                        legal_basis="legitimate_interests",
                     )
 
                 # Execute the original function
@@ -121,7 +122,7 @@ def mcp_resource_audit(resource_uri: str):
                         data_sources=["built_in_scenarios"],
                         compliance_tags=["mcp_resource", "scenario_pack", "completion"],
                         processing_purpose="scenario_pack_access_completion",
-                        legal_basis="legitimate_interests"
+                        legal_basis="legitimate_interests",
                     )
 
                 return result
@@ -140,11 +141,12 @@ def mcp_resource_audit(resource_uri: str):
                         compliance_tags=["mcp_resource", "scenario_pack", "error"],
                         processing_purpose="scenario_pack_access_error",
                         legal_basis="legitimate_interests",
-                        error_details=str(e)
+                        error_details=str(e),
                     )
                 raise
 
         return wrapper
+
     return decorator
 
 
@@ -172,15 +174,30 @@ def _validate_resource_uri(uri: str) -> tuple[bool, str, str, str]:
         parts = path.split("/")
 
         if len(parts) != 2:
-            return False, "", "", "Invalid URI format. Expected: scenario-pack://category/pack-name"
+            return (
+                False,
+                "",
+                "",
+                "Invalid URI format. Expected: scenario-pack://category/pack-name",
+            )
 
         category, pack_name = parts
 
         if category not in SCENARIO_PACK_CATEGORIES:
-            return False, "", "", f"Unknown category: {category}. Available: {list(SCENARIO_PACK_CATEGORIES.keys())}"
+            return (
+                False,
+                "",
+                "",
+                f"Unknown category: {category}. Available: {list(SCENARIO_PACK_CATEGORIES.keys())}",
+            )
 
         if pack_name not in SCENARIO_PACK_CATEGORIES[category]:
-            return False, "", "", f"Unknown pack: {pack_name} in category {category}. Available: {list(SCENARIO_PACK_CATEGORIES[category].keys())}"
+            return (
+                False,
+                "",
+                "",
+                f"Unknown pack: {pack_name} in category {category}. Available: {list(SCENARIO_PACK_CATEGORIES[category].keys())}",
+            )
 
         return True, category, pack_name, ""
 
@@ -189,6 +206,7 @@ def _validate_resource_uri(uri: str) -> tuple[bool, str, str, str]:
 
 
 # Error Simulation Scenario Packs
+
 
 @mcp_resource_audit("scenario-pack://errors/4xx-client-errors")
 async def get_4xx_client_errors_pack() -> dict[str, Any]:
@@ -207,10 +225,10 @@ async def get_4xx_client_errors_pack() -> dict[str, Any]:
                 "API error handling validation",
                 "Client-side error recovery testing",
                 "User experience error scenarios",
-                "Input validation testing"
+                "Input validation testing",
             ],
             "prerequisites": ["Basic HTTP knowledge", "Error handling implementation"],
-            "last_updated": LAST_UPDATED
+            "last_updated": LAST_UPDATED,
         },
         "scenarios": [
             {
@@ -230,45 +248,45 @@ async def get_4xx_client_errors_pack() -> dict[str, Any]:
                                 "details": {
                                     "field_errors": {
                                         "email": "Invalid email format",
-                                        "age": "Must be between 18 and 120"
+                                        "age": "Must be between 18 and 120",
                                     }
-                                }
+                                },
                             },
-                            "headers": {"Content-Type": "application/json"}
-                        }
+                            "headers": {"Content-Type": "application/json"},
+                        },
                     }
                 ],
                 "test_parameters": {
                     "concurrent_users": 5,
                     "duration_seconds": 120,
                     "ramp_up_time": 20,
-                    "error_rate_threshold": 1.0
+                    "error_rate_threshold": 1.0,
                 },
                 "validation_rules": [
                     {
                         "rule_type": "status_code",
                         "condition": "equals",
-                        "expected_value": 400
+                        "expected_value": 400,
                     },
                     {
                         "rule_type": "response_format",
                         "condition": "contains_field",
-                        "expected_value": "error"
-                    }
-                ]
+                        "expected_value": "error",
+                    },
+                ],
             }
         ],
         "documentation": {
             "usage_examples": [
                 "Use for testing client-side error handling",
                 "Validate error message formats and consistency",
-                "Test user experience during error conditions"
+                "Test user experience during error conditions",
             ],
             "integration_notes": [
                 "Combine with logging scenarios to test error tracking",
-                "Use with authentication scenarios for comprehensive testing"
-            ]
-        }
+                "Use with authentication scenarios for comprehensive testing",
+            ],
+        },
     }
 
 
@@ -289,10 +307,10 @@ async def get_5xx_server_errors_pack() -> dict[str, Any]:
                 "System resilience testing",
                 "Error recovery validation",
                 "Monitoring and alerting testing",
-                "Failover scenario testing"
+                "Failover scenario testing",
             ],
             "prerequisites": ["Error handling implementation", "Monitoring setup"],
-            "last_updated": LAST_UPDATED
+            "last_updated": LAST_UPDATED,
         },
         "scenarios": [
             {
@@ -309,37 +327,37 @@ async def get_5xx_server_errors_pack() -> dict[str, Any]:
                             "response_data": {
                                 "error": "Internal Server Error",
                                 "message": "An unexpected error occurred",
-                                "error_id": "ERR-500-001"
+                                "error_id": "ERR-500-001",
                             },
-                            "headers": {"Content-Type": "application/json"}
-                        }
+                            "headers": {"Content-Type": "application/json"},
+                        },
                     }
                 ],
                 "test_parameters": {
                     "concurrent_users": 3,
                     "duration_seconds": 180,
                     "ramp_up_time": 30,
-                    "error_rate_threshold": 1.0
+                    "error_rate_threshold": 1.0,
                 },
                 "validation_rules": [
                     {
                         "rule_type": "status_code",
                         "condition": "equals",
-                        "expected_value": 500
+                        "expected_value": 500,
                     }
-                ]
+                ],
             }
         ],
         "documentation": {
             "usage_examples": [
                 "Test system resilience under server failures",
-                "Validate error recovery mechanisms"
+                "Validate error recovery mechanisms",
             ],
             "integration_notes": [
                 "Combine with load testing for realistic failure scenarios",
-                "Use with monitoring scenarios to test alerting"
-            ]
-        }
+                "Use with monitoring scenarios to test alerting",
+            ],
+        },
     }
 
 
@@ -359,10 +377,10 @@ async def get_network_timeouts_pack() -> dict[str, Any]:
             "use_cases": [
                 "Timeout handling validation",
                 "Retry mechanism testing",
-                "Network resilience testing"
+                "Network resilience testing",
             ],
             "prerequisites": ["Timeout configuration", "Retry logic implementation"],
-            "last_updated": LAST_UPDATED
+            "last_updated": LAST_UPDATED,
         },
         "scenarios": [
             {
@@ -378,37 +396,37 @@ async def get_network_timeouts_pack() -> dict[str, Any]:
                             "response_time_ms": 60000,
                             "response_data": {
                                 "error": "Request Timeout",
-                                "message": "Connection timeout"
+                                "message": "Connection timeout",
                             },
-                            "headers": {"Content-Type": "application/json"}
-                        }
+                            "headers": {"Content-Type": "application/json"},
+                        },
                     }
                 ],
                 "test_parameters": {
                     "concurrent_users": 3,
                     "duration_seconds": 300,
                     "ramp_up_time": 60,
-                    "error_rate_threshold": 1.0
+                    "error_rate_threshold": 1.0,
                 },
                 "validation_rules": [
                     {
                         "rule_type": "status_code",
                         "condition": "equals",
-                        "expected_value": 408
+                        "expected_value": 408,
                     }
-                ]
+                ],
             }
         ],
         "documentation": {
             "usage_examples": [
                 "Test client timeout configurations",
-                "Validate retry mechanisms"
+                "Validate retry mechanisms",
             ],
             "integration_notes": [
                 "Combine with load testing for realistic scenarios",
-                "Use with monitoring to test timeout alerting"
-            ]
-        }
+                "Use with monitoring to test timeout alerting",
+            ],
+        },
     }
 
 
@@ -428,10 +446,10 @@ async def get_rate_limiting_pack() -> dict[str, Any]:
             "use_cases": [
                 "Rate limit testing",
                 "Throttling mechanism validation",
-                "Quota management testing"
+                "Quota management testing",
             ],
             "prerequisites": ["Rate limiting implementation", "Quota tracking"],
-            "last_updated": LAST_UPDATED
+            "last_updated": LAST_UPDATED,
         },
         "scenarios": [
             {
@@ -447,46 +465,47 @@ async def get_rate_limiting_pack() -> dict[str, Any]:
                             "response_time_ms": 100,
                             "response_data": {
                                 "error": "Too Many Requests",
-                                "message": "Rate limit exceeded"
+                                "message": "Rate limit exceeded",
                             },
                             "headers": {
                                 "Content-Type": "application/json",
                                 "X-RateLimit-Limit": "100",
                                 "X-RateLimit-Remaining": "0",
-                                "Retry-After": "60"
-                            }
-                        }
+                                "Retry-After": "60",
+                            },
+                        },
                     }
                 ],
                 "test_parameters": {
                     "concurrent_users": 10,
                     "duration_seconds": 180,
                     "ramp_up_time": 30,
-                    "error_rate_threshold": 1.0
+                    "error_rate_threshold": 1.0,
                 },
                 "validation_rules": [
                     {
                         "rule_type": "status_code",
                         "condition": "equals",
-                        "expected_value": 429
+                        "expected_value": 429,
                     }
-                ]
+                ],
             }
         ],
         "documentation": {
             "usage_examples": [
                 "Test rate limiting mechanisms",
-                "Validate throttling responses"
+                "Validate throttling responses",
             ],
             "integration_notes": [
                 "Combine with load testing for realistic rate limit testing",
-                "Use with authentication scenarios for user-specific limits"
-            ]
-        }
+                "Use with authentication scenarios for user-specific limits",
+            ],
+        },
     }
 
 
 # Performance Testing Scenario Packs
+
 
 @mcp_resource_audit("scenario-pack://performance/load-testing")
 async def get_load_testing_pack() -> dict[str, Any]:
@@ -504,10 +523,10 @@ async def get_load_testing_pack() -> dict[str, Any]:
             "use_cases": [
                 "Performance baseline establishment",
                 "Capacity planning validation",
-                "SLA compliance testing"
+                "SLA compliance testing",
             ],
             "prerequisites": ["Performance monitoring", "Load testing tools"],
-            "last_updated": LAST_UPDATED
+            "last_updated": LAST_UPDATED,
         },
         "scenarios": [
             {
@@ -523,44 +542,48 @@ async def get_load_testing_pack() -> dict[str, Any]:
                             "response_time_ms": 150,
                             "response_data": {
                                 "users": [
-                                    {"id": 1, "name": "User 1", "email": "user1@example.com"}
+                                    {
+                                        "id": 1,
+                                        "name": "User 1",
+                                        "email": "user1@example.com",
+                                    }
                                 ],
-                                "total": 1
+                                "total": 1,
                             },
-                            "headers": {"Content-Type": "application/json"}
-                        }
+                            "headers": {"Content-Type": "application/json"},
+                        },
                     }
                 ],
                 "test_parameters": {
                     "concurrent_users": 100,
                     "duration_seconds": 600,
                     "ramp_up_time": 120,
-                    "error_rate_threshold": 0.01
+                    "error_rate_threshold": 0.01,
                 },
                 "validation_rules": [
                     {
                         "rule_type": "response_time",
                         "condition": "p95_response_time_ms",
-                        "expected_value": 500
+                        "expected_value": 500,
                     },
                     {
                         "rule_type": "throughput",
                         "condition": "min_requests_per_second",
-                        "expected_value": 200
-                    }
-                ]
+                        "expected_value": 200,
+                    },
+                ],
             }
         ],
         "documentation": {
             "usage_examples": [
                 "Establish performance baselines",
-                "Validate system capacity"
+                "Validate system capacity",
             ],
             "integration_notes": [
                 "Combine with monitoring scenarios",
-                "Use with database performance testing"
-            ]
-        }
+                "Use with database performance testing",
+            ],
+        },
     }
 
 
@@ -576,14 +599,19 @@ async def get_stress_testing_pack() -> dict[str, Any]:
             "version": RESOURCE_VERSION,
             "complexity": "high",
             "estimated_duration": "90-120 minutes",
-            "tags": ["performance", "stress-testing", "breaking-point", "failure-modes"],
+            "tags": [
+                "performance",
+                "stress-testing",
+                "breaking-point",
+                "failure-modes",
+            ],
             "use_cases": [
                 "Breaking point identification",
                 "Failure mode analysis",
-                "System limits testing"
+                "System limits testing",
             ],
             "prerequisites": ["Monitoring setup", "Recovery procedures"],
-            "last_updated": LAST_UPDATED
+            "last_updated": LAST_UPDATED,
         },
         "scenarios": [
             {
@@ -599,37 +627,37 @@ async def get_stress_testing_pack() -> dict[str, Any]:
                             "response_time_ms": 1000,
                             "response_data": {
                                 "result": "computation_complete",
-                                "processing_time": "1000ms"
+                                "processing_time": "1000ms",
                             },
-                            "headers": {"Content-Type": "application/json"}
-                        }
+                            "headers": {"Content-Type": "application/json"},
+                        },
                     }
                 ],
                 "test_parameters": {
                     "concurrent_users": 500,
                     "duration_seconds": 1800,
                     "ramp_up_time": 600,
-                    "error_rate_threshold": 0.5
+                    "error_rate_threshold": 0.5,
                 },
                 "validation_rules": [
                     {
                         "rule_type": "breaking_point",
                         "condition": "identify_failure_threshold",
-                        "expected_value": True
+                        "expected_value": True,
                     }
-                ]
+                ],
             }
         ],
         "documentation": {
             "usage_examples": [
                 "Find system breaking points",
-                "Test failure recovery mechanisms"
+                "Test failure recovery mechanisms",
             ],
             "integration_notes": [
                 "Requires comprehensive monitoring",
-                "Use with recovery testing scenarios"
-            ]
-        }
+                "Use with recovery testing scenarios",
+            ],
+        },
     }
 
 
@@ -649,10 +677,10 @@ async def get_spike_testing_pack() -> dict[str, Any]:
             "use_cases": [
                 "Auto-scaling validation",
                 "Traffic spike handling",
-                "Cache warming testing"
+                "Cache warming testing",
             ],
             "prerequisites": ["Auto-scaling setup", "Performance monitoring"],
-            "last_updated": LAST_UPDATED
+            "last_updated": LAST_UPDATED,
         },
         "scenarios": [
             {
@@ -668,37 +696,37 @@ async def get_spike_testing_pack() -> dict[str, Any]:
                             "response_time_ms": 300,
                             "response_data": {
                                 "content": "Popular content data",
-                                "cache_status": "miss"
+                                "cache_status": "miss",
                             },
-                            "headers": {"Content-Type": "application/json"}
-                        }
+                            "headers": {"Content-Type": "application/json"},
+                        },
                     }
                 ],
                 "test_parameters": {
                     "concurrent_users": 1000,
                     "duration_seconds": 300,
                     "ramp_up_time": 30,
-                    "error_rate_threshold": 0.1
+                    "error_rate_threshold": 0.1,
                 },
                 "validation_rules": [
                     {
                         "rule_type": "auto_scaling",
                         "condition": "scaling_response_time",
-                        "expected_value": 120
+                        "expected_value": 120,
                     }
-                ]
+                ],
             }
         ],
         "documentation": {
             "usage_examples": [
                 "Test auto-scaling mechanisms",
-                "Validate traffic spike handling"
+                "Validate traffic spike handling",
             ],
             "integration_notes": [
                 "Combine with monitoring scenarios",
-                "Use with auto-scaling testing"
-            ]
-        }
+                "Use with auto-scaling testing",
+            ],
+        },
     }
 
 
@@ -718,10 +746,10 @@ async def get_endurance_testing_pack() -> dict[str, Any]:
             "use_cases": [
                 "Memory leak detection",
                 "Long-term stability testing",
-                "Resource management validation"
+                "Resource management validation",
             ],
             "prerequisites": ["Long-term monitoring", "Resource tracking"],
-            "last_updated": LAST_UPDATED
+            "last_updated": LAST_UPDATED,
         },
         "scenarios": [
             {
@@ -737,41 +765,39 @@ async def get_endurance_testing_pack() -> dict[str, Any]:
                             "response_time_ms": 200,
                             "response_data": {
                                 "operation_id": "continuous_op",
-                                "memory_usage": "stable"
+                                "memory_usage": "stable",
                             },
-                            "headers": {"Content-Type": "application/json"}
-                        }
+                            "headers": {"Content-Type": "application/json"},
+                        },
                     }
                 ],
                 "test_parameters": {
                     "concurrent_users": 50,
                     "duration_seconds": 14400,
                     "ramp_up_time": 300,
-                    "error_rate_threshold": 0.01
+                    "error_rate_threshold": 0.01,
                 },
                 "validation_rules": [
                     {
                         "rule_type": "memory_stability",
                         "condition": "memory_growth_rate",
-                        "expected_value": 0.1
+                        "expected_value": 0.1,
                     }
-                ]
+                ],
             }
         ],
         "documentation": {
-            "usage_examples": [
-                "Detect memory leaks",
-                "Test long-term stability"
-            ],
+            "usage_examples": ["Detect memory leaks", "Test long-term stability"],
             "integration_notes": [
                 "Requires extended monitoring",
-                "Use with memory profiling"
-            ]
-        }
+                "Use with memory profiling",
+            ],
+        },
     }
 
 
 # Security Testing Scenario Packs
+
 
 @mcp_resource_audit("scenario-pack://security/auth-bypass")
 async def get_auth_bypass_pack() -> dict[str, Any]:
@@ -789,10 +815,13 @@ async def get_auth_bypass_pack() -> dict[str, Any]:
             "use_cases": [
                 "Authentication security testing",
                 "Access control validation",
-                "Security vulnerability assessment"
+                "Security vulnerability assessment",
             ],
-            "prerequisites": ["Security testing authorization", "Authentication system"],
-            "last_updated": LAST_UPDATED
+            "prerequisites": [
+                "Security testing authorization",
+                "Authentication system",
+            ],
+            "last_updated": LAST_UPDATED,
         },
         "scenarios": [
             {
@@ -808,37 +837,37 @@ async def get_auth_bypass_pack() -> dict[str, Any]:
                             "response_time_ms": 100,
                             "response_data": {
                                 "error": "Unauthorized",
-                                "message": "Invalid or manipulated token"
+                                "message": "Invalid or manipulated token",
                             },
-                            "headers": {"Content-Type": "application/json"}
-                        }
+                            "headers": {"Content-Type": "application/json"},
+                        },
                     }
                 ],
                 "test_parameters": {
                     "concurrent_users": 5,
                     "duration_seconds": 300,
                     "ramp_up_time": 60,
-                    "error_rate_threshold": 1.0
+                    "error_rate_threshold": 1.0,
                 },
                 "validation_rules": [
                     {
                         "rule_type": "security",
                         "condition": "bypass_attempt_blocked",
-                        "expected_value": True
+                        "expected_value": True,
                     }
-                ]
+                ],
             }
         ],
         "documentation": {
             "usage_examples": [
                 "Test authentication security",
-                "Validate access controls"
+                "Validate access controls",
             ],
             "integration_notes": [
                 "Requires security testing authorization",
-                "Use with logging scenarios"
-            ]
-        }
+                "Use with logging scenarios",
+            ],
+        },
     }
 
 
@@ -858,10 +887,10 @@ async def get_injection_attacks_pack() -> dict[str, Any]:
             "use_cases": [
                 "Input validation testing",
                 "Database security testing",
-                "Injection vulnerability assessment"
+                "Injection vulnerability assessment",
             ],
             "prerequisites": ["Security testing authorization", "Database access"],
-            "last_updated": LAST_UPDATED
+            "last_updated": LAST_UPDATED,
         },
         "scenarios": [
             {
@@ -877,37 +906,37 @@ async def get_injection_attacks_pack() -> dict[str, Any]:
                             "response_time_ms": 150,
                             "response_data": {
                                 "error": "Bad Request",
-                                "message": "Invalid input detected"
+                                "message": "Invalid input detected",
                             },
-                            "headers": {"Content-Type": "application/json"}
-                        }
+                            "headers": {"Content-Type": "application/json"},
+                        },
                     }
                 ],
                 "test_parameters": {
                     "concurrent_users": 3,
                     "duration_seconds": 240,
                     "ramp_up_time": 60,
-                    "error_rate_threshold": 1.0
+                    "error_rate_threshold": 1.0,
                 },
                 "validation_rules": [
                     {
                         "rule_type": "security",
                         "condition": "injection_blocked",
-                        "expected_value": True
+                        "expected_value": True,
                     }
-                ]
+                ],
             }
         ],
         "documentation": {
             "usage_examples": [
                 "Test input validation",
-                "Validate injection protection"
+                "Validate injection protection",
             ],
             "integration_notes": [
                 "Requires security testing authorization",
-                "Use with input validation scenarios"
-            ]
-        }
+                "Use with input validation scenarios",
+            ],
+        },
     }
 
 
@@ -927,10 +956,10 @@ async def get_xss_attacks_pack() -> dict[str, Any]:
             "use_cases": [
                 "Input sanitization testing",
                 "Output encoding validation",
-                "XSS vulnerability assessment"
+                "XSS vulnerability assessment",
             ],
             "prerequisites": ["Security testing authorization", "Web application"],
-            "last_updated": LAST_UPDATED
+            "last_updated": LAST_UPDATED,
         },
         "scenarios": [
             {
@@ -946,37 +975,34 @@ async def get_xss_attacks_pack() -> dict[str, Any]:
                             "response_time_ms": 120,
                             "response_data": {
                                 "error": "Bad Request",
-                                "message": "Malicious content detected"
+                                "message": "Malicious content detected",
                             },
-                            "headers": {"Content-Type": "application/json"}
-                        }
+                            "headers": {"Content-Type": "application/json"},
+                        },
                     }
                 ],
                 "test_parameters": {
                     "concurrent_users": 5,
                     "duration_seconds": 180,
                     "ramp_up_time": 30,
-                    "error_rate_threshold": 1.0
+                    "error_rate_threshold": 1.0,
                 },
                 "validation_rules": [
                     {
                         "rule_type": "security",
                         "condition": "xss_blocked",
-                        "expected_value": True
+                        "expected_value": True,
                     }
-                ]
+                ],
             }
         ],
         "documentation": {
-            "usage_examples": [
-                "Test input sanitization",
-                "Validate XSS protection"
-            ],
+            "usage_examples": ["Test input sanitization", "Validate XSS protection"],
             "integration_notes": [
                 "Requires security testing authorization",
-                "Use with content validation scenarios"
-            ]
-        }
+                "Use with content validation scenarios",
+            ],
+        },
     }
 
 
@@ -992,14 +1018,22 @@ async def get_csrf_attacks_pack() -> dict[str, Any]:
             "version": RESOURCE_VERSION,
             "complexity": "medium",
             "estimated_duration": "45-60 minutes",
-            "tags": ["security", "csrf", "cross-site-request-forgery", "token-validation"],
+            "tags": [
+                "security",
+                "csrf",
+                "cross-site-request-forgery",
+                "token-validation",
+            ],
             "use_cases": [
                 "CSRF protection testing",
                 "Token validation testing",
-                "Session security testing"
+                "Session security testing",
             ],
-            "prerequisites": ["Security testing authorization", "CSRF protection implementation"],
-            "last_updated": LAST_UPDATED
+            "prerequisites": [
+                "Security testing authorization",
+                "CSRF protection implementation",
+            ],
+            "last_updated": LAST_UPDATED,
         },
         "scenarios": [
             {
@@ -1015,41 +1049,39 @@ async def get_csrf_attacks_pack() -> dict[str, Any]:
                             "response_time_ms": 100,
                             "response_data": {
                                 "error": "Forbidden",
-                                "message": "CSRF token validation failed"
+                                "message": "CSRF token validation failed",
                             },
-                            "headers": {"Content-Type": "application/json"}
-                        }
+                            "headers": {"Content-Type": "application/json"},
+                        },
                     }
                 ],
                 "test_parameters": {
                     "concurrent_users": 3,
                     "duration_seconds": 180,
                     "ramp_up_time": 30,
-                    "error_rate_threshold": 1.0
+                    "error_rate_threshold": 1.0,
                 },
                 "validation_rules": [
                     {
                         "rule_type": "security",
                         "condition": "csrf_blocked",
-                        "expected_value": True
+                        "expected_value": True,
                     }
-                ]
+                ],
             }
         ],
         "documentation": {
-            "usage_examples": [
-                "Test CSRF protection",
-                "Validate token mechanisms"
-            ],
+            "usage_examples": ["Test CSRF protection", "Validate token mechanisms"],
             "integration_notes": [
                 "Requires security testing authorization",
-                "Use with session management scenarios"
-            ]
-        }
+                "Use with session management scenarios",
+            ],
+        },
     }
 
 
 # Business Logic Scenario Packs
+
 
 @mcp_resource_audit("scenario-pack://business/edge-cases")
 async def get_edge_cases_pack() -> dict[str, Any]:
@@ -1067,10 +1099,10 @@ async def get_edge_cases_pack() -> dict[str, Any]:
             "use_cases": [
                 "Business logic validation",
                 "Boundary condition testing",
-                "Exception handling testing"
+                "Exception handling testing",
             ],
             "prerequisites": ["Business logic implementation", "Error handling"],
-            "last_updated": LAST_UPDATED
+            "last_updated": LAST_UPDATED,
         },
         "scenarios": [
             {
@@ -1086,37 +1118,37 @@ async def get_edge_cases_pack() -> dict[str, Any]:
                             "response_time_ms": 150,
                             "response_data": {
                                 "error": "Bad Request",
-                                "message": "Value exceeds maximum allowed limit"
+                                "message": "Value exceeds maximum allowed limit",
                             },
-                            "headers": {"Content-Type": "application/json"}
-                        }
+                            "headers": {"Content-Type": "application/json"},
+                        },
                     }
                 ],
                 "test_parameters": {
                     "concurrent_users": 5,
                     "duration_seconds": 240,
                     "ramp_up_time": 40,
-                    "error_rate_threshold": 0.8
+                    "error_rate_threshold": 0.8,
                 },
                 "validation_rules": [
                     {
                         "rule_type": "business_logic",
                         "condition": "boundary_validation",
-                        "expected_value": True
+                        "expected_value": True,
                     }
-                ]
+                ],
             }
         ],
         "documentation": {
             "usage_examples": [
                 "Test business logic boundaries",
-                "Validate edge case handling"
+                "Validate edge case handling",
             ],
             "integration_notes": [
                 "Combine with validation scenarios",
-                "Use with error handling testing"
-            ]
-        }
+                "Use with error handling testing",
+            ],
+        },
     }
 
 
@@ -1132,14 +1164,19 @@ async def get_data_validation_pack() -> dict[str, Any]:
             "version": RESOURCE_VERSION,
             "complexity": "medium",
             "estimated_duration": "30-45 minutes",
-            "tags": ["business-logic", "data-validation", "input-validation", "business-rules"],
+            "tags": [
+                "business-logic",
+                "data-validation",
+                "input-validation",
+                "business-rules",
+            ],
             "use_cases": [
                 "Input validation testing",
                 "Business rule enforcement",
-                "Data integrity testing"
+                "Data integrity testing",
             ],
             "prerequisites": ["Validation rules implementation", "Business logic"],
-            "last_updated": LAST_UPDATED
+            "last_updated": LAST_UPDATED,
         },
         "scenarios": [
             {
@@ -1155,37 +1192,34 @@ async def get_data_validation_pack() -> dict[str, Any]:
                             "response_time_ms": 120,
                             "response_data": {
                                 "error": "Validation Failed",
-                                "message": "Data does not meet business requirements"
+                                "message": "Data does not meet business requirements",
                             },
-                            "headers": {"Content-Type": "application/json"}
-                        }
+                            "headers": {"Content-Type": "application/json"},
+                        },
                     }
                 ],
                 "test_parameters": {
                     "concurrent_users": 8,
                     "duration_seconds": 180,
                     "ramp_up_time": 30,
-                    "error_rate_threshold": 1.0
+                    "error_rate_threshold": 1.0,
                 },
                 "validation_rules": [
                     {
                         "rule_type": "validation",
                         "condition": "invalid_data_rejected",
-                        "expected_value": True
+                        "expected_value": True,
                     }
-                ]
+                ],
             }
         ],
         "documentation": {
-            "usage_examples": [
-                "Test input validation",
-                "Validate business rules"
-            ],
+            "usage_examples": ["Test input validation", "Validate business rules"],
             "integration_notes": [
                 "Combine with edge case scenarios",
-                "Use with business logic testing"
-            ]
-        }
+                "Use with business logic testing",
+            ],
+        },
     }
 
 
@@ -1205,10 +1239,10 @@ async def get_workflow_testing_pack() -> dict[str, Any]:
             "use_cases": [
                 "Business process validation",
                 "State transition testing",
-                "Workflow integrity testing"
+                "Workflow integrity testing",
             ],
             "prerequisites": ["Workflow implementation", "State management"],
-            "last_updated": LAST_UPDATED
+            "last_updated": LAST_UPDATED,
         },
         "scenarios": [
             {
@@ -1225,46 +1259,44 @@ async def get_workflow_testing_pack() -> dict[str, Any]:
                             "response_data": {
                                 "workflow_id": "wf_12345",
                                 "current_step": "step1",
-                                "status": "in_progress"
+                                "status": "in_progress",
                             },
-                            "headers": {"Content-Type": "application/json"}
-                        }
+                            "headers": {"Content-Type": "application/json"},
+                        },
                     }
                 ],
                 "test_parameters": {
                     "concurrent_users": 10,
                     "duration_seconds": 360,
                     "ramp_up_time": 60,
-                    "error_rate_threshold": 0.05
+                    "error_rate_threshold": 0.05,
                 },
                 "validation_rules": [
                     {
                         "rule_type": "workflow",
                         "condition": "state_transitions_valid",
-                        "expected_value": True
+                        "expected_value": True,
                     }
-                ]
+                ],
             }
         ],
         "documentation": {
-            "usage_examples": [
-                "Test business workflows",
-                "Validate state transitions"
-            ],
+            "usage_examples": ["Test business workflows", "Validate state transitions"],
             "integration_notes": [
                 "Combine with data validation scenarios",
-                "Use with state management testing"
-            ]
-        }
+                "Use with state management testing",
+            ],
+        },
     }
 
 
 # Resource Discovery and Management Functions
 
+
 async def list_scenario_packs(
     category: str | None = None,
     tags: list[str] | None = None,
-    complexity: str | None = None
+    complexity: str | None = None,
 ) -> dict[str, Any]:
     """
     List available scenario packs with optional filtering.
@@ -1295,7 +1327,7 @@ async def list_scenario_packs(
         "scenario-pack://security/csrf-attacks": get_csrf_attacks_pack,
         "scenario-pack://business/edge-cases": get_edge_cases_pack,
         "scenario-pack://business/data-validation": get_data_validation_pack,
-        "scenario-pack://business/workflow-testing": get_workflow_testing_pack
+        "scenario-pack://business/workflow-testing": get_workflow_testing_pack,
     }
 
     # Get metadata for each pack
@@ -1312,17 +1344,19 @@ async def list_scenario_packs(
             if tags and not any(tag in metadata["tags"] for tag in tags):
                 continue
 
-            all_packs.append({
-                "uri": uri,
-                "name": metadata["name"],
-                "description": metadata["description"],
-                "category": metadata["category"],
-                "complexity": metadata["complexity"],
-                "estimated_duration": metadata["estimated_duration"],
-                "tags": metadata["tags"],
-                "use_cases": metadata["use_cases"],
-                "last_updated": metadata["last_updated"]
-            })
+            all_packs.append(
+                {
+                    "uri": uri,
+                    "name": metadata["name"],
+                    "description": metadata["description"],
+                    "category": metadata["category"],
+                    "complexity": metadata["complexity"],
+                    "estimated_duration": metadata["estimated_duration"],
+                    "tags": metadata["tags"],
+                    "use_cases": metadata["use_cases"],
+                    "last_updated": metadata["last_updated"],
+                }
+            )
         except Exception as e:
             logger.warning(f"Failed to load metadata for {uri}: {e}")
 
@@ -1333,8 +1367,8 @@ async def list_scenario_packs(
         "available_filters": {
             "categories": list(SCENARIO_PACK_CATEGORIES.keys()),
             "complexity_levels": ["low", "medium", "high"],
-            "common_tags": ["errors", "performance", "security", "business-logic"]
-        }
+            "common_tags": ["errors", "performance", "security", "business-logic"],
+        },
     }
 
 
@@ -1351,11 +1385,7 @@ async def get_scenario_pack_by_uri(uri: str) -> dict[str, Any]:
     # Validate URI
     is_valid, category, pack_name, error_msg = _validate_resource_uri(uri)
     if not is_valid:
-        return {
-            "error": "Invalid URI",
-            "message": error_msg,
-            "uri": uri
-        }
+        return {"error": "Invalid URI", "message": error_msg, "uri": uri}
 
     # Map URIs to functions
     pack_functions = {
@@ -1373,7 +1403,7 @@ async def get_scenario_pack_by_uri(uri: str) -> dict[str, Any]:
         "scenario-pack://security/csrf-attacks": get_csrf_attacks_pack,
         "scenario-pack://business/edge-cases": get_edge_cases_pack,
         "scenario-pack://business/data-validation": get_data_validation_pack,
-        "scenario-pack://business/workflow-testing": get_workflow_testing_pack
+        "scenario-pack://business/workflow-testing": get_workflow_testing_pack,
     }
 
     func = pack_functions.get(uri)
@@ -1381,7 +1411,7 @@ async def get_scenario_pack_by_uri(uri: str) -> dict[str, Any]:
         return {
             "error": "Pack not found",
             "message": f"No scenario pack found for URI: {uri}",
-            "uri": uri
+            "uri": uri,
         }
 
     try:
@@ -1391,11 +1421,12 @@ async def get_scenario_pack_by_uri(uri: str) -> dict[str, Any]:
         return {
             "error": "Load error",
             "message": f"Failed to load scenario pack: {e}",
-            "uri": uri
+            "uri": uri,
         }
 
 
 # Resource validation functions
+
 
 def validate_scenario_pack_content(pack_data: dict[str, Any]) -> tuple[bool, list[str]]:
     """
@@ -1434,7 +1465,12 @@ def validate_scenario_pack_content(pack_data: dict[str, Any]) -> tuple[bool, lis
                     errors.append(f"Scenario {i} must be a dictionary")
                     continue
 
-                required_scenario_fields = ["scenario_name", "description", "scenario_type", "endpoints"]
+                required_scenario_fields = [
+                    "scenario_name",
+                    "description",
+                    "scenario_type",
+                    "endpoints",
+                ]
                 for field in required_scenario_fields:
                     if field not in scenario:
                         errors.append(f"Scenario {i} missing required field: {field}")
@@ -1460,5 +1496,5 @@ def get_resource_integrity_info(pack_data: dict[str, Any]) -> dict[str, Any]:
         "is_valid": is_valid,
         "validation_errors": errors,
         "content_size": len(json.dumps(pack_data)),
-        "last_validated": datetime.now(timezone.utc).isoformat()
+        "last_validated": datetime.now(timezone.utc).isoformat(),
     }

@@ -31,8 +31,9 @@ class PluginManager:
         self.plugins: dict[str, Any] = {}
         self.active_plugins: list[str] = []
 
-    def create_plugin(self, api_name: str, _api_spec: dict[str, Any],
-                     _proxy_config: dict[str, Any]) -> str:
+    def create_plugin(
+        self, api_name: str, _api_spec: dict[str, Any], _proxy_config: dict[str, Any]
+    ) -> str:
         """
         Create a new MCP plugin for the specified API.
 

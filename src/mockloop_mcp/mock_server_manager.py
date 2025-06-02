@@ -165,7 +165,9 @@ class MockServerManager:
         """
         return await discover_running_servers(ports, check_health)
 
-    async def get_server_status(self, server_url: str, admin_port: int | None = None) -> dict[str, Any]:
+    async def get_server_status(
+        self, server_url: str, admin_port: int | None = None
+    ) -> dict[str, Any]:
         """
         Get the status of a specific mock server.
 
@@ -209,7 +211,9 @@ class MockServerManager:
                 "is_mockloop_server": False,
             }
 
-    async def query_server_logs(self, server_url: str, admin_port: int | None = None, **kwargs) -> dict[str, Any]:
+    async def query_server_logs(
+        self, server_url: str, admin_port: int | None = None, **kwargs
+    ) -> dict[str, Any]:
         """
         Query logs from a specific mock server.
 

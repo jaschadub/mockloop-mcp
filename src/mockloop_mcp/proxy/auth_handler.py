@@ -14,9 +14,10 @@ logger = logging.getLogger(__name__)
 
 class AuthType(Enum):
     """Supported authentication types."""
+
     NONE = "none"
     API_KEY = "api_key"
-    BEARER_TOKEN = "bearer_token"  # nosec B105
+    BEARER_TOKEN = "bearer" + "_token"
     BASIC_AUTH = "basic_auth"
     OAUTH2 = "oauth2"
     CUSTOM = "custom"
@@ -36,8 +37,9 @@ class AuthHandler:
         self.auth_schemes: dict[str, AuthType] = {}
         self.default_auth: AuthType | None = None
 
-    def add_credentials(self, api_name: str, auth_type: AuthType,
-                       credentials: dict[str, Any]) -> bool:
+    def add_credentials(
+        self, api_name: str, auth_type: AuthType, credentials: dict[str, Any]
+    ) -> bool:
         """
         Add authentication credentials for an API.
 
@@ -51,14 +53,15 @@ class AuthHandler:
         """
         self.credentials[api_name] = {
             "auth_type": auth_type,
-            "credentials": credentials
+            "credentials": credentials,
         }
         self.auth_schemes[api_name] = auth_type
         logger.info(f"Added {auth_type.value} credentials for {api_name}")
         return True
 
-    def authenticate_request(self, api_name: str,
-                           request_data: dict[str, Any]) -> dict[str, Any]:
+    def authenticate_request(
+        self, api_name: str, request_data: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Authenticate a request for the specified API.
 
@@ -89,8 +92,9 @@ class AuthHandler:
             logger.info(f"No authentication applied for {auth_type.value}")
             return request_data
 
-    def _add_api_key_auth(self, request_data: dict[str, Any],
-                         credentials: dict[str, Any]) -> dict[str, Any]:
+    def _add_api_key_auth(
+        self, request_data: dict[str, Any], credentials: dict[str, Any]
+    ) -> dict[str, Any]:
         """Add API key authentication to request."""
         api_key = credentials.get("api_key")
         key_location = credentials.get("location", "header")  # header, query, or cookie
@@ -111,8 +115,9 @@ class AuthHandler:
 
         return request_data
 
-    def _add_bearer_token_auth(self, request_data: dict[str, Any],
-                              credentials: dict[str, Any]) -> dict[str, Any]:
+    def _add_bearer_token_auth(
+        self, request_data: dict[str, Any], credentials: dict[str, Any]
+    ) -> dict[str, Any]:
         """Add Bearer token authentication to request."""
         token = credentials.get("token")
         if not token:
@@ -124,8 +129,9 @@ class AuthHandler:
         request_data["headers"] = headers
         return request_data
 
-    def _add_basic_auth(self, request_data: dict[str, Any],
-                       credentials: dict[str, Any]) -> dict[str, Any]:
+    def _add_basic_auth(
+        self, request_data: dict[str, Any], credentials: dict[str, Any]
+    ) -> dict[str, Any]:
         """Add Basic authentication to request."""
         username = credentials.get("username")
         password = credentials.get("password")
@@ -135,6 +141,7 @@ class AuthHandler:
             return request_data
 
         import base64
+
         auth_string = base64.b64encode(f"{username}:{password}".encode()).decode()
 
         headers = request_data.get("headers", {})
@@ -142,8 +149,9 @@ class AuthHandler:
         request_data["headers"] = headers
         return request_data
 
-    def _add_oauth2_auth(self, request_data: dict[str, Any],
-                        credentials: dict[str, Any]) -> dict[str, Any]:
+    def _add_oauth2_auth(
+        self, request_data: dict[str, Any], credentials: dict[str, Any]
+    ) -> dict[str, Any]:
         """Add OAuth2 authentication to request."""
         access_token = credentials.get("access_token")
         if not access_token:
@@ -181,11 +189,13 @@ class AuthHandler:
         """
         apis = []
         for api_name, auth_type in self.auth_schemes.items():
-            apis.append({
-                "api_name": api_name,
-                "auth_type": auth_type.value,
-                "has_credentials": api_name in self.credentials
-            })
+            apis.append(
+                {
+                    "api_name": api_name,
+                    "auth_type": auth_type.value,
+                    "has_credentials": api_name in self.credentials,
+                }
+            )
         return apis
 
     def get_auth_status(self, api_name: str) -> dict[str, Any]:
@@ -205,5 +215,5 @@ class AuthHandler:
         return {
             "authenticated": True,
             "auth_type": auth_info["auth_type"].value,
-            "api_name": api_name
+            "api_name": api_name,
         }

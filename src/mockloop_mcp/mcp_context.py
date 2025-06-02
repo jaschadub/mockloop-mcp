@@ -34,6 +34,7 @@ logger = logging.getLogger(__name__)
 
 class ContextType(Enum):
     """Enumeration of available context types."""
+
     TEST_SESSION = "test_session"
     WORKFLOW = "workflow"
     SCENARIO = "scenario"
@@ -44,6 +45,7 @@ class ContextType(Enum):
 
 class ContextStatus(Enum):
     """Enumeration of context status values."""
+
     ACTIVE = "active"
     PAUSED = "paused"
     COMPLETED = "completed"
@@ -53,29 +55,37 @@ class ContextStatus(Enum):
 
 class ContextError(Exception):
     """Base exception for context management errors."""
+
     pass
 
 
 class ContextNotFoundError(ContextError):
     """Raised when a requested context is not found."""
+
     pass
 
 
 class ContextValidationError(ContextError):
     """Raised when context validation fails."""
+
     pass
 
 
 class ContextPersistenceError(ContextError):
     """Raised when context persistence operations fail."""
+
     pass
 
 
 class ContextSnapshot:
     """Represents a snapshot of context state for rollback capabilities."""
 
-    def __init__(self, context_id: str, snapshot_data: dict[str, Any],
-                 timestamp: datetime | None = None):
+    def __init__(
+        self,
+        context_id: str,
+        snapshot_data: dict[str, Any],
+        timestamp: datetime | None = None,
+    ):
         self.context_id = context_id
         self.snapshot_data = snapshot_data
         self.timestamp = timestamp or datetime.utcnow()
@@ -87,7 +97,7 @@ class ContextSnapshot:
             "snapshot_id": self.snapshot_id,
             "context_id": self.context_id,
             "snapshot_data": self.snapshot_data,
-            "timestamp": self.timestamp.isoformat()
+            "timestamp": self.timestamp.isoformat(),
         }
 
     @classmethod
@@ -96,17 +106,21 @@ class ContextSnapshot:
         return cls(
             context_id=data["context_id"],
             snapshot_data=data["snapshot_data"],
-            timestamp=datetime.fromisoformat(data["timestamp"])
+            timestamp=datetime.fromisoformat(data["timestamp"]),
         )
 
 
 class BaseContext:
     """Base class for all context types."""
 
-    def __init__(self, context_id: str, context_type: ContextType,
-                 data: dict[str, Any] | None = None,
-                 parent_context_id: str | None = None,
-                 metadata: dict[str, Any] | None = None):
+    def __init__(
+        self,
+        context_id: str,
+        context_type: ContextType,
+        data: dict[str, Any] | None = None,
+        parent_context_id: str | None = None,
+        metadata: dict[str, Any] | None = None,
+    ):
         self.context_id = context_id
         self.context_type = context_type
         self.data = data or {}
@@ -174,7 +188,7 @@ class BaseContext:
                 "metadata": self.metadata.copy(),
                 "status": self.status.value,
                 "tags": list(self.tags),
-                "description": description
+                "description": description,
             }
             snapshot = ContextSnapshot(self.context_id, snapshot_data)
             self._snapshots.append(snapshot)
@@ -211,9 +225,11 @@ class BaseContext:
                 "created_at": self.created_at.isoformat(),
                 "updated_at": self.updated_at.isoformat(),
                 "status": self.status.value,
-                "expiry_time": self.expiry_time.isoformat() if self.expiry_time else None,
+                "expiry_time": self.expiry_time.isoformat()
+                if self.expiry_time
+                else None,
                 "tags": list(self.tags),
-                "snapshots": [snapshot.to_dict() for snapshot in self._snapshots]
+                "snapshots": [snapshot.to_dict() for snapshot in self._snapshots],
             }
 
     @classmethod
@@ -224,7 +240,7 @@ class BaseContext:
             context_type=ContextType(data["context_type"]),
             data=data.get("data", {}),
             parent_context_id=data.get("parent_context_id"),
-            metadata=data.get("metadata", {})
+            metadata=data.get("metadata", {}),
         )
         context.created_at = datetime.fromisoformat(data["created_at"])
         context.updated_at = datetime.fromisoformat(data["updated_at"])
@@ -244,8 +260,13 @@ class BaseContext:
 class TestSessionContext(BaseContext):
     """Context for managing test session state and metadata."""
 
-    def __init__(self, context_id: str, session_name: str, test_plan: dict[str, Any],
-                 session_config: dict[str, Any] | None = None):
+    def __init__(
+        self,
+        context_id: str,
+        session_name: str,
+        test_plan: dict[str, Any],
+        session_config: dict[str, Any] | None = None,
+    ):
         super().__init__(context_id, ContextType.TEST_SESSION)
         self.session_name = session_name
         self.test_plan = test_plan
@@ -254,19 +275,21 @@ class TestSessionContext(BaseContext):
         self.current_test_index = 0
 
         # Initialize session-specific data
-        self.data.update({
-            "session_name": session_name,
-            "test_plan": test_plan,
-            "session_config": self.session_config,
-            "test_results": self.test_results,
-            "current_test_index": self.current_test_index,
-            "session_metrics": {
-                "total_tests": len(test_plan.get("tests", [])),
-                "completed_tests": 0,
-                "failed_tests": 0,
-                "start_time": self.created_at.isoformat()
+        self.data.update(
+            {
+                "session_name": session_name,
+                "test_plan": test_plan,
+                "session_config": self.session_config,
+                "test_results": self.test_results,
+                "current_test_index": self.current_test_index,
+                "session_metrics": {
+                    "total_tests": len(test_plan.get("tests", [])),
+                    "completed_tests": 0,
+                    "failed_tests": 0,
+                    "start_time": self.created_at.isoformat(),
+                },
             }
-        })
+        )
 
     def add_test_result(self, test_result: dict[str, Any]) -> None:
         """Add a test result to the session."""
@@ -296,16 +319,19 @@ class TestSessionContext(BaseContext):
                 "total_tests": metrics["total_tests"],
                 "completed_tests": metrics["completed_tests"],
                 "failed_tests": metrics["failed_tests"],
-                "success_rate": (metrics["completed_tests"] - metrics["failed_tests"]) / max(metrics["completed_tests"], 1),
+                "success_rate": (metrics["completed_tests"] - metrics["failed_tests"])
+                / max(metrics["completed_tests"], 1),
                 "created_at": self.created_at.isoformat(),
-                "updated_at": self.updated_at.isoformat()
+                "updated_at": self.updated_at.isoformat(),
             }
 
 
 class WorkflowContext(BaseContext):
     """Context for tracking multi-step testing workflows."""
 
-    def __init__(self, context_id: str, workflow_name: str, workflow_steps: list[dict[str, Any]]):
+    def __init__(
+        self, context_id: str, workflow_name: str, workflow_steps: list[dict[str, Any]]
+    ):
         super().__init__(context_id, ContextType.WORKFLOW)
         self.workflow_name = workflow_name
         self.workflow_steps = workflow_steps
@@ -313,15 +339,17 @@ class WorkflowContext(BaseContext):
         self.step_results: list[dict[str, Any]] = []
 
         # Initialize workflow-specific data
-        self.data.update({
-            "workflow_name": workflow_name,
-            "workflow_steps": workflow_steps,
-            "current_step_index": self.current_step_index,
-            "step_results": self.step_results,
-            "workflow_state": "initialized",
-            "can_pause": True,
-            "can_resume": True
-        })
+        self.data.update(
+            {
+                "workflow_name": workflow_name,
+                "workflow_steps": workflow_steps,
+                "current_step_index": self.current_step_index,
+                "step_results": self.step_results,
+                "workflow_state": "initialized",
+                "can_pause": True,
+                "can_resume": True,
+            }
+        )
 
     def advance_step(self, step_result: dict[str, Any] | None = None) -> bool:
         """Advance to the next workflow step."""
@@ -360,7 +388,9 @@ class WorkflowContext(BaseContext):
     def resume_workflow(self) -> bool:
         """Resume the workflow execution."""
         with self._lock:
-            if self.status == ContextStatus.PAUSED and self.data.get("can_resume", True):
+            if self.status == ContextStatus.PAUSED and self.data.get(
+                "can_resume", True
+            ):
                 self.status = ContextStatus.ACTIVE
                 self.data["workflow_state"] = "running"
                 self.updated_at = datetime.utcnow()
@@ -371,25 +401,29 @@ class WorkflowContext(BaseContext):
 class ScenarioContext(BaseContext):
     """Context for managing active scenario configurations."""
 
-    def __init__(self, context_id: str, scenario_name: str, scenario_config: dict[str, Any]):
+    def __init__(
+        self, context_id: str, scenario_name: str, scenario_config: dict[str, Any]
+    ):
         super().__init__(context_id, ContextType.SCENARIO)
         self.scenario_name = scenario_name
         self.scenario_config = scenario_config
         self.deployment_info: dict[str, Any] | None = None
 
         # Initialize scenario-specific data
-        self.data.update({
-            "scenario_name": scenario_name,
-            "scenario_config": scenario_config,
-            "deployment_info": self.deployment_info,
-            "scenario_state": "configured",
-            "active_endpoints": [],
-            "scenario_metrics": {
-                "requests_processed": 0,
-                "errors_generated": 0,
-                "last_activity": None
+        self.data.update(
+            {
+                "scenario_name": scenario_name,
+                "scenario_config": scenario_config,
+                "deployment_info": self.deployment_info,
+                "scenario_state": "configured",
+                "active_endpoints": [],
+                "scenario_metrics": {
+                    "requests_processed": 0,
+                    "errors_generated": 0,
+                    "last_activity": None,
+                },
             }
-        })
+        )
 
     def deploy_scenario(self, deployment_info: dict[str, Any]) -> None:
         """Mark scenario as deployed with deployment information."""
@@ -417,24 +451,26 @@ class PerformanceContext(BaseContext):
         self.metrics_history: list[dict[str, Any]] = []
 
         # Initialize performance-specific data
-        self.data.update({
-            "test_run_id": test_run_id,
-            "metrics_history": self.metrics_history,
-            "current_metrics": {},
-            "performance_thresholds": {
-                "max_response_time_ms": 1000,
-                "min_throughput_rps": 100,
-                "max_error_rate_percent": 5.0
-            },
-            "alerts": []
-        })
+        self.data.update(
+            {
+                "test_run_id": test_run_id,
+                "metrics_history": self.metrics_history,
+                "current_metrics": {},
+                "performance_thresholds": {
+                    "max_response_time_ms": 1000,
+                    "min_throughput_rps": 100,
+                    "max_error_rate_percent": 5.0,
+                },
+                "alerts": [],
+            }
+        )
 
     def add_metrics(self, metrics: dict[str, Any]) -> None:
         """Add performance metrics to the context."""
         with self._lock:
             timestamped_metrics = {
                 **metrics,
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.utcnow().isoformat(),
             }
             self.metrics_history.append(timestamped_metrics)
             self.data["metrics_history"] = self.metrics_history
@@ -451,30 +487,36 @@ class PerformanceContext(BaseContext):
 
         # Check response time
         if metrics.get("avg_response_time_ms", 0) > thresholds["max_response_time_ms"]:
-            alerts.append({
-                "type": "response_time_exceeded",
-                "message": f"Average response time {metrics['avg_response_time_ms']}ms exceeds threshold {thresholds['max_response_time_ms']}ms",
-                "timestamp": datetime.utcnow().isoformat(),
-                "severity": "warning"
-            })
+            alerts.append(
+                {
+                    "type": "response_time_exceeded",
+                    "message": f"Average response time {metrics['avg_response_time_ms']}ms exceeds threshold {thresholds['max_response_time_ms']}ms",
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "severity": "warning",
+                }
+            )
 
         # Check throughput
         if metrics.get("throughput_rps", 0) < thresholds["min_throughput_rps"]:
-            alerts.append({
-                "type": "throughput_below_threshold",
-                "message": f"Throughput {metrics['throughput_rps']} RPS below threshold {thresholds['min_throughput_rps']} RPS",
-                "timestamp": datetime.utcnow().isoformat(),
-                "severity": "warning"
-            })
+            alerts.append(
+                {
+                    "type": "throughput_below_threshold",
+                    "message": f"Throughput {metrics['throughput_rps']} RPS below threshold {thresholds['min_throughput_rps']} RPS",
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "severity": "warning",
+                }
+            )
 
         # Check error rate
         if metrics.get("error_rate_percent", 0) > thresholds["max_error_rate_percent"]:
-            alerts.append({
-                "type": "error_rate_exceeded",
-                "message": f"Error rate {metrics['error_rate_percent']}% exceeds threshold {thresholds['max_error_rate_percent']}%",
-                "timestamp": datetime.utcnow().isoformat(),
-                "severity": "critical"
-            })
+            alerts.append(
+                {
+                    "type": "error_rate_exceeded",
+                    "message": f"Error rate {metrics['error_rate_percent']}% exceeds threshold {thresholds['max_error_rate_percent']}%",
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "severity": "critical",
+                }
+            )
 
 
 class GlobalContext(BaseContext):
@@ -484,46 +526,51 @@ class GlobalContext(BaseContext):
         super().__init__(context_id, ContextType.GLOBAL)
 
         # Initialize global-specific data
-        self.data.update({
-            "shared_configurations": {},
-            "cross_session_metrics": {
-                "total_sessions": 0,
-                "total_tests_executed": 0,
-                "global_success_rate": 0.0,
-                "most_common_failures": [],
-                "performance_trends": []
-            },
-            "global_settings": {
-                "default_timeout_seconds": 300,
-                "max_concurrent_sessions": 10,
-                "enable_cross_session_learning": True,
-                "auto_optimize_scenarios": True
-            },
-            "orchestration_state": {
-                "active_orchestrations": [],
-                "queued_orchestrations": [],
-                "orchestration_history": []
-            },
-            "shared_test_data": {},
-            "global_analytics": {
-                "api_usage_patterns": {},
-                "performance_baselines": {},
-                "security_findings": []
+        self.data.update(
+            {
+                "shared_configurations": {},
+                "cross_session_metrics": {
+                    "total_sessions": 0,
+                    "total_tests_executed": 0,
+                    "global_success_rate": 0.0,
+                    "most_common_failures": [],
+                    "performance_trends": [],
+                },
+                "global_settings": {
+                    "default_timeout_seconds": 300,
+                    "max_concurrent_sessions": 10,
+                    "enable_cross_session_learning": True,
+                    "auto_optimize_scenarios": True,
+                },
+                "orchestration_state": {
+                    "active_orchestrations": [],
+                    "queued_orchestrations": [],
+                    "orchestration_history": [],
+                },
+                "shared_test_data": {},
+                "global_analytics": {
+                    "api_usage_patterns": {},
+                    "performance_baselines": {},
+                    "security_findings": [],
+                },
             }
-        })
+        )
 
     def update_cross_session_metrics(self, session_metrics: dict[str, Any]) -> None:
         """Update global metrics with data from a completed session."""
         with self._lock:
             global_metrics = self.data["cross_session_metrics"]
             global_metrics["total_sessions"] += 1
-            global_metrics["total_tests_executed"] += session_metrics.get("total_tests", 0)
+            global_metrics["total_tests_executed"] += session_metrics.get(
+                "total_tests", 0
+            )
 
             # Update global success rate
-            total_successful = (global_metrics["total_tests_executed"] -
-                              session_metrics.get("failed_tests", 0))
-            global_metrics["global_success_rate"] = (
-                total_successful / max(global_metrics["total_tests_executed"], 1)
+            total_successful = global_metrics[
+                "total_tests_executed"
+            ] - session_metrics.get("failed_tests", 0)
+            global_metrics["global_success_rate"] = total_successful / max(
+                global_metrics["total_tests_executed"], 1
             )
 
             self.updated_at = datetime.utcnow()
@@ -536,10 +583,12 @@ class GlobalContext(BaseContext):
                 "orchestration_id": orchestration_id,
                 "config": orchestration_config,
                 "status": "queued",
-                "created_at": datetime.utcnow().isoformat()
+                "created_at": datetime.utcnow().isoformat(),
             }
 
-            self.data["orchestration_state"]["queued_orchestrations"].append(orchestration)
+            self.data["orchestration_state"]["queued_orchestrations"].append(
+                orchestration
+            )
             self.updated_at = datetime.utcnow()
             return orchestration_id
 
@@ -563,41 +612,44 @@ class GlobalContext(BaseContext):
 class AgentContext(BaseContext):
     """Context for integrating agent-specific state when using LangGraph/CrewAI."""
 
-    def __init__(self, context_id: str, agent_id: str, agent_type: str,
-                 agent_config: dict[str, Any] | None = None):
+    def __init__(
+        self,
+        context_id: str,
+        agent_id: str,
+        agent_type: str,
+        agent_config: dict[str, Any] | None = None,
+    ):
         super().__init__(context_id, ContextType.AGENT)
         self.agent_id = agent_id
         self.agent_type = agent_type  # "langgraph", "crewai", "custom"
         self.agent_config = agent_config or {}
 
         # Initialize agent-specific data
-        self.data.update({
-            "agent_id": agent_id,
-            "agent_type": agent_type,
-            "agent_config": self.agent_config,
-            "agent_state": {},
-            "memory": {
-                "short_term": {},
-                "long_term": {},
-                "learned_patterns": []
-            },
-            "workflow_state": {
-                "current_workflow": None,
-                "workflow_history": [],
-                "pending_actions": []
-            },
-            "collaboration": {
-                "connected_agents": [],
-                "shared_context_ids": [],
-                "communication_log": []
-            },
-            "performance_tracking": {
-                "tasks_completed": 0,
-                "success_rate": 0.0,
-                "average_task_duration": 0.0,
-                "optimization_suggestions": []
+        self.data.update(
+            {
+                "agent_id": agent_id,
+                "agent_type": agent_type,
+                "agent_config": self.agent_config,
+                "agent_state": {},
+                "memory": {"short_term": {}, "long_term": {}, "learned_patterns": []},
+                "workflow_state": {
+                    "current_workflow": None,
+                    "workflow_history": [],
+                    "pending_actions": [],
+                },
+                "collaboration": {
+                    "connected_agents": [],
+                    "shared_context_ids": [],
+                    "communication_log": [],
+                },
+                "performance_tracking": {
+                    "tasks_completed": 0,
+                    "success_rate": 0.0,
+                    "average_task_duration": 0.0,
+                    "optimization_suggestions": [],
+                },
             }
-        })
+        )
 
     def update_agent_state(self, state_updates: dict[str, Any]) -> None:
         """Update agent-specific state."""
@@ -623,10 +675,9 @@ class AgentContext(BaseContext):
     def add_learned_pattern(self, pattern: dict[str, Any]) -> None:
         """Add a learned pattern to agent memory."""
         with self._lock:
-            self.data["memory"]["learned_patterns"].append({
-                **pattern,
-                "learned_at": datetime.utcnow().isoformat()
-            })
+            self.data["memory"]["learned_patterns"].append(
+                {**pattern, "learned_at": datetime.utcnow().isoformat()}
+            )
             self.updated_at = datetime.utcnow()
 
     def connect_agent(self, other_agent_id: str, shared_context_id: str) -> None:
@@ -642,10 +693,9 @@ class AgentContext(BaseContext):
     def log_communication(self, message: dict[str, Any]) -> None:
         """Log communication with other agents."""
         with self._lock:
-            self.data["collaboration"]["communication_log"].append({
-                **message,
-                "timestamp": datetime.utcnow().isoformat()
-            })
+            self.data["collaboration"]["communication_log"].append(
+                {**message, "timestamp": datetime.utcnow().isoformat()}
+            )
             self.updated_at = datetime.utcnow()
 
     def update_performance_metrics(self, task_result: dict[str, Any]) -> None:
@@ -666,8 +716,8 @@ class AgentContext(BaseContext):
                 current_avg = performance["average_task_duration"]
                 new_duration = task_result["duration_seconds"]
                 performance["average_task_duration"] = (
-                    (current_avg * (total_tasks - 1) + new_duration) / total_tasks
-                )
+                    current_avg * (total_tasks - 1) + new_duration
+                ) / total_tasks
 
             self.updated_at = datetime.utcnow()
 
@@ -716,10 +766,18 @@ class ContextStorage:
                 """)
 
                 # Create indexes for better performance
-                cursor.execute("CREATE INDEX IF NOT EXISTS idx_context_type ON contexts (context_type)")
-                cursor.execute("CREATE INDEX IF NOT EXISTS idx_context_status ON contexts (status)")
-                cursor.execute("CREATE INDEX IF NOT EXISTS idx_context_parent ON contexts (parent_context_id)")
-                cursor.execute("CREATE INDEX IF NOT EXISTS idx_snapshot_context ON context_snapshots (context_id)")
+                cursor.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_context_type ON contexts (context_type)"
+                )
+                cursor.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_context_status ON contexts (status)"
+                )
+                cursor.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_context_parent ON contexts (parent_context_id)"
+                )
+                cursor.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_snapshot_context ON context_snapshots (context_id)"
+                )
 
                 conn.commit()
             finally:
@@ -732,36 +790,44 @@ class ContextStorage:
             try:
                 cursor = conn.cursor()
 
-                cursor.execute("""
+                cursor.execute(
+                    """
                     INSERT OR REPLACE INTO contexts
                     (context_id, context_type, parent_context_id, data, metadata,
                      created_at, updated_at, status, expiry_time, tags)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    context.context_id,
-                    context.context_type.value,
-                    context.parent_context_id,
-                    json.dumps(context.data),
-                    json.dumps(context.metadata),
-                    context.created_at.isoformat(),
-                    context.updated_at.isoformat(),
-                    context.status.value,
-                    context.expiry_time.isoformat() if context.expiry_time else None,
-                    json.dumps(list(context.tags))
-                ))
+                """,
+                    (
+                        context.context_id,
+                        context.context_type.value,
+                        context.parent_context_id,
+                        json.dumps(context.data),
+                        json.dumps(context.metadata),
+                        context.created_at.isoformat(),
+                        context.updated_at.isoformat(),
+                        context.status.value,
+                        context.expiry_time.isoformat()
+                        if context.expiry_time
+                        else None,
+                        json.dumps(list(context.tags)),
+                    ),
+                )
 
                 # Save snapshots
                 for snapshot in context._snapshots:
-                    cursor.execute("""
+                    cursor.execute(
+                        """
                         INSERT OR REPLACE INTO context_snapshots
                         (snapshot_id, context_id, snapshot_data, timestamp)
                         VALUES (?, ?, ?, ?)
-                    """, (
-                        snapshot.snapshot_id,
-                        snapshot.context_id,
-                        json.dumps(snapshot.snapshot_data),
-                        snapshot.timestamp.isoformat()
-                    ))
+                    """,
+                        (
+                            snapshot.snapshot_id,
+                            snapshot.context_id,
+                            json.dumps(snapshot.snapshot_data),
+                            snapshot.timestamp.isoformat(),
+                        ),
+                    )
 
                 conn.commit()
             finally:
@@ -774,22 +840,28 @@ class ContextStorage:
             try:
                 cursor = conn.cursor()
 
-                cursor.execute("""
+                cursor.execute(
+                    """
                     SELECT context_id, context_type, parent_context_id, data, metadata,
                            created_at, updated_at, status, expiry_time, tags
                     FROM contexts WHERE context_id = ?
-                """, (context_id,))
+                """,
+                    (context_id,),
+                )
 
                 row = cursor.fetchone()
                 if not row:
                     return None
 
                 # Load snapshots
-                cursor.execute("""
+                cursor.execute(
+                    """
                     SELECT snapshot_id, snapshot_data, timestamp
                     FROM context_snapshots WHERE context_id = ?
                     ORDER BY timestamp
-                """, (context_id,))
+                """,
+                    (context_id,),
+                )
 
                 snapshots = []
                 for snapshot_row in cursor.fetchall():
@@ -797,7 +869,7 @@ class ContextStorage:
                         "snapshot_id": snapshot_row[0],
                         "context_id": context_id,
                         "snapshot_data": json.loads(snapshot_row[1]),
-                        "timestamp": snapshot_row[2]
+                        "timestamp": snapshot_row[2],
                     }
                     snapshots.append(ContextSnapshot.from_dict(snapshot_data))
 
@@ -813,7 +885,7 @@ class ContextStorage:
                     "status": row[7],
                     "expiry_time": row[8],
                     "tags": json.loads(row[9]) if row[9] else [],
-                    "snapshots": [snapshot.to_dict() for snapshot in snapshots]
+                    "snapshots": [snapshot.to_dict() for snapshot in snapshots],
                 }
 
                 # Create appropriate context type
@@ -823,24 +895,24 @@ class ContextStorage:
                         context_id=row[0],
                         session_name=context_data["data"].get("session_name", ""),
                         test_plan=context_data["data"].get("test_plan", {}),
-                        session_config=context_data["data"].get("session_config", {})
+                        session_config=context_data["data"].get("session_config", {}),
                     )
                 elif context_type == ContextType.WORKFLOW:
                     context = WorkflowContext(
                         context_id=row[0],
                         workflow_name=context_data["data"].get("workflow_name", ""),
-                        workflow_steps=context_data["data"].get("workflow_steps", [])
+                        workflow_steps=context_data["data"].get("workflow_steps", []),
                     )
                 elif context_type == ContextType.SCENARIO:
                     context = ScenarioContext(
                         context_id=row[0],
                         scenario_name=context_data["data"].get("scenario_name", ""),
-                        scenario_config=context_data["data"].get("scenario_config", {})
+                        scenario_config=context_data["data"].get("scenario_config", {}),
                     )
                 elif context_type == ContextType.PERFORMANCE:
                     context = PerformanceContext(
                         context_id=row[0],
-                        test_run_id=context_data["data"].get("test_run_id", "")
+                        test_run_id=context_data["data"].get("test_run_id", ""),
                     )
                 elif context_type == ContextType.GLOBAL:
                     context = GlobalContext(context_id=row[0])
@@ -849,7 +921,7 @@ class ContextStorage:
                         context_id=row[0],
                         agent_id=context_data["data"].get("agent_id", ""),
                         agent_type=context_data["data"].get("agent_type", ""),
-                        agent_config=context_data["data"].get("agent_config", {})
+                        agent_config=context_data["data"].get("agent_config", {}),
                     )
                 else:
                     context = BaseContext.from_dict(context_data)
@@ -862,7 +934,9 @@ class ContextStorage:
                 context.updated_at = datetime.fromisoformat(context_data["updated_at"])
                 context.status = ContextStatus(context_data["status"])
                 if context_data["expiry_time"]:
-                    context.expiry_time = datetime.fromisoformat(context_data["expiry_time"])
+                    context.expiry_time = datetime.fromisoformat(
+                        context_data["expiry_time"]
+                    )
                 context.tags = set(context_data["tags"])
                 context._snapshots = snapshots
 
@@ -871,10 +945,13 @@ class ContextStorage:
             finally:
                 conn.close()
 
-    def list_contexts(self, context_type: ContextType | None = None,
-                     status: ContextStatus | None = None,
-                     parent_context_id: str | None = None,
-                     tags: list[str] | None = None) -> list[dict[str, Any]]:
+    def list_contexts(
+        self,
+        context_type: ContextType | None = None,
+        status: ContextStatus | None = None,
+        parent_context_id: str | None = None,
+        tags: list[str] | None = None,
+    ) -> list[dict[str, Any]]:
         """List contexts with optional filtering."""
         with self._lock:
             conn = sqlite3.connect(self.db_path)
@@ -912,18 +989,20 @@ class ContextStorage:
                     if tags and not any(tag in context_tags for tag in tags):
                         continue
 
-                    contexts.append({
-                        "context_id": row[0],
-                        "context_type": row[1],
-                        "parent_context_id": row[2],
-                        "data": json.loads(row[3]),
-                        "metadata": json.loads(row[4]) if row[4] else {},
-                        "created_at": row[5],
-                        "updated_at": row[6],
-                        "status": row[7],
-                        "expiry_time": row[8],
-                        "tags": list(context_tags)
-                    })
+                    contexts.append(
+                        {
+                            "context_id": row[0],
+                            "context_type": row[1],
+                            "parent_context_id": row[2],
+                            "data": json.loads(row[3]),
+                            "metadata": json.loads(row[4]) if row[4] else {},
+                            "created_at": row[5],
+                            "updated_at": row[6],
+                            "status": row[7],
+                            "expiry_time": row[8],
+                            "tags": list(context_tags),
+                        }
+                    )
 
                 return contexts
 
@@ -938,10 +1017,14 @@ class ContextStorage:
                 cursor = conn.cursor()
 
                 # Delete snapshots first (foreign key constraint)
-                cursor.execute("DELETE FROM context_snapshots WHERE context_id = ?", (context_id,))
+                cursor.execute(
+                    "DELETE FROM context_snapshots WHERE context_id = ?", (context_id,)
+                )
 
                 # Delete context
-                cursor.execute("DELETE FROM contexts WHERE context_id = ?", (context_id,))
+                cursor.execute(
+                    "DELETE FROM contexts WHERE context_id = ?", (context_id,)
+                )
 
                 deleted = cursor.rowcount > 0
                 conn.commit()
@@ -959,17 +1042,25 @@ class ContextStorage:
                 current_time = datetime.utcnow().isoformat()
 
                 # Find expired contexts
-                cursor.execute("""
+                cursor.execute(
+                    """
                     SELECT context_id FROM contexts
                     WHERE expiry_time IS NOT NULL AND expiry_time < ?
-                """, (current_time,))
+                """,
+                    (current_time,),
+                )
 
                 expired_ids = [row[0] for row in cursor.fetchall()]
 
                 # Delete expired contexts and their snapshots
                 for context_id in expired_ids:
-                    cursor.execute("DELETE FROM context_snapshots WHERE context_id = ?", (context_id,))
-                    cursor.execute("DELETE FROM contexts WHERE context_id = ?", (context_id,))
+                    cursor.execute(
+                        "DELETE FROM context_snapshots WHERE context_id = ?",
+                        (context_id,),
+                    )
+                    cursor.execute(
+                        "DELETE FROM contexts WHERE context_id = ?", (context_id,)
+                    )
 
                 conn.commit()
                 return len(expired_ids)
@@ -981,8 +1072,9 @@ class ContextStorage:
 class ContextManager:
     """Main context manager for coordinating all context operations."""
 
-    def __init__(self, db_path: str = "mcp_context.db",
-                 audit_logger: Any | None = None):
+    def __init__(
+        self, db_path: str = "mcp_context.db", audit_logger: Any | None = None
+    ):
         self.storage = ContextStorage(db_path)
         self.audit_logger = audit_logger
         self._contexts: dict[str, BaseContext] = {}
@@ -1016,6 +1108,7 @@ class ContextManager:
 
     def _start_cleanup_task(self) -> None:
         """Start background task for cleaning up expired contexts."""
+
         def cleanup_worker():
             while True:
                 try:
@@ -1027,8 +1120,13 @@ class ContextManager:
         self._cleanup_task = threading.Thread(target=cleanup_worker, daemon=True)
         self._cleanup_task.start()
 
-    def create_context(self, context_type: ContextType, context_id: str | None = None,
-                      parent_context_id: str | None = None, **kwargs) -> BaseContext:
+    def create_context(
+        self,
+        context_type: ContextType,
+        context_id: str | None = None,
+        parent_context_id: str | None = None,
+        **kwargs,
+    ) -> BaseContext:
         """Create a new context of the specified type."""
         with self._lock:
             if context_id is None:
@@ -1038,33 +1136,39 @@ class ContextManager:
             if context_type == ContextType.TEST_SESSION:
                 context = TestSessionContext(
                     context_id=context_id,
-                    session_name=kwargs.get("session_name", f"session_{context_id[:8]}"),
+                    session_name=kwargs.get(
+                        "session_name", f"session_{context_id[:8]}"
+                    ),
                     test_plan=kwargs.get("test_plan", {}),
-                    session_config=kwargs.get("session_config", {})
+                    session_config=kwargs.get("session_config", {}),
                 )
             elif context_type == ContextType.WORKFLOW:
                 context = WorkflowContext(
                     context_id=context_id,
-                    workflow_name=kwargs.get("workflow_name", f"workflow_{context_id[:8]}"),
-                    workflow_steps=kwargs.get("workflow_steps", [])
+                    workflow_name=kwargs.get(
+                        "workflow_name", f"workflow_{context_id[:8]}"
+                    ),
+                    workflow_steps=kwargs.get("workflow_steps", []),
                 )
             elif context_type == ContextType.SCENARIO:
                 context = ScenarioContext(
                     context_id=context_id,
-                    scenario_name=kwargs.get("scenario_name", f"scenario_{context_id[:8]}"),
-                    scenario_config=kwargs.get("scenario_config", {})
+                    scenario_name=kwargs.get(
+                        "scenario_name", f"scenario_{context_id[:8]}"
+                    ),
+                    scenario_config=kwargs.get("scenario_config", {}),
                 )
             elif context_type == ContextType.PERFORMANCE:
                 context = PerformanceContext(
                     context_id=context_id,
-                    test_run_id=kwargs.get("test_run_id", f"run_{context_id[:8]}")
+                    test_run_id=kwargs.get("test_run_id", f"run_{context_id[:8]}"),
                 )
             elif context_type == ContextType.AGENT:
                 context = AgentContext(
                     context_id=context_id,
                     agent_id=kwargs.get("agent_id", f"agent_{context_id[:8]}"),
                     agent_type=kwargs.get("agent_type", "custom"),
-                    agent_config=kwargs.get("agent_config", {})
+                    agent_config=kwargs.get("agent_config", {}),
                 )
             else:
                 context = BaseContext(
@@ -1072,7 +1176,7 @@ class ContextManager:
                     context_type=context_type,
                     data=kwargs.get("data", {}),
                     parent_context_id=parent_context_id,
-                    metadata=kwargs.get("metadata", {})
+                    metadata=kwargs.get("metadata", {}),
                 )
 
             # Set parent context if specified
@@ -1089,7 +1193,7 @@ class ContextManager:
                     operation="create",
                     context_id=context_id,
                     context_type=context_type.value,
-                    details={"parent_context_id": parent_context_id}
+                    details={"parent_context_id": parent_context_id},
                 )
 
             return context
@@ -1109,8 +1213,9 @@ class ContextManager:
 
             return None
 
-    def update_context(self, context_id: str, updates: dict[str, Any],
-                      merge: bool = True) -> bool:
+    def update_context(
+        self, context_id: str, updates: dict[str, Any], merge: bool = True
+    ) -> bool:
         """Update context data."""
         with self._lock:
             context = self.get_context(context_id)
@@ -1126,7 +1231,7 @@ class ContextManager:
                     operation="update",
                     context_id=context_id,
                     context_type=context.context_type.value,
-                    details={"updates": updates, "merge": merge}
+                    details={"updates": updates, "merge": merge},
                 )
 
             return True
@@ -1147,21 +1252,24 @@ class ContextManager:
             # Log context deletion
             if deleted and self.audit_logger:
                 self.audit_logger.log_context_operation(
-                    operation="delete",
-                    context_id=context_id,
-                    context_type=context_type
+                    operation="delete", context_id=context_id, context_type=context_type
                 )
 
             return deleted
 
-    def list_contexts(self, context_type: ContextType | None = None,
-                     status: ContextStatus | None = None,
-                     parent_context_id: str | None = None,
-                     tags: list[str] | None = None) -> list[dict[str, Any]]:
+    def list_contexts(
+        self,
+        context_type: ContextType | None = None,
+        status: ContextStatus | None = None,
+        parent_context_id: str | None = None,
+        tags: list[str] | None = None,
+    ) -> list[dict[str, Any]]:
         """List contexts with optional filtering."""
         return self.storage.list_contexts(context_type, status, parent_context_id, tags)
 
-    def create_snapshot(self, context_id: str, description: str | None = None) -> str | None:
+    def create_snapshot(
+        self, context_id: str, description: str | None = None
+    ) -> str | None:
         """Create a snapshot of context state."""
         with self._lock:
             context = self.get_context(context_id)
@@ -1177,7 +1285,10 @@ class ContextManager:
                     operation="snapshot",
                     context_id=context_id,
                     context_type=context.context_type.value,
-                    details={"snapshot_id": snapshot.snapshot_id, "description": description}
+                    details={
+                        "snapshot_id": snapshot.snapshot_id,
+                        "description": description,
+                    },
                 )
 
             return snapshot.snapshot_id
@@ -1199,7 +1310,7 @@ class ContextManager:
                         operation="restore",
                         context_id=context_id,
                         context_type=context.context_type.value,
-                        details={"snapshot_id": snapshot_id}
+                        details={"snapshot_id": snapshot_id},
                     )
 
             return restored
@@ -1229,8 +1340,8 @@ class ContextManager:
                     context_type="cleanup",
                     details={
                         "memory_cleaned": len(expired_ids),
-                        "storage_cleaned": storage_cleaned
-                    }
+                        "storage_cleaned": storage_cleaned,
+                    },
                 )
 
             return len(expired_ids) + storage_cleaned
@@ -1255,13 +1366,15 @@ class ContextManager:
             if not context:
                 break
 
-            hierarchy.append({
-                "context_id": context.context_id,
-                "context_type": context.context_type.value,
-                "status": context.status.value,
-                "created_at": context.created_at.isoformat(),
-                "updated_at": context.updated_at.isoformat()
-            })
+            hierarchy.append(
+                {
+                    "context_id": context.context_id,
+                    "context_type": context.context_type.value,
+                    "status": context.status.value,
+                    "created_at": context.created_at.isoformat(),
+                    "updated_at": context.updated_at.isoformat(),
+                }
+            )
 
             current_id = context.parent_context_id
 
@@ -1287,9 +1400,7 @@ class ContextManager:
             # Log shutdown
             if self.audit_logger:
                 self.audit_logger.log_context_operation(
-                    operation="shutdown",
-                    context_id="system",
-                    context_type="system"
+                    operation="shutdown", context_id="system", context_type="system"
                 )
 
 
@@ -1297,8 +1408,9 @@ class ContextManager:
 _global_context_manager: ContextManager | None = None
 
 
-def get_context_manager(db_path: str = "mcp_context.db",
-                       audit_logger: Any | None = None) -> ContextManager:
+def get_context_manager(
+    db_path: str = "mcp_context.db", audit_logger: Any | None = None
+) -> ContextManager:
     """Get or create the global context manager instance."""
     global _global_context_manager  # noqa: PLW0603
     if _global_context_manager is None:
@@ -1306,8 +1418,9 @@ def get_context_manager(db_path: str = "mcp_context.db",
     return _global_context_manager
 
 
-def initialize_context_manager(db_path: str = "mcp_context.db",
-                              audit_logger: Any | None = None) -> ContextManager:
+def initialize_context_manager(
+    db_path: str = "mcp_context.db", audit_logger: Any | None = None
+) -> ContextManager:
     """Initialize the global context manager with specific configuration."""
     global _global_context_manager  # noqa: PLW0603
     _global_context_manager = ContextManager(db_path, audit_logger)
@@ -1315,41 +1428,48 @@ def initialize_context_manager(db_path: str = "mcp_context.db",
 
 
 # Context management functions for MCP tools
-async def create_test_session_context(session_name: str, test_plan: dict[str, Any],
-                                    session_config: dict[str, Any] | None = None) -> str:
+async def create_test_session_context(
+    session_name: str,
+    test_plan: dict[str, Any],
+    session_config: dict[str, Any] | None = None,
+) -> str:
     """Create a new test session context."""
     manager = get_context_manager()
     context = manager.create_context(
         ContextType.TEST_SESSION,
         session_name=session_name,
         test_plan=test_plan,
-        session_config=session_config
+        session_config=session_config,
     )
     return context.context_id
 
 
-async def create_workflow_context(workflow_name: str, workflow_steps: list[dict[str, Any]],
-                                parent_context_id: str | None = None) -> str:
+async def create_workflow_context(
+    workflow_name: str,
+    workflow_steps: list[dict[str, Any]],
+    parent_context_id: str | None = None,
+) -> str:
     """Create a new workflow context."""
     manager = get_context_manager()
     context = manager.create_context(
         ContextType.WORKFLOW,
         workflow_name=workflow_name,
         workflow_steps=workflow_steps,
-        parent_context_id=parent_context_id
+        parent_context_id=parent_context_id,
     )
     return context.context_id
 
 
-async def create_agent_context(agent_id: str, agent_type: str,
-                             agent_config: dict[str, Any] | None = None) -> str:
+async def create_agent_context(
+    agent_id: str, agent_type: str, agent_config: dict[str, Any] | None = None
+) -> str:
     """Create a new agent context."""
     manager = get_context_manager()
     context = manager.create_context(
         ContextType.AGENT,
         agent_id=agent_id,
         agent_type=agent_type,
-        agent_config=agent_config
+        agent_config=agent_config,
     )
     return context.context_id
 
@@ -1363,14 +1483,17 @@ async def get_context_data(context_id: str, key: str | None = None) -> Any | Non
     return None
 
 
-async def update_context_data(context_id: str, updates: dict[str, Any],
-                            merge: bool = True) -> bool:
+async def update_context_data(
+    context_id: str, updates: dict[str, Any], merge: bool = True
+) -> bool:
     """Update context data."""
     manager = get_context_manager()
     return manager.update_context(context_id, updates, merge)
 
 
-async def create_context_snapshot(context_id: str, description: str | None = None) -> str | None:
+async def create_context_snapshot(
+    context_id: str, description: str | None = None
+) -> str | None:
     """Create a snapshot of context state."""
     manager = get_context_manager()
     return manager.create_snapshot(context_id, description)
@@ -1382,8 +1505,9 @@ async def restore_context_snapshot(context_id: str, snapshot_id: str) -> bool:
     return manager.restore_snapshot(context_id, snapshot_id)
 
 
-async def list_contexts_by_type(context_type: ContextType,
-                               status: ContextStatus | None = None) -> list[dict[str, Any]]:
+async def list_contexts_by_type(
+    context_type: ContextType, status: ContextStatus | None = None
+) -> list[dict[str, Any]]:
     """List contexts by type and optional status."""
     manager = get_context_manager()
     return manager.list_contexts(context_type=context_type, status=status)
@@ -1396,7 +1520,9 @@ async def get_global_context_data(key: str | None = None) -> Any:
     return global_context.get_data(key)
 
 
-async def update_global_context_data(updates: dict[str, Any], merge: bool = True) -> bool:
+async def update_global_context_data(
+    updates: dict[str, Any], merge: bool = True
+) -> bool:
     """Update global context data."""
     manager = get_context_manager()
     global_context = manager.get_global_context()

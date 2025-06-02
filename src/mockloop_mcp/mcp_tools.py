@@ -35,22 +35,23 @@ if __package__ is None or __package__ == "":
         generate_scenario_config,
         optimize_scenario_for_load,
         generate_error_scenarios,
-        generate_security_test_scenarios
+        generate_security_test_scenarios,
     )
-    from mcp_resources import (
-        list_scenario_packs,
-        get_scenario_pack_by_uri
-    )
+    from mcp_resources import list_scenario_packs, get_scenario_pack_by_uri
     from utils.http_client import (
         MockServerClient,
         discover_running_servers,
-        check_server_connectivity
+        check_server_connectivity,
     )
     from mock_server_manager import MockServerManager
     from generator import generate_mock_api
     from proxy.config import (
-        ProxyConfig, AuthConfig, EndpointConfig, PluginConfig,
-        ProxyMode, AuthType
+        ProxyConfig,
+        AuthConfig,
+        EndpointConfig,
+        PluginConfig,
+        ProxyMode,
+        AuthType,
     )
     from proxy.plugin_manager import PluginManager
     from proxy.proxy_handler import ProxyHandler
@@ -62,22 +63,23 @@ else:
         generate_scenario_config,
         optimize_scenario_for_load,
         generate_error_scenarios,
-        generate_security_test_scenarios
+        generate_security_test_scenarios,
     )
-    from .mcp_resources import (
-        list_scenario_packs,
-        get_scenario_pack_by_uri
-    )
+    from .mcp_resources import list_scenario_packs, get_scenario_pack_by_uri
     from .utils.http_client import (
         MockServerClient,
         discover_running_servers,
-        check_server_connectivity
+        check_server_connectivity,
     )
     from .mock_server_manager import MockServerManager
     from .generator import generate_mock_api
     from .proxy.config import (
-        ProxyConfig, AuthConfig, EndpointConfig, PluginConfig,
-        ProxyMode, AuthType
+        ProxyConfig,
+        AuthConfig,
+        EndpointConfig,
+        PluginConfig,
+        ProxyMode,
+        AuthType,
     )
     from .proxy.plugin_manager import PluginManager
     from .proxy.proxy_handler import ProxyHandler
@@ -97,13 +99,14 @@ def mcp_tool_audit(tool_name: str):
     Args:
         tool_name: Name of the MCP tool being audited
     """
+
     def decorator(func):
         @wraps(func)
         async def wrapper(*args, **kwargs):
             audit_logger = create_audit_logger(
                 db_path="mcp_audit.db",
                 session_id=f"mcp_tool_{tool_name}",
-                user_id="mcp_system"
+                user_id="mcp_system",
             )
             start_time = time.time()
             entry_id = None
@@ -117,7 +120,7 @@ def mcp_tool_audit(tool_name: str):
                         data_sources=["mock_server", "scenario_config"],
                         compliance_tags=["mcp_tool", "test_execution"],
                         processing_purpose="automated_testing",
-                        legal_basis="legitimate_interests"
+                        legal_basis="legitimate_interests",
                     )
 
                 # Execute the original function
@@ -134,7 +137,7 @@ def mcp_tool_audit(tool_name: str):
                         data_sources=["mock_server", "scenario_config"],
                         compliance_tags=["mcp_tool", "test_execution", "completion"],
                         processing_purpose="automated_testing_completion",
-                        legal_basis="legitimate_interests"
+                        legal_basis="legitimate_interests",
                     )
 
                 return result
@@ -146,27 +149,32 @@ def mcp_tool_audit(tool_name: str):
                     audit_logger.log_tool_execution(
                         tool_name=f"{tool_name}_error",
                         input_parameters={"original_entry_id": entry_id},
-                        execution_result={"status": "error", "error_type": type(e).__name__},
+                        execution_result={
+                            "status": "error",
+                            "error_type": type(e).__name__,
+                        },
                         execution_time_ms=execution_time_ms,
                         data_sources=["mock_server", "scenario_config"],
                         compliance_tags=["mcp_tool", "test_execution", "error"],
                         processing_purpose="automated_testing_error",
                         legal_basis="legitimate_interests",
-                        error_details=str(e)
+                        error_details=str(e),
                     )
                 raise
 
         return wrapper
+
     return decorator
 
 
 # Scenario Management Tools
 
+
 @mcp_tool_audit("validate_scenario_config")
 async def validate_scenario_config(
     scenario_config: dict[str, Any],
     strict_validation: bool = True,
-    check_endpoints: bool = True
+    check_endpoints: bool = True,
 ) -> dict[str, Any]:
     """
     Validates scenario configuration before deployment.
@@ -186,7 +194,7 @@ async def validate_scenario_config(
             "errors": [],
             "warnings": [],
             "suggestions": [],
-            "validated_config": scenario_config.copy()
+            "validated_config": scenario_config.copy(),
         }
 
         # Required fields validation
@@ -197,10 +205,17 @@ async def validate_scenario_config(
                 validation_result["valid"] = False
 
         # Scenario type validation
-        valid_types = ["load_testing", "error_simulation", "security_testing", "functional_testing"]
+        valid_types = [
+            "load_testing",
+            "error_simulation",
+            "security_testing",
+            "functional_testing",
+        ]
         scenario_type = scenario_config.get("scenario_type")
         if scenario_type and scenario_type not in valid_types:
-            validation_result["errors"].append(f"Invalid scenario_type: {scenario_type}. Must be one of {valid_types}")
+            validation_result["errors"].append(
+                f"Invalid scenario_type: {scenario_type}. Must be one of {valid_types}"
+            )
             validation_result["valid"] = False
 
         # Endpoints validation
@@ -244,7 +259,7 @@ async def validate_scenario_config(
             "errors": [f"Validation failed: {e!s}"],
             "warnings": [],
             "suggestions": [],
-            "validated_config": {}
+            "validated_config": {},
         }
 
 
@@ -253,7 +268,7 @@ async def deploy_scenario(
     server_url: str,
     scenario_config: dict[str, Any],
     validate_before_deploy: bool = True,
-    force_deploy: bool = False
+    force_deploy: bool = False,
 ) -> dict[str, Any]:
     """
     Deploys scenario to MockLoop server.
@@ -275,7 +290,7 @@ async def deploy_scenario(
             "server_url": server_url,
             "validation_result": None,
             "deployment_details": {},
-            "performance_metrics": {}
+            "performance_metrics": {},
         }
 
         start_time = time.time()
@@ -286,7 +301,7 @@ async def deploy_scenario(
             return {
                 **deployment_result,
                 "status": "error",
-                "error": f"Server not accessible: {connectivity_result.get('error', 'Unknown error')}"
+                "error": f"Server not accessible: {connectivity_result.get('error', 'Unknown error')}",
             }
 
         # Validate scenario configuration if requested
@@ -298,11 +313,13 @@ async def deploy_scenario(
                 return {
                     **deployment_result,
                     "status": "error",
-                    "error": "Scenario validation failed. Use force_deploy=True to override."
+                    "error": "Scenario validation failed. Use force_deploy=True to override.",
                 }
 
         # Initialize HTTP client with server discovery for dual-port support
-        servers = await discover_running_servers([int(server_url.split(":")[-1])], check_health=True)
+        servers = await discover_running_servers(
+            [int(server_url.split(":")[-1])], check_health=True
+        )
         admin_port = None
         for server in servers:
             if server.get("url") == server_url and server.get("admin_port"):
@@ -323,21 +340,29 @@ async def deploy_scenario(
             switch_result = await client.switch_scenario(scenario_name)
             if switch_result.get("status") == "success":
                 deployment_result["deployment_details"]["activated"] = True
-                deployment_result["deployment_details"]["previous_scenario"] = switch_result.get("previous_scenario")
+                deployment_result["deployment_details"]["previous_scenario"] = (
+                    switch_result.get("previous_scenario")
+                )
             else:
                 deployment_result["deployment_details"]["activated"] = False
-                deployment_result["deployment_details"]["switch_error"] = switch_result.get("error")
+                deployment_result["deployment_details"]["switch_error"] = (
+                    switch_result.get("error")
+                )
 
         else:
             deployment_result["status"] = "error"
-            deployment_result["error"] = f"Scenario deployment failed: {create_result.get('error', 'Unknown error')}"
+            deployment_result["error"] = (
+                f"Scenario deployment failed: {create_result.get('error', 'Unknown error')}"
+            )
 
         # Calculate performance metrics
         end_time = time.time()
         deployment_result["performance_metrics"] = {
             "deployment_time_ms": round((end_time - start_time) * 1000, 2),
-            "server_response_time": connectivity_result.get("response_time_ms", "unknown"),
-            "timestamp": end_time
+            "server_response_time": connectivity_result.get(
+                "response_time_ms", "unknown"
+            ),
+            "timestamp": end_time,
         }
 
         return deployment_result
@@ -352,15 +377,13 @@ async def deploy_scenario(
             "error": f"Deployment failed: {e!s}",
             "validation_result": None,
             "deployment_details": {},
-            "performance_metrics": {}
+            "performance_metrics": {},
         }
 
 
 @mcp_tool_audit("switch_scenario")
 async def switch_scenario(
-    server_url: str,
-    scenario_name: str,
-    verify_switch: bool = True
+    server_url: str, scenario_name: str, verify_switch: bool = True
 ) -> dict[str, Any]:
     """
     Switches active scenario on a server.
@@ -380,7 +403,7 @@ async def switch_scenario(
             "scenario_name": scenario_name,
             "server_url": server_url,
             "previous_scenario": None,
-            "verification_result": None
+            "verification_result": None,
         }
 
         # Validate server connectivity
@@ -389,11 +412,13 @@ async def switch_scenario(
             return {
                 **switch_result,
                 "status": "error",
-                "error": f"Server not accessible: {connectivity_result.get('error', 'Unknown error')}"
+                "error": f"Server not accessible: {connectivity_result.get('error', 'Unknown error')}",
             }
 
         # Initialize HTTP client with server discovery for dual-port support
-        servers = await discover_running_servers([int(server_url.split(":")[-1])], check_health=True)
+        servers = await discover_running_servers(
+            [int(server_url.split(":")[-1])], check_health=True
+        )
         admin_port = None
         for server in servers:
             if server.get("url") == server_url and server.get("admin_port"):
@@ -419,14 +444,18 @@ async def switch_scenario(
                     else:
                         switch_result["verification_result"] = "failed"
                         switch_result["status"] = "warning"
-                        switch_result["error"] = "Switch completed but verification failed"
+                        switch_result["error"] = (
+                            "Switch completed but verification failed"
+                        )
                 else:
                     switch_result["verification_result"] = "unable_to_verify"
                     switch_result["status"] = "warning"
 
         else:
             switch_result["status"] = "error"
-            switch_result["error"] = f"Scenario switch failed: {result.get('error', 'Unknown error')}"
+            switch_result["error"] = (
+                f"Scenario switch failed: {result.get('error', 'Unknown error')}"
+            )
 
         return switch_result
 
@@ -439,14 +468,13 @@ async def switch_scenario(
             "server_url": server_url,
             "error": f"Switch failed: {e!s}",
             "previous_scenario": None,
-            "verification_result": None
+            "verification_result": None,
         }
 
 
 @mcp_tool_audit("list_active_scenarios")
 async def list_active_scenarios(
-    server_urls: list[str] | None = None,
-    discover_servers: bool = True
+    server_urls: list[str] | None = None, discover_servers: bool = True
 ) -> dict[str, Any]:
     """
     Lists all active scenarios across servers.
@@ -464,7 +492,7 @@ async def list_active_scenarios(
             "servers_checked": 0,
             "active_scenarios": [],
             "server_details": [],
-            "discovery_used": False
+            "discovery_used": False,
         }
 
         target_servers = []
@@ -483,14 +511,16 @@ async def list_active_scenarios(
             return {
                 **result,
                 "status": "warning",
-                "error": "No servers to check. Provide server_urls or enable discover_servers."
+                "error": "No servers to check. Provide server_urls or enable discover_servers.",
             }
 
         # Check each server
         for server_url in target_servers:
             try:
                 # Initialize HTTP client with server discovery for dual-port support
-                servers = await discover_running_servers([int(server_url.split(":")[-1])], check_health=True)
+                servers = await discover_running_servers(
+                    [int(server_url.split(":")[-1])], check_health=True
+                )
                 admin_port = None
                 for server in servers:
                     if server.get("url") == server_url and server.get("admin_port"):
@@ -504,14 +534,20 @@ async def list_active_scenarios(
                 if current_result.get("status") == "success":
                     current_scenario = current_result.get("current_scenario", {})
                     if current_scenario:
-                        result["active_scenarios"].append({
-                            "server_url": server_url,
-                            "scenario_name": current_scenario.get("name", "unknown"),
-                            "scenario_id": current_scenario.get("id"),
-                            "description": current_scenario.get("description", ""),
-                            "activated_at": current_scenario.get("activated_at"),
-                            "scenario_type": current_scenario.get("config", {}).get("scenario_type", "unknown")
-                        })
+                        result["active_scenarios"].append(
+                            {
+                                "server_url": server_url,
+                                "scenario_name": current_scenario.get(
+                                    "name", "unknown"
+                                ),
+                                "scenario_id": current_scenario.get("id"),
+                                "description": current_scenario.get("description", ""),
+                                "activated_at": current_scenario.get("activated_at"),
+                                "scenario_type": current_scenario.get("config", {}).get(
+                                    "scenario_type", "unknown"
+                                ),
+                            }
+                        )
 
                 result["servers_checked"] += 1
 
@@ -530,11 +566,12 @@ async def list_active_scenarios(
             "active_scenarios": [],
             "server_details": [],
             "discovery_used": False,
-            "error": f"Failed to list active scenarios: {e!s}"
+            "error": f"Failed to list active scenarios: {e!s}",
         }
 
 
 # Test Execution Tools
+
 
 @mcp_tool_audit("execute_test_plan")
 async def execute_test_plan(
@@ -547,7 +584,7 @@ async def execute_test_plan(
     validation_mode: str = "strict",
     comparison_config: dict[str, Any] | None = None,
     parallel_execution: bool = False,
-    report_differences: bool = True
+    report_differences: bool = True,
 ) -> dict[str, Any]:
     """
     Enhanced test plan execution with proxy-aware testing and validation against both mock and live APIs.
@@ -583,7 +620,7 @@ async def execute_test_plan(
             "proxy_detection": {},
             "validation_results": [],
             "comparison_results": [],
-            "differences_report": []
+            "differences_report": [],
         }
 
         start_time = time.time()
@@ -595,17 +632,23 @@ async def execute_test_plan(
             execution_result["proxy_detection"] = {
                 "original_mode": mode,
                 "detected_mode": detected_mode,
-                "detection_method": "automatic"
+                "detection_method": "automatic",
             }
 
         # Step 2: Set up comparison configuration
         comparison_cfg = comparison_config or {}
-        ignore_fields = comparison_cfg.get("ignore_fields", ["timestamp", "request_id", "trace_id"])
-        tolerance = comparison_cfg.get("tolerance", {"response_time_ms": 100, "numeric_variance": 0.01})
+        ignore_fields = comparison_cfg.get(
+            "ignore_fields", ["timestamp", "request_id", "trace_id"]
+        )
+        tolerance = comparison_cfg.get(
+            "tolerance", {"response_time_ms": 100, "numeric_variance": 0.01}
+        )
 
         # Step 3: Analyze OpenAPI specification
         if auto_generate_scenarios:
-            analysis_result = await analyze_openapi_for_testing(openapi_spec, test_focus, True)
+            analysis_result = await analyze_openapi_for_testing(
+                openapi_spec, test_focus, True
+            )
             execution_result["analysis_result"] = analysis_result
 
             # Step 4: Generate scenarios based on analysis and mode
@@ -620,11 +663,13 @@ async def execute_test_plan(
 
                 # Generate scenario configuration with mode-specific enhancements
                 scenario_config = await _generate_enhanced_scenario_config(
-                    scenario_type=scenario_info.get("scenario_type", "functional_testing"),
+                    scenario_type=scenario_info.get(
+                        "scenario_type", "functional_testing"
+                    ),
                     endpoints=endpoints[:5],  # Limit endpoints per scenario
                     scenario_name=f"auto_{scenario_info.get('scenario_type', 'test')}_{int(time.time())}",
                     mode=detected_mode,
-                    openapi_spec=openapi_spec
+                    openapi_spec=openapi_spec,
                 )
 
                 execution_result["generated_scenarios"].append(scenario_config)
@@ -633,7 +678,9 @@ async def execute_test_plan(
         for scenario_config in execution_result["generated_scenarios"]:
             if detected_mode in ["mock", "hybrid"]:
                 # Deploy to mock server
-                deploy_result = await deploy_scenario(server_url, scenario_config, validate_before_deploy=True)
+                deploy_result = await deploy_scenario(
+                    server_url, scenario_config, validate_before_deploy=True
+                )
                 execution_result["deployed_scenarios"].append(deploy_result)
 
             # Step 6: Execute tests with proxy-aware validation
@@ -648,17 +695,18 @@ async def execute_test_plan(
                             mode=detected_mode,
                             validation_mode=validation_mode,
                             comparison_config=comparison_cfg,
-                            openapi_spec=openapi_spec
+                            openapi_spec=openapi_spec,
                         )
                         test_tasks.append(task)
 
-                    test_results = await asyncio.gather(*test_tasks, return_exceptions=True)
+                    test_results = await asyncio.gather(
+                        *test_tasks, return_exceptions=True
+                    )
                     for result in test_results:
                         if isinstance(result, Exception):
-                            execution_result["execution_results"].append({
-                                "status": "error",
-                                "error": str(result)
-                            })
+                            execution_result["execution_results"].append(
+                                {"status": "error", "error": str(result)}
+                            )
                         else:
                             execution_result["execution_results"].append(result)
                 else:
@@ -670,7 +718,7 @@ async def execute_test_plan(
                             mode=detected_mode,
                             validation_mode=validation_mode,
                             comparison_config=comparison_cfg,
-                            openapi_spec=openapi_spec
+                            openapi_spec=openapi_spec,
                         )
                         execution_result["execution_results"].append(test_result)
 
@@ -686,17 +734,21 @@ async def execute_test_plan(
                     validation_result = await _validate_responses_against_spec(
                         test_result.get("request_logs", []),
                         openapi_spec,
-                        validation_mode
+                        validation_mode,
                     )
                     validation_results.append(validation_result)
 
                     # Compare mock vs live API responses if in hybrid mode
-                    if detected_mode == "hybrid" and test_result.get("mock_responses") and test_result.get("live_responses"):
+                    if (
+                        detected_mode == "hybrid"
+                        and test_result.get("mock_responses")
+                        and test_result.get("live_responses")
+                    ):
                         comparison_result = await _compare_responses(
                             test_result["mock_responses"],
                             test_result["live_responses"],
                             ignore_fields,
-                            tolerance
+                            tolerance,
                         )
                         comparison_results.append(comparison_result)
 
@@ -713,22 +765,34 @@ async def execute_test_plan(
         execution_result["performance_metrics"] = {
             "total_execution_time_ms": round((end_time - start_time) * 1000, 2),
             "scenarios_generated": len(execution_result["generated_scenarios"]),
-            "scenarios_deployed": len([d for d in execution_result["deployed_scenarios"] if d.get("deployed")]),
+            "scenarios_deployed": len(
+                [d for d in execution_result["deployed_scenarios"] if d.get("deployed")]
+            ),
             "tests_executed": len(execution_result["execution_results"]),
-            "timestamp": end_time
+            "timestamp": end_time,
         }
 
         # Determine overall status
-        failed_deployments = [d for d in execution_result["deployed_scenarios"] if not d.get("deployed")]
-        failed_executions = [e for e in execution_result["execution_results"] if e.get("status") != "success"]
+        failed_deployments = [
+            d for d in execution_result["deployed_scenarios"] if not d.get("deployed")
+        ]
+        failed_executions = [
+            e
+            for e in execution_result["execution_results"]
+            if e.get("status") != "success"
+        ]
 
         if failed_deployments or failed_executions:
             execution_result["status"] = "partial_success"
             execution_result["warnings"] = []
             if failed_deployments:
-                execution_result["warnings"].append(f"{len(failed_deployments)} scenario deployments failed")
+                execution_result["warnings"].append(
+                    f"{len(failed_deployments)} scenario deployments failed"
+                )
             if failed_executions:
-                execution_result["warnings"].append(f"{len(failed_executions)} test executions failed")
+                execution_result["warnings"].append(
+                    f"{len(failed_executions)} test executions failed"
+                )
 
         return execution_result
 
@@ -744,7 +808,7 @@ async def execute_test_plan(
             "generated_scenarios": [],
             "deployed_scenarios": [],
             "execution_results": [],
-            "performance_metrics": {}
+            "performance_metrics": {},
         }
 
 
@@ -754,7 +818,7 @@ async def run_test_iteration(
     scenario_name: str,
     duration_seconds: int = 300,
     monitor_performance: bool = True,
-    collect_logs: bool = True
+    collect_logs: bool = True,
 ) -> dict[str, Any]:
     """
     Executes a single test iteration with monitoring.
@@ -781,11 +845,13 @@ async def run_test_iteration(
             "performance_metrics": {},
             "request_logs": [],
             "error_summary": {},
-            "recommendations": []
+            "recommendations": [],
         }
 
         # Initialize HTTP client with server discovery for dual-port support
-        servers = await discover_running_servers([int(server_url.split(":")[-1])], check_health=True)
+        servers = await discover_running_servers(
+            [int(server_url.split(":")[-1])], check_health=True
+        )
         admin_port = None
         for server in servers:
             if server.get("url") == server_url and server.get("admin_port"):
@@ -795,17 +861,21 @@ async def run_test_iteration(
         client = MockServerClient(server_url, admin_port=admin_port)
 
         # Switch to the specified scenario
-        switch_result = await switch_scenario(server_url, scenario_name, verify_switch=True)
+        switch_result = await switch_scenario(
+            server_url, scenario_name, verify_switch=True
+        )
         if not switch_result.get("switched"):
             return {
                 **iteration_result,
                 "status": "error",
-                "error": f"Failed to switch to scenario '{scenario_name}': {switch_result.get('error')}"
+                "error": f"Failed to switch to scenario '{scenario_name}': {switch_result.get('error')}",
             }
 
         # Record start time
         start_time = time.time()
-        iteration_result["start_time"] = datetime.fromtimestamp(start_time, tz=timezone.utc).isoformat()
+        iteration_result["start_time"] = datetime.fromtimestamp(
+            start_time, tz=timezone.utc
+        ).isoformat()
 
         # Get initial metrics if monitoring is enabled
         initial_stats = None
@@ -820,14 +890,18 @@ async def run_test_iteration(
 
         # Record end time
         end_time = time.time()
-        iteration_result["end_time"] = datetime.fromtimestamp(end_time, tz=timezone.utc).isoformat()
+        iteration_result["end_time"] = datetime.fromtimestamp(
+            end_time, tz=timezone.utc
+        ).isoformat()
 
         # Collect final metrics
         if monitor_performance:
             final_stats_result = await client.get_stats()
             if final_stats_result.get("status") == "success":
                 final_stats = final_stats_result.get("stats", {})
-                iteration_result["performance_metrics"] = _calculate_performance_delta(initial_stats, final_stats)
+                iteration_result["performance_metrics"] = _calculate_performance_delta(
+                    initial_stats, final_stats
+                )
 
         # Collect request logs if requested
         if collect_logs:
@@ -843,7 +917,7 @@ async def run_test_iteration(
                 recommendations = _generate_test_recommendations(
                     iteration_result["performance_metrics"],
                     error_summary,
-                    scenario_name
+                    scenario_name,
                 )
                 iteration_result["recommendations"] = recommendations
 
@@ -863,7 +937,7 @@ async def run_test_iteration(
             "performance_metrics": {},
             "request_logs": [],
             "error_summary": {},
-            "recommendations": []
+            "recommendations": [],
         }
 
 
@@ -873,7 +947,7 @@ async def run_load_test(
     target_load: int,
     duration_seconds: int = 300,
     ramp_up_time: int = 60,
-    scenario_name: str | None = None
+    scenario_name: str | None = None,
 ) -> dict[str, Any]:
     """
     Executes load testing with configurable parameters.
@@ -900,7 +974,7 @@ async def run_load_test(
             "load_profile": {},
             "performance_results": {},
             "bottlenecks_identified": [],
-            "recommendations": []
+            "recommendations": [],
         }
 
         # If no scenario specified, create an optimized load testing scenario
@@ -910,7 +984,7 @@ async def run_load_test(
             base_scenario = await generate_scenario_config(
                 scenario_type="load_testing",
                 endpoints=endpoints,
-                scenario_name=f"load_test_{target_load}_{int(time.time())}"
+                scenario_name=f"load_test_{target_load}_{int(time.time())}",
             )
 
             # Optimize for load
@@ -920,8 +994,8 @@ async def run_load_test(
                 performance_requirements={
                     "max_response_time_ms": 2000,
                     "target_throughput_rps": target_load * 2,
-                    "error_rate_threshold": 0.01
-                }
+                    "error_rate_threshold": 0.01,
+                },
             )
 
             # Deploy the optimized scenario
@@ -930,7 +1004,7 @@ async def run_load_test(
                 return {
                     **load_test_result,
                     "status": "error",
-                    "error": f"Failed to deploy load test scenario: {deploy_result.get('error')}"
+                    "error": f"Failed to deploy load test scenario: {deploy_result.get('error')}",
                 }
 
             scenario_name = optimized_scenario["scenario_name"]
@@ -939,11 +1013,19 @@ async def run_load_test(
         # Define load profile
         load_profile = {
             "phases": [
-                {"phase": "ramp_up", "duration": ramp_up_time, "target_users": target_load},
-                {"phase": "steady_state", "duration": duration_seconds - ramp_up_time, "target_users": target_load},
-                {"phase": "ramp_down", "duration": 30, "target_users": 0}
+                {
+                    "phase": "ramp_up",
+                    "duration": ramp_up_time,
+                    "target_users": target_load,
+                },
+                {
+                    "phase": "steady_state",
+                    "duration": duration_seconds - ramp_up_time,
+                    "target_users": target_load,
+                },
+                {"phase": "ramp_down", "duration": 30, "target_users": 0},
             ],
-            "total_duration": duration_seconds + 30
+            "total_duration": duration_seconds + 30,
         }
         load_test_result["load_profile"] = load_profile
 
@@ -954,7 +1036,7 @@ async def run_load_test(
                 scenario_name=scenario_name,
                 duration_seconds=phase["duration"],
                 monitor_performance=True,
-                collect_logs=True
+                collect_logs=True,
             )
 
             # Collect phase results
@@ -963,14 +1045,14 @@ async def run_load_test(
             load_test_result["performance_results"][phase["phase"]].append(phase_result)
 
         # Analyze results for bottlenecks
-        bottlenecks = _identify_performance_bottlenecks(load_test_result["performance_results"], target_load)
+        bottlenecks = _identify_performance_bottlenecks(
+            load_test_result["performance_results"], target_load
+        )
         load_test_result["bottlenecks_identified"] = bottlenecks
 
         # Generate load test recommendations
         recommendations = _generate_load_test_recommendations(
-            load_test_result["performance_results"],
-            bottlenecks,
-            target_load
+            load_test_result["performance_results"], bottlenecks, target_load
         )
         load_test_result["recommendations"] = recommendations
 
@@ -990,7 +1072,7 @@ async def run_load_test(
             "load_profile": {},
             "performance_results": {},
             "bottlenecks_identified": [],
-            "recommendations": []
+            "recommendations": [],
         }
 
 
@@ -1002,7 +1084,7 @@ async def create_mcp_plugin(
     target_url: str | None = None,
     auth_config: dict[str, Any] | None = None,
     proxy_config: dict[str, Any] | None = None,
-    auto_register: bool = True
+    auto_register: bool = True,
 ) -> dict[str, Any]:
     """
     Dynamically create an MCP plugin for any API supporting mock or proxy mode.
@@ -1038,20 +1120,22 @@ async def create_mcp_plugin(
             "mock_server_path": None,
             "proxy_config": {},
             "validation_result": {},
-            "registration_result": {}
+            "registration_result": {},
         }
 
         start_time = time.time()
 
         # Validate input parameters
-        validation_result = _validate_plugin_parameters(mode, target_url, auth_config, proxy_config)
+        validation_result = _validate_plugin_parameters(
+            mode, target_url, auth_config, proxy_config
+        )
         plugin_result["validation_result"] = validation_result
 
         if not validation_result["valid"]:
             return {
                 **plugin_result,
                 "status": "error",
-                "error": f"Parameter validation failed: {validation_result['errors']}"
+                "error": f"Parameter validation failed: {validation_result['errors']}",
             }
 
         # Load and parse OpenAPI specification
@@ -1061,7 +1145,7 @@ async def create_mcp_plugin(
             return {
                 **plugin_result,
                 "status": "error",
-                "error": f"Failed to load OpenAPI specification: {e!s}"
+                "error": f"Failed to load OpenAPI specification: {e!s}",
             }
 
         # Extract API information
@@ -1085,7 +1169,7 @@ async def create_mcp_plugin(
                 return {
                     **plugin_result,
                     "status": "error",
-                    "error": "target_url is required for proxy/hybrid mode and could not be determined from API spec"
+                    "error": "target_url is required for proxy/hybrid mode and could not be determined from API spec",
                 }
 
         # Create proxy configuration
@@ -1095,13 +1179,17 @@ async def create_mcp_plugin(
         auth_cfg = None
         if auth_config:
             auth_type_str = auth_config.get("type", "none")
-            auth_type = AuthType(auth_type_str.upper()) if auth_type_str != "none" else AuthType.NONE
+            auth_type = (
+                AuthType(auth_type_str.upper())
+                if auth_type_str != "none"
+                else AuthType.NONE
+            )
 
             auth_cfg = AuthConfig(
                 auth_type=auth_type,
                 credentials=auth_config.get("credentials", {}),
                 location=auth_config.get("location", "header"),
-                name=auth_config.get("header", "Authorization")
+                name=auth_config.get("header", "Authorization"),
             )
 
         # Create proxy configuration object
@@ -1114,7 +1202,7 @@ async def create_mcp_plugin(
             timeout=proxy_config.get("timeout", 30) if proxy_config else 30,
             retry_count=proxy_config.get("retry_attempts", 3) if proxy_config else 3,
             rate_limit=proxy_config.get("rate_limit") if proxy_config else None,
-            headers=proxy_config.get("headers", {}) if proxy_config else {}
+            headers=proxy_config.get("headers", {}) if proxy_config else {},
         )
 
         # Generate endpoint configurations from OpenAPI spec
@@ -1129,7 +1217,7 @@ async def create_mcp_plugin(
             plugin_name=plugin_name,
             api_spec=api_spec,
             proxy_config=proxy_cfg,
-            mcp_server_name=f"mcp_{plugin_name.lower().replace(' ', '_')}"
+            mcp_server_name=f"mcp_{plugin_name.lower().replace(' ', '_')}",
         )
 
         plugin_result["plugin_config"] = plugin_cfg.to_dict()
@@ -1138,7 +1226,9 @@ async def create_mcp_plugin(
         if mode == "mock":
             # Use existing generate_mock_api functionality
             mock_result = await _create_mock_plugin(api_spec, plugin_name, proxy_cfg)
-            plugin_result["mock_server_path"] = str(mock_result) if mock_result else None
+            plugin_result["mock_server_path"] = (
+                str(mock_result) if mock_result else None
+            )
 
         elif mode == "proxy":
             # Create proxy configuration and handlers
@@ -1150,7 +1240,9 @@ async def create_mcp_plugin(
             mock_result = await _create_mock_plugin(api_spec, plugin_name, proxy_cfg)
             proxy_result = await _create_proxy_plugin(plugin_cfg)
 
-            plugin_result["mock_server_path"] = str(mock_result) if mock_result else None
+            plugin_result["mock_server_path"] = (
+                str(mock_result) if mock_result else None
+            )
             plugin_result["proxy_setup"] = proxy_result
 
             # Add routing rules for hybrid mode
@@ -1172,7 +1264,7 @@ async def create_mcp_plugin(
         plugin_result["performance_metrics"] = {
             "creation_time_ms": round((end_time - start_time) * 1000, 2),
             "endpoints_configured": len(endpoints),
-            "timestamp": end_time
+            "timestamp": end_time,
         }
 
         return plugin_result
@@ -1192,11 +1284,12 @@ async def create_mcp_plugin(
             "mock_server_path": None,
             "proxy_config": {},
             "validation_result": {},
-            "registration_result": {}
+            "registration_result": {},
         }
 
 
 # Helper Functions
+
 
 def _validate_endpoint_config(endpoint: dict[str, Any], index: int) -> list[str]:
     """Validate endpoint configuration."""
@@ -1207,7 +1300,15 @@ def _validate_endpoint_config(endpoint: dict[str, Any], index: int) -> list[str]
 
     if "method" not in endpoint:
         errors.append(f"Endpoint {index}: Missing 'method' field")
-    elif endpoint["method"].upper() not in ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"]:
+    elif endpoint["method"].upper() not in [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE",
+        "PATCH",
+        "HEAD",
+        "OPTIONS",
+    ]:
         errors.append(f"Endpoint {index}: Invalid HTTP method '{endpoint['method']}'")
 
     if "response_config" not in endpoint:
@@ -1218,7 +1319,9 @@ def _validate_endpoint_config(endpoint: dict[str, Any], index: int) -> list[str]
     return errors
 
 
-def _validate_test_parameters(test_params: dict[str, Any], scenario_type: str | None) -> list[str]:
+def _validate_test_parameters(
+    test_params: dict[str, Any], scenario_type: str | None
+) -> list[str]:
     """Validate test parameters."""
     warnings = []
 
@@ -1234,10 +1337,14 @@ def _validate_test_parameters(test_params: dict[str, Any], scenario_type: str | 
         if duration > 3600:  # 1 hour
             warnings.append("Long test duration may consume significant resources")
         elif duration < 10:
-            warnings.append("Very short test duration may not provide meaningful results")
+            warnings.append(
+                "Very short test duration may not provide meaningful results"
+            )
 
     if scenario_type == "load_testing" and test_params.get("concurrent_users", 0) < 10:
-        warnings.append("Load testing typically requires more concurrent users for meaningful results")
+        warnings.append(
+            "Load testing typically requires more concurrent users for meaningful results"
+        )
 
     return warnings
 
@@ -1248,35 +1355,46 @@ def _generate_load_testing_suggestions(scenario_config: dict[str, Any]) -> list[
 
     endpoints = scenario_config.get("endpoints", [])
     if len(endpoints) > 10:
-        suggestions.append("Consider reducing the number of endpoints for focused load testing")
+        suggestions.append(
+            "Consider reducing the number of endpoints for focused load testing"
+        )
 
     test_params = scenario_config.get("test_parameters", {})
     if test_params.get("concurrent_users", 0) > 100:
-        suggestions.append("Consider implementing gradual ramp-up for high load scenarios")
+        suggestions.append(
+            "Consider implementing gradual ramp-up for high load scenarios"
+        )
 
     if not any("response_time_ms" in ep.get("response_config", {}) for ep in endpoints):
-        suggestions.append("Consider adding response time configurations for realistic load simulation")
+        suggestions.append(
+            "Consider adding response time configurations for realistic load simulation"
+        )
 
     return suggestions
 
 
-def _calculate_performance_delta(initial_stats: dict | None, final_stats: dict | None) -> dict[str, Any]:
+def _calculate_performance_delta(
+    initial_stats: dict | None, final_stats: dict | None
+) -> dict[str, Any]:
     """Calculate performance metrics delta."""
     if not initial_stats or not final_stats:
         return {"error": "Insufficient stats data for delta calculation"}
 
     delta = {
-        "requests_processed": final_stats.get("total_requests", 0) - initial_stats.get("total_requests", 0),
+        "requests_processed": final_stats.get("total_requests", 0)
+        - initial_stats.get("total_requests", 0),
         "average_response_time_change": 0,
         "error_rate_change": 0,
-        "throughput_rps": 0
+        "throughput_rps": 0,
     }
 
     # Calculate average response time change
     initial_avg = initial_stats.get("average_response_time", 0)
     final_avg = final_stats.get("average_response_time", 0)
     if initial_avg > 0:
-        delta["average_response_time_change"] = ((final_avg - initial_avg) / initial_avg) * 100
+        delta["average_response_time_change"] = (
+            (final_avg - initial_avg) / initial_avg
+        ) * 100
 
     # Calculate error rate change
     initial_errors = initial_stats.get("error_count", 0)
@@ -1303,7 +1421,7 @@ def _analyze_request_logs(logs: list[dict[str, Any]]) -> dict[str, Any]:
         "error_count": 0,
         "error_rate": 0,
         "status_code_distribution": {},
-        "error_patterns": []
+        "error_patterns": [],
     }
 
     status_codes = {}
@@ -1319,7 +1437,9 @@ def _analyze_request_logs(logs: list[dict[str, Any]]) -> dict[str, Any]:
             error_patterns[error_type] = error_patterns.get(error_type, 0) + 1
 
     error_summary["status_code_distribution"] = status_codes
-    error_summary["error_rate"] = (error_summary["error_count"] / len(logs)) * 100 if logs else 0
+    error_summary["error_rate"] = (
+        (error_summary["error_count"] / len(logs)) * 100 if logs else 0
+    )
     error_summary["error_patterns"] = [
         {"pattern": pattern, "count": count}
         for pattern, count in error_patterns.items()
@@ -1331,7 +1451,7 @@ def _analyze_request_logs(logs: list[dict[str, Any]]) -> dict[str, Any]:
 def _generate_test_recommendations(
     performance_metrics: dict[str, Any],
     error_summary: dict[str, Any],
-    scenario_name: str
+    scenario_name: str,
 ) -> list[str]:
     """Generate test recommendations based on results."""
     recommendations = []
@@ -1340,26 +1460,38 @@ def _generate_test_recommendations(
     if "average_response_time_change" in performance_metrics:
         change = performance_metrics["average_response_time_change"]
         if change > 50:
-            recommendations.append("Response time increased significantly - consider optimizing server performance")
+            recommendations.append(
+                "Response time increased significantly - consider optimizing server performance"
+            )
         elif change < -20:
-            recommendations.append("Response time improved - current configuration is performing well")
+            recommendations.append(
+                "Response time improved - current configuration is performing well"
+            )
 
     # Error rate recommendations
     error_rate = error_summary.get("error_rate", 0)
     if error_rate > 5:
-        recommendations.append("High error rate detected - investigate server configuration and endpoint implementations")
+        recommendations.append(
+            "High error rate detected - investigate server configuration and endpoint implementations"
+        )
     elif error_rate > 1:
-        recommendations.append("Moderate error rate - monitor for patterns and consider error handling improvements")
+        recommendations.append(
+            "Moderate error rate - monitor for patterns and consider error handling improvements"
+        )
 
     # Throughput recommendations
     throughput = performance_metrics.get("throughput_rps", 0)
     if throughput < 10:
-        recommendations.append("Low throughput detected - consider load balancing or server scaling")
+        recommendations.append(
+            "Low throughput detected - consider load balancing or server scaling"
+        )
 
     return recommendations
 
 
-def _identify_performance_bottlenecks(performance_results: dict[str, Any], target_load: int) -> list[dict[str, Any]]:
+def _identify_performance_bottlenecks(
+    performance_results: dict[str, Any], target_load: int
+) -> list[dict[str, Any]]:
     """Identify performance bottlenecks from load test results."""
     bottlenecks = []
 
@@ -1373,25 +1505,29 @@ def _identify_performance_bottlenecks(performance_results: dict[str, Any], targe
             # Check response time bottleneck
             avg_response_change = metrics.get("average_response_time_change", 0)
             if avg_response_change > 100:
-                bottlenecks.append({
-                    "type": "response_time",
-                    "phase": phase,
-                    "severity": "high",
-                    "description": f"Response time increased by {avg_response_change:.1f}% during {phase}",
-                    "recommendation": "Consider server optimization or load balancing"
-                })
+                bottlenecks.append(
+                    {
+                        "type": "response_time",
+                        "phase": phase,
+                        "severity": "high",
+                        "description": f"Response time increased by {avg_response_change:.1f}% during {phase}",
+                        "recommendation": "Consider server optimization or load balancing",
+                    }
+                )
 
             # Check throughput bottleneck
             throughput = metrics.get("throughput_rps", 0)
             expected_throughput = target_load * 0.8  # 80% of target load
             if throughput < expected_throughput:
-                bottlenecks.append({
-                    "type": "throughput",
-                    "phase": phase,
-                    "severity": "medium",
-                    "description": f"Throughput ({throughput:.1f} RPS) below expected ({expected_throughput:.1f} RPS)",
-                    "recommendation": "Investigate server capacity and connection limits"
-                })
+                bottlenecks.append(
+                    {
+                        "type": "throughput",
+                        "phase": phase,
+                        "severity": "medium",
+                        "description": f"Throughput ({throughput:.1f} RPS) below expected ({expected_throughput:.1f} RPS)",
+                        "recommendation": "Investigate server capacity and connection limits",
+                    }
+                )
 
     return bottlenecks
 
@@ -1399,30 +1535,34 @@ def _identify_performance_bottlenecks(performance_results: dict[str, Any], targe
 def _generate_load_test_recommendations(
     performance_results: dict[str, Any],
     bottlenecks: list[dict[str, Any]],
-    target_load: int
+    target_load: int,
 ) -> list[str]:
     """Generate load test specific recommendations."""
     recommendations = []
 
     # Bottleneck-based recommendations
     for bottleneck in bottlenecks:
-        recommendations.append(f"{bottleneck['type'].title()} bottleneck: {bottleneck['recommendation']}")
+        recommendations.append(
+            f"{bottleneck['type'].title()} bottleneck: {bottleneck['recommendation']}"
+        )
 
     # General load test recommendations
     if not bottlenecks:
-        recommendations.append("Load test completed successfully with no major bottlenecks detected")
+        recommendations.append(
+            "Load test completed successfully with no major bottlenecks detected"
+        )
 
     # Scale recommendations
     if target_load > 100:
-        recommendations.append("For high load scenarios, consider implementing connection pooling and caching")
+        recommendations.append(
+            "For high load scenarios, consider implementing connection pooling and caching"
+        )
 
     return recommendations
 
 
 def _analyze_security_test_results(
-    logs: list[dict[str, Any]],
-    error_summary: dict[str, Any],
-    security_focus: list[str]
+    logs: list[dict[str, Any]], error_summary: dict[str, Any], security_focus: list[str]
 ) -> list[dict[str, Any]]:
     """Analyze security test results."""
     findings = []
@@ -1431,34 +1571,36 @@ def _analyze_security_test_results(
     if "authentication" in security_focus:
         auth_errors = [log for log in logs if log.get("status_code") == 401]
         if auth_errors:
-            findings.append({
-                "type": "authentication",
-                "severity": "medium",
-                "count": len(auth_errors),
-                "description": "Authentication failures detected"
-            })
+            findings.append(
+                {
+                    "type": "authentication",
+                    "severity": "medium",
+                    "count": len(auth_errors),
+                    "description": "Authentication failures detected",
+                }
+            )
 
     # Check for authorization issues
     if "authorization" in security_focus:
         authz_errors = [log for log in logs if log.get("status_code") == 403]
         if authz_errors:
-            findings.append({
-                "type": "authorization",
-                "severity": "medium",
-                "count": len(authz_errors),
-                "description": "Authorization failures detected"
-            })
+            findings.append(
+                {
+                    "type": "authorization",
+                    "severity": "medium",
+                    "count": len(authz_errors),
+                    "description": "Authorization failures detected",
+                }
+            )
 
     return findings
 
 
-def _assess_vulnerabilities(findings: list[dict[str, Any]], api_spec: dict[str, Any]) -> dict[str, Any]:
+def _assess_vulnerabilities(
+    findings: list[dict[str, Any]], api_spec: dict[str, Any]
+) -> dict[str, Any]:
     """Assess vulnerabilities based on findings."""
-    assessment = {
-        "risk_level": "low",
-        "vulnerabilities": [],
-        "recommendations": []
-    }
+    assessment = {"risk_level": "low", "vulnerabilities": [], "recommendations": []}
 
     high_severity_count = len([f for f in findings if f.get("severity") == "high"])
     medium_severity_count = len([f for f in findings if f.get("severity") == "medium"])
@@ -1476,7 +1618,7 @@ def _assess_vulnerabilities(findings: list[dict[str, Any]], api_spec: dict[str, 
 def _check_compliance_status(
     findings: list[dict[str, Any]],
     vulnerability_assessment: dict[str, Any],
-    compliance_requirements: list[str]
+    compliance_requirements: list[str],
 ) -> dict[str, Any]:
     """Check compliance status against requirements."""
     status = {}
@@ -1485,12 +1627,12 @@ def _check_compliance_status(
         if requirement.lower() == "gdpr":
             status["gdpr"] = {
                 "compliant": vulnerability_assessment.get("risk_level") != "high",
-                "issues": []
+                "issues": [],
             }
         elif requirement.lower() == "pci":
             status["pci"] = {
                 "compliant": len(findings) == 0,
-                "issues": [f["description"] for f in findings]
+                "issues": [f["description"] for f in findings],
             }
 
     return status
@@ -1499,13 +1641,15 @@ def _check_compliance_status(
 def _generate_security_recommendations(
     findings: list[dict[str, Any]],
     vulnerability_assessment: dict[str, Any],
-    security_focus: list[str]
+    security_focus: list[str],
 ) -> list[str]:
     """Generate security recommendations."""
     recommendations = []
 
     if vulnerability_assessment.get("risk_level") == "high":
-        recommendations.append("High risk vulnerabilities detected - immediate remediation required")
+        recommendations.append(
+            "High risk vulnerabilities detected - immediate remediation required"
+        )
 
     for finding in findings:
         if finding["type"] == "authentication":
@@ -1528,7 +1672,7 @@ def _calculate_summary_statistics(test_results: list[dict[str, Any]]) -> dict[st
         "total_tests": total_tests,
         "successful_tests": successful_tests,
         "success_rate": (successful_tests / total_tests) * 100,
-        "failure_rate": ((total_tests - successful_tests) / total_tests) * 100
+        "failure_rate": ((total_tests - successful_tests) / total_tests) * 100,
     }
 
 
@@ -1549,14 +1693,14 @@ def _analyze_performance_trends(test_results: list[dict[str, Any]]) -> dict[str,
         analysis["response_time_trend"] = {
             "average": sum(response_times) / len(response_times),
             "min": min(response_times),
-            "max": max(response_times)
+            "max": max(response_times),
         }
 
     if throughputs:
         analysis["throughput_trend"] = {
             "average": sum(throughputs) / len(throughputs),
             "min": min(throughputs),
-            "max": max(throughputs)
+            "max": max(throughputs),
         }
 
     return analysis
@@ -1582,7 +1726,7 @@ def _analyze_error_patterns(test_results: list[dict[str, Any]]) -> dict[str, Any
         "error_patterns": [
             {"pattern": pattern, "count": count}
             for pattern, count in pattern_counts.items()
-        ]
+        ],
     }
 
 
@@ -1591,7 +1735,7 @@ def _analyze_test_trends(test_results: list[dict[str, Any]]) -> dict[str, Any]:
     return {
         "test_count": len(test_results),
         "trend_direction": "stable",  # Simplified for now
-        "performance_stability": "good" if len(test_results) > 0 else "unknown"
+        "performance_stability": "good" if len(test_results) > 0 else "unknown",
     }
 
 
@@ -1599,7 +1743,7 @@ def _generate_analysis_recommendations(
     summary_stats: dict[str, Any],
     performance_analysis: dict[str, Any],
     error_analysis: dict[str, Any],
-    trend_analysis: dict[str, Any]
+    trend_analysis: dict[str, Any],
 ) -> list[str]:
     """Generate analysis recommendations."""
     recommendations = []
@@ -1610,7 +1754,9 @@ def _generate_analysis_recommendations(
 
     total_errors = error_analysis.get("total_errors", 0)
     if total_errors > 10:
-        recommendations.append("High error count - review error patterns and fix underlying issues")
+        recommendations.append(
+            "High error count - review error patterns and fix underlying issues"
+        )
 
     return recommendations
 
@@ -1629,7 +1775,7 @@ def _generate_session_summary(session_data: dict[str, Any]) -> dict[str, Any]:
         "total_duration": session_data.get("duration", "unknown"),
         "tests_completed": session_data.get("progress", {}).get("completed_tests", 0),
         "tests_failed": session_data.get("progress", {}).get("failed_tests", 0),
-        "final_status": session_data.get("session_state", "unknown")
+        "final_status": session_data.get("session_state", "unknown"),
     }
 
 
@@ -1652,52 +1798,59 @@ def _calculate_progress_percentage(progress: dict[str, Any]) -> float:
 
 
 # Additional helper functions for reporting and comparison
-def _generate_summary_report(analysis_result: dict[str, Any], test_results: list[dict[str, Any]]) -> dict[str, Any]:
+def _generate_summary_report(
+    analysis_result: dict[str, Any], test_results: list[dict[str, Any]]
+) -> dict[str, Any]:
     """Generate summary report."""
     return {
         "overview": analysis_result.get("summary_statistics", {}),
         "key_findings": analysis_result.get("recommendations", [])[:3],
-        "test_count": len(test_results)
+        "test_count": len(test_results),
     }
 
 
-def _generate_detailed_report(analysis_result: dict[str, Any], test_results: list[dict[str, Any]]) -> dict[str, Any]:
+def _generate_detailed_report(
+    analysis_result: dict[str, Any], test_results: list[dict[str, Any]]
+) -> dict[str, Any]:
     """Generate detailed report."""
     return {
         "executive_summary": _generate_summary_report(analysis_result, test_results),
         "performance_details": analysis_result.get("performance_analysis", {}),
         "error_details": analysis_result.get("error_analysis", {}),
-        "recommendations": analysis_result.get("recommendations", [])
+        "recommendations": analysis_result.get("recommendations", []),
     }
 
 
-def _generate_comprehensive_report(analysis_result: dict[str, Any], test_results: list[dict[str, Any]]) -> dict[str, Any]:
+def _generate_comprehensive_report(
+    analysis_result: dict[str, Any], test_results: list[dict[str, Any]]
+) -> dict[str, Any]:
     """Generate comprehensive report."""
     return {
         "executive_summary": _generate_summary_report(analysis_result, test_results),
         "detailed_analysis": _generate_detailed_report(analysis_result, test_results),
-        "raw_data": {
-            "test_results": test_results,
-            "analysis_result": analysis_result
-        }
+        "raw_data": {"test_results": test_results, "analysis_result": analysis_result},
     }
 
 
-def _generate_chart_data(test_results: list[dict[str, Any]], analysis_result: dict[str, Any]) -> dict[str, Any]:
+def _generate_chart_data(
+    test_results: list[dict[str, Any]], analysis_result: dict[str, Any]
+) -> dict[str, Any]:
     """Generate chart data for visualization."""
     return {
         "success_rate_chart": {
             "type": "pie",
-            "data": analysis_result.get("summary_statistics", {})
+            "data": analysis_result.get("summary_statistics", {}),
         },
         "performance_trend_chart": {
             "type": "line",
-            "data": analysis_result.get("performance_analysis", {})
-        }
+            "data": analysis_result.get("performance_analysis", {}),
+        },
     }
 
 
-def _export_html_report(report_content: dict[str, Any], chart_data: dict[str, Any] | None) -> str:
+def _export_html_report(
+    report_content: dict[str, Any], chart_data: dict[str, Any] | None
+) -> str:
     """Export report as HTML."""
     html = f"""
     <html>
@@ -1716,65 +1869,68 @@ def _export_markdown_report(report_content: dict[str, Any]) -> str:
     return f"""# Test Report
 
 ## Summary
-{json.dumps(report_content.get('overview', {}), indent=2)}
+{json.dumps(report_content.get("overview", {}), indent=2)}
 
 ## Recommendations
-{chr(10).join(f"- {rec}" for rec in report_content.get('recommendations', []))}
+{chr(10).join(f"- {rec}" for rec in report_content.get("recommendations", []))}
 """
 
 
-def _compare_performance_metrics(baseline: dict[str, Any], comparison: dict[str, Any]) -> dict[str, Any]:
+def _compare_performance_metrics(
+    baseline: dict[str, Any], comparison: dict[str, Any]
+) -> dict[str, Any]:
     """Compare performance metrics between baseline and comparison."""
     return {
         "response_time_comparison": "improved",  # Simplified
         "throughput_comparison": "stable",
-        "overall_performance": "improved"
+        "overall_performance": "improved",
     }
 
 
-def _analyze_regressions(baseline_stats: dict[str, Any], comparison_stats: dict[str, Any]) -> dict[str, Any]:
+def _analyze_regressions(
+    baseline_stats: dict[str, Any], comparison_stats: dict[str, Any]
+) -> dict[str, Any]:
     """Analyze regressions between test runs."""
-    return {
-        "regressions_detected": False,
-        "regression_details": []
-    }
+    return {"regressions_detected": False, "regression_details": []}
 
 
-def _analyze_improvements(baseline_stats: dict[str, Any], comparison_stats: dict[str, Any]) -> dict[str, Any]:
+def _analyze_improvements(
+    baseline_stats: dict[str, Any], comparison_stats: dict[str, Any]
+) -> dict[str, Any]:
     """Analyze improvements between test runs."""
     return {
         "improvements_detected": True,
-        "improvement_details": ["Response time improved"]
+        "improvement_details": ["Response time improved"],
     }
 
 
 def _calculate_statistical_significance(
     baseline_results: list[dict[str, Any]],
     comparison_results: list[dict[str, Any]],
-    metrics: list[str]
+    metrics: list[str],
 ) -> dict[str, Any]:
     """Calculate statistical significance of differences."""
-    return {
-        "significant_differences": False,
-        "confidence_level": 0.95,
-        "p_values": {}
-    }
+    return {"significant_differences": False, "confidence_level": 0.95, "p_values": {}}
 
 
 def _generate_comparison_recommendations(
     performance_comparison: dict[str, Any],
     regression_analysis: dict[str, Any],
     improvement_analysis: dict[str, Any],
-    statistical_significance: dict[str, Any]
+    statistical_significance: dict[str, Any],
 ) -> list[str]:
     """Generate comparison recommendations."""
     recommendations = []
 
     if improvement_analysis.get("improvements_detected"):
-        recommendations.append("Performance improvements detected - maintain current configuration")
+        recommendations.append(
+            "Performance improvements detected - maintain current configuration"
+        )
 
     if regression_analysis.get("regressions_detected"):
-        recommendations.append("Performance regressions detected - investigate recent changes")
+        recommendations.append(
+            "Performance regressions detected - investigate recent changes"
+        )
 
     return recommendations
 
@@ -1784,7 +1940,7 @@ def _extract_response_time_metrics(stats: dict[str, Any]) -> dict[str, Any]:
     return {
         "average": stats.get("average_response_time", 0),
         "min": stats.get("min_response_time", 0),
-        "max": stats.get("max_response_time", 0)
+        "max": stats.get("max_response_time", 0),
     }
 
 
@@ -1792,7 +1948,7 @@ def _extract_throughput_metrics(stats: dict[str, Any]) -> dict[str, Any]:
     """Extract throughput metrics from stats."""
     return {
         "requests_per_second": stats.get("requests_per_second", 0),
-        "total_requests": stats.get("total_requests", 0)
+        "total_requests": stats.get("total_requests", 0),
     }
 
 
@@ -1803,7 +1959,7 @@ def _extract_error_rate_metrics(stats: dict[str, Any]) -> dict[str, Any]:
     return {
         "error_rate": (errors / total) * 100,
         "error_count": errors,
-        "total_requests": total
+        "total_requests": total,
     }
 
 
@@ -1812,7 +1968,7 @@ def _extract_resource_usage_metrics(stats: dict[str, Any]) -> dict[str, Any]:
     return {
         "cpu_usage": stats.get("cpu_usage", 0),
         "memory_usage": stats.get("memory_usage", 0),
-        "disk_usage": stats.get("disk_usage", 0)
+        "disk_usage": stats.get("disk_usage", 0),
     }
 
 
@@ -1833,7 +1989,9 @@ def _calculate_aggregated_metrics(metrics: dict[str, Any]) -> dict[str, Any]:
     return aggregated
 
 
-def _generate_performance_indicators(metrics: dict[str, Any], aggregated: dict[str, Any]) -> dict[str, Any]:
+def _generate_performance_indicators(
+    metrics: dict[str, Any], aggregated: dict[str, Any]
+) -> dict[str, Any]:
     """Generate performance indicators."""
     indicators = {}
 
@@ -1860,13 +2018,14 @@ def _generate_performance_indicators(metrics: dict[str, Any], aggregated: dict[s
 
 # Missing MCP Tools Implementation
 
+
 @mcp_tool_audit("run_security_test")
 async def run_security_test(
     server_url: str,
     api_spec: dict[str, Any],
     security_focus: list[str] | None = None,
     compliance_requirements: list[str] | None = None,
-    scenario_name: str | None = None
+    scenario_name: str | None = None,
 ) -> dict[str, Any]:
     """
     Executes security testing scenarios for vulnerability assessment.
@@ -1886,13 +2045,14 @@ async def run_security_test(
             "status": "success",
             "test_id": str(uuid.uuid4()),
             "server_url": server_url,
-            "security_focus": security_focus or ["authentication", "authorization", "injection"],
+            "security_focus": security_focus
+            or ["authentication", "authorization", "injection"],
             "compliance_requirements": compliance_requirements or [],
             "scenario_used": scenario_name,
             "vulnerability_assessment": {},
             "compliance_status": {},
             "security_findings": [],
-            "recommendations": []
+            "recommendations": [],
         }
 
         # Generate security test scenarios if none specified
@@ -1900,7 +2060,7 @@ async def run_security_test(
             security_scenarios = await generate_security_test_scenarios(
                 api_spec=api_spec,
                 security_focus=security_test_result["security_focus"],
-                compliance_requirements=compliance_requirements or []
+                compliance_requirements=compliance_requirements or [],
             )
 
             # Deploy the first security scenario
@@ -1911,7 +2071,7 @@ async def run_security_test(
                     return {
                         **security_test_result,
                         "status": "error",
-                        "error": f"Failed to deploy security test scenario: {deploy_result.get('error')}"
+                        "error": f"Failed to deploy security test scenario: {deploy_result.get('error')}",
                     }
                 scenario_name = first_scenario["scenario_name"]
                 security_test_result["scenario_used"] = scenario_name
@@ -1922,7 +2082,7 @@ async def run_security_test(
             scenario_name=scenario_name,
             duration_seconds=120,  # Shorter duration for security tests
             monitor_performance=True,
-            collect_logs=True
+            collect_logs=True,
         )
 
         # Analyze security test results
@@ -1932,22 +2092,20 @@ async def run_security_test(
 
             # Analyze security findings
             security_findings = _analyze_security_test_results(
-                request_logs,
-                error_summary,
-                security_test_result["security_focus"]
+                request_logs, error_summary, security_test_result["security_focus"]
             )
             security_test_result["security_findings"] = security_findings
 
             # Assess vulnerabilities
-            vulnerability_assessment = _assess_vulnerabilities(security_findings, api_spec)
+            vulnerability_assessment = _assess_vulnerabilities(
+                security_findings, api_spec
+            )
             security_test_result["vulnerability_assessment"] = vulnerability_assessment
 
             # Check compliance status
             if compliance_requirements:
                 compliance_status = _check_compliance_status(
-                    security_findings,
-                    vulnerability_assessment,
-                    compliance_requirements
+                    security_findings, vulnerability_assessment, compliance_requirements
                 )
                 security_test_result["compliance_status"] = compliance_status
 
@@ -1955,13 +2113,15 @@ async def run_security_test(
             recommendations = _generate_security_recommendations(
                 security_findings,
                 vulnerability_assessment,
-                security_test_result["security_focus"]
+                security_test_result["security_focus"],
             )
             security_test_result["recommendations"] = recommendations
 
         else:
             security_test_result["status"] = "error"
-            security_test_result["error"] = f"Security test execution failed: {test_result.get('error')}"
+            security_test_result["error"] = (
+                f"Security test execution failed: {test_result.get('error')}"
+            )
 
         return security_test_result
 
@@ -1978,7 +2138,7 @@ async def run_security_test(
             "vulnerability_assessment": {},
             "compliance_status": {},
             "security_findings": [],
-            "recommendations": []
+            "recommendations": [],
         }
 
 
@@ -1986,7 +2146,7 @@ async def run_security_test(
 async def analyze_test_results(
     test_results: list[dict[str, Any]],
     analysis_type: str = "comprehensive",
-    include_recommendations: bool = True
+    include_recommendations: bool = True,
 ) -> dict[str, Any]:
     """
     Analyzes test results and provides comprehensive insights.
@@ -2009,14 +2169,14 @@ async def analyze_test_results(
             "performance_analysis": {},
             "error_analysis": {},
             "trend_analysis": {},
-            "recommendations": []
+            "recommendations": [],
         }
 
         if not test_results:
             return {
                 **analysis_result,
                 "status": "warning",
-                "error": "No test results provided for analysis"
+                "error": "No test results provided for analysis",
             }
 
         # Calculate summary statistics
@@ -2043,7 +2203,7 @@ async def analyze_test_results(
                 summary_stats,
                 analysis_result.get("performance_analysis", {}),
                 analysis_result.get("error_analysis", {}),
-                analysis_result.get("trend_analysis", {})
+                analysis_result.get("trend_analysis", {}),
             )
             analysis_result["recommendations"] = recommendations
 
@@ -2061,7 +2221,7 @@ async def analyze_test_results(
             "performance_analysis": {},
             "error_analysis": {},
             "trend_analysis": {},
-            "recommendations": []
+            "recommendations": [],
         }
 
 
@@ -2070,7 +2230,7 @@ async def generate_test_report(
     test_results: list[dict[str, Any]],
     report_format: str = "comprehensive",
     include_charts: bool = True,
-    output_format: str = "json"
+    output_format: str = "json",
 ) -> dict[str, Any]:
     """
     Generates formatted test reports in various formats.
@@ -2093,7 +2253,7 @@ async def generate_test_report(
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "report_content": {},
             "chart_data": None,
-            "export_data": None
+            "export_data": None,
         }
 
         # First analyze the test results
@@ -2102,7 +2262,7 @@ async def generate_test_report(
             return {
                 **report_result,
                 "status": "error",
-                "error": f"Failed to analyze test results: {analysis_result.get('error')}"
+                "error": f"Failed to analyze test results: {analysis_result.get('error')}",
             }
 
         # Generate report content based on format
@@ -2111,7 +2271,9 @@ async def generate_test_report(
         elif report_format == "detailed":
             report_content = _generate_detailed_report(analysis_result, test_results)
         else:  # comprehensive
-            report_content = _generate_comprehensive_report(analysis_result, test_results)
+            report_content = _generate_comprehensive_report(
+                analysis_result, test_results
+            )
 
         report_result["report_content"] = report_content
 
@@ -2122,7 +2284,9 @@ async def generate_test_report(
 
         # Export in specified format
         if output_format == "html":
-            export_data = _export_html_report(report_content, report_result.get("chart_data"))
+            export_data = _export_html_report(
+                report_content, report_result.get("chart_data")
+            )
             report_result["export_data"] = export_data
         elif output_format == "markdown":
             export_data = _export_markdown_report(report_content)
@@ -2142,7 +2306,7 @@ async def generate_test_report(
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "report_content": {},
             "chart_data": None,
-            "export_data": None
+            "export_data": None,
         }
 
 
@@ -2150,7 +2314,7 @@ async def generate_test_report(
 async def compare_test_runs(
     baseline_results: list[dict[str, Any]],
     comparison_results: list[dict[str, Any]],
-    comparison_metrics: list[str] | None = None
+    comparison_metrics: list[str] | None = None,
 ) -> dict[str, Any]:
     """
     Compares multiple test runs to identify performance changes.
@@ -2169,37 +2333,47 @@ async def compare_test_runs(
             "comparison_id": str(uuid.uuid4()),
             "baseline_count": len(baseline_results),
             "comparison_count": len(comparison_results),
-            "metrics_compared": comparison_metrics or ["response_time", "throughput", "error_rate"],
+            "metrics_compared": comparison_metrics
+            or ["response_time", "throughput", "error_rate"],
             "performance_comparison": {},
             "regression_analysis": {},
             "improvement_analysis": {},
             "statistical_significance": {},
-            "recommendations": []
+            "recommendations": [],
         }
 
         if not baseline_results or not comparison_results:
             return {
                 **comparison_result,
                 "status": "error",
-                "error": "Both baseline and comparison results are required"
+                "error": "Both baseline and comparison results are required",
             }
 
         # Analyze both sets of results
-        baseline_analysis = await analyze_test_results(baseline_results, "detailed", False)
-        comparison_analysis = await analyze_test_results(comparison_results, "detailed", False)
+        baseline_analysis = await analyze_test_results(
+            baseline_results, "detailed", False
+        )
+        comparison_analysis = await analyze_test_results(
+            comparison_results, "detailed", False
+        )
 
-        if baseline_analysis.get("status") != "success" or comparison_analysis.get("status") != "success":
+        if (
+            baseline_analysis.get("status") != "success"
+            or comparison_analysis.get("status") != "success"
+        ):
             return {
                 **comparison_result,
                 "status": "error",
-                "error": "Failed to analyze test results for comparison"
+                "error": "Failed to analyze test results for comparison",
             }
 
         # Compare performance metrics
         baseline_stats = baseline_analysis.get("summary_statistics", {})
         comparison_stats = comparison_analysis.get("summary_statistics", {})
 
-        performance_comparison = _compare_performance_metrics(baseline_stats, comparison_stats)
+        performance_comparison = _compare_performance_metrics(
+            baseline_stats, comparison_stats
+        )
         comparison_result["performance_comparison"] = performance_comparison
 
         # Analyze regressions
@@ -2212,9 +2386,7 @@ async def compare_test_runs(
 
         # Calculate statistical significance
         statistical_significance = _calculate_statistical_significance(
-            baseline_results,
-            comparison_results,
-            comparison_result["metrics_compared"]
+            baseline_results, comparison_results, comparison_result["metrics_compared"]
         )
         comparison_result["statistical_significance"] = statistical_significance
 
@@ -2223,7 +2395,7 @@ async def compare_test_runs(
             performance_comparison,
             regression_analysis,
             improvement_analysis,
-            statistical_significance
+            statistical_significance,
         )
         comparison_result["recommendations"] = recommendations
 
@@ -2242,7 +2414,7 @@ async def compare_test_runs(
             "regression_analysis": {},
             "improvement_analysis": {},
             "statistical_significance": {},
-            "recommendations": []
+            "recommendations": [],
         }
 
 
@@ -2250,7 +2422,7 @@ async def compare_test_runs(
 async def get_performance_metrics(
     test_results: list[dict[str, Any]],
     metric_types: list[str] | None = None,
-    aggregation_method: str = "average"
+    aggregation_method: str = "average",
 ) -> dict[str, Any]:
     """
     Retrieves and analyzes performance metrics from test results.
@@ -2268,18 +2440,19 @@ async def get_performance_metrics(
             "status": "success",
             "metrics_id": str(uuid.uuid4()),
             "test_count": len(test_results),
-            "metric_types": metric_types or ["response_time", "throughput", "error_rate", "resource_usage"],
+            "metric_types": metric_types
+            or ["response_time", "throughput", "error_rate", "resource_usage"],
             "aggregation_method": aggregation_method,
             "extracted_metrics": {},
             "aggregated_metrics": {},
-            "performance_indicators": {}
+            "performance_indicators": {},
         }
 
         if not test_results:
             return {
                 **metrics_result,
                 "status": "warning",
-                "error": "No test results provided for metrics extraction"
+                "error": "No test results provided for metrics extraction",
             }
 
         extracted_metrics = {}
@@ -2329,7 +2502,9 @@ async def get_performance_metrics(
         metrics_result["aggregated_metrics"] = aggregated_metrics
 
         # Generate performance indicators
-        performance_indicators = _generate_performance_indicators(extracted_metrics, aggregated_metrics)
+        performance_indicators = _generate_performance_indicators(
+            extracted_metrics, aggregated_metrics
+        )
         metrics_result["performance_indicators"] = performance_indicators
 
         return metrics_result
@@ -2345,7 +2520,7 @@ async def get_performance_metrics(
             "aggregation_method": aggregation_method,
             "extracted_metrics": {},
             "aggregated_metrics": {},
-            "performance_indicators": {}
+            "performance_indicators": {},
         }
 
 
@@ -2353,7 +2528,7 @@ async def get_performance_metrics(
 async def create_test_session(
     session_name: str,
     test_plan: dict[str, Any],
-    session_config: dict[str, Any] | None = None
+    session_config: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """
     Creates a new test session for workflow management.
@@ -2380,8 +2555,8 @@ async def create_test_session(
                 "total_tests": _calculate_total_tests(test_plan),
                 "completed_tests": 0,
                 "failed_tests": 0,
-                "current_test": None
-            }
+                "current_test": None,
+            },
         }
 
         # Store session in global storage
@@ -2400,14 +2575,13 @@ async def create_test_session(
             "test_plan": {},
             "session_config": {},
             "session_state": "error",
-            "progress": {}
+            "progress": {},
         }
 
 
 @mcp_tool_audit("end_test_session")
 async def end_test_session(
-    session_id: str,
-    generate_final_report: bool = True
+    session_id: str, generate_final_report: bool = True
 ) -> dict[str, Any]:
     """
     Ends a test session and generates final reports.
@@ -2427,7 +2601,7 @@ async def end_test_session(
                 "error": "Test session not found",
                 "ended_at": datetime.now(timezone.utc).isoformat(),
                 "final_report": None,
-                "session_summary": {}
+                "session_summary": {},
             }
 
         session_data = _active_test_sessions[session_id]
@@ -2439,7 +2613,7 @@ async def end_test_session(
             "session_id": session_id,
             "ended_at": session_data["ended_at"],
             "final_report": None,
-            "session_summary": _generate_session_summary(session_data)
+            "session_summary": _generate_session_summary(session_data),
         }
 
         # Generate final report if requested
@@ -2448,8 +2622,10 @@ async def end_test_session(
             # For now, we'll create a placeholder report
             final_report = {
                 "session_name": session_data.get("session_name"),
-                "duration": session_data.get("ended_at", "") + " - " + session_data.get("created_at", ""),
-                "summary": end_result["session_summary"]
+                "duration": session_data.get("ended_at", "")
+                + " - "
+                + session_data.get("created_at", ""),
+                "summary": end_result["session_summary"],
             }
             end_result["final_report"] = final_report
 
@@ -2466,7 +2642,7 @@ async def end_test_session(
             "error": f"Test session completion failed: {e!s}",
             "ended_at": datetime.now(timezone.utc).isoformat(),
             "final_report": None,
-            "session_summary": {}
+            "session_summary": {},
         }
 
 
@@ -2474,7 +2650,7 @@ async def end_test_session(
 async def schedule_test_suite(
     test_suite: dict[str, Any],
     schedule_config: dict[str, Any],
-    notification_config: dict[str, Any] | None = None
+    notification_config: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """
     Schedules automated test suite execution.
@@ -2498,14 +2674,14 @@ async def schedule_test_suite(
             "created_at": datetime.now(timezone.utc).isoformat(),
             "next_execution": _calculate_next_execution(schedule_config),
             "schedule_state": "active",
-            "validation_result": _validate_test_suite(test_suite)
+            "validation_result": _validate_test_suite(test_suite),
         }
 
         if not schedule_result["validation_result"]["valid"]:
             return {
                 **schedule_result,
                 "status": "error",
-                "error": f"Test suite validation failed: {schedule_result['validation_result']['errors']}"
+                "error": f"Test suite validation failed: {schedule_result['validation_result']['errors']}",
             }
 
         return schedule_result
@@ -2522,15 +2698,13 @@ async def schedule_test_suite(
             "created_at": datetime.now(timezone.utc).isoformat(),
             "next_execution": None,
             "schedule_state": "error",
-            "validation_result": {"valid": False, "errors": []}
+            "validation_result": {"valid": False, "errors": []},
         }
 
 
 @mcp_tool_audit("monitor_test_progress")
 async def monitor_test_progress(
-    session_id: str,
-    include_performance_data: bool = True,
-    alert_on_issues: bool = True
+    session_id: str, include_performance_data: bool = True, alert_on_issues: bool = True
 ) -> dict[str, Any]:
     """
     Monitors ongoing test execution and provides real-time updates.
@@ -2552,7 +2726,7 @@ async def monitor_test_progress(
                 "progress": {},
                 "performance_data": {},
                 "alerts": [],
-                "monitoring_timestamp": datetime.now(timezone.utc).isoformat()
+                "monitoring_timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
         session_data = _active_test_sessions[session_id]
@@ -2566,7 +2740,7 @@ async def monitor_test_progress(
             "progress_percentage": _calculate_progress_percentage(progress),
             "performance_data": {},
             "alerts": [],
-            "monitoring_timestamp": datetime.now(timezone.utc).isoformat()
+            "monitoring_timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
         # Include performance data if requested
@@ -2576,18 +2750,20 @@ async def monitor_test_progress(
             monitor_result["performance_data"] = {
                 "current_response_time": "150ms",
                 "current_throughput": "45 RPS",
-                "current_error_rate": "0.5%"
+                "current_error_rate": "0.5%",
             }
 
         # Generate alerts if requested
         if alert_on_issues:
             alerts = []
             if progress.get("failed_tests", 0) > 0:
-                alerts.append({
-                    "type": "test_failure",
-                    "severity": "warning",
-                    "message": f"{progress['failed_tests']} tests have failed"
-                })
+                alerts.append(
+                    {
+                        "type": "test_failure",
+                        "severity": "warning",
+                        "message": f"{progress['failed_tests']} tests have failed",
+                    }
+                )
             monitor_result["alerts"] = alerts
 
         return monitor_result
@@ -2601,33 +2777,35 @@ async def monitor_test_progress(
             "progress": {},
             "performance_data": {},
             "alerts": [],
-            "monitoring_timestamp": datetime.now(timezone.utc).isoformat()
+            "monitoring_timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
+
 # MCP Plugin Helper Functions
+
 
 def _validate_plugin_parameters(
     mode: str,
     target_url: str | None,
     auth_config: dict[str, Any] | None,
-    proxy_config: dict[str, Any] | None
+    proxy_config: dict[str, Any] | None,
 ) -> dict[str, Any]:
     """Validate plugin creation parameters."""
-    validation_result = {
-        "valid": True,
-        "errors": [],
-        "warnings": []
-    }
+    validation_result = {"valid": True, "errors": [], "warnings": []}
 
     # Validate mode
     valid_modes = ["mock", "proxy", "hybrid"]
     if mode not in valid_modes:
-        validation_result["errors"].append(f"Invalid mode '{mode}'. Must be one of {valid_modes}")
+        validation_result["errors"].append(
+            f"Invalid mode '{mode}'. Must be one of {valid_modes}"
+        )
         validation_result["valid"] = False
 
     # Validate target_url for proxy/hybrid modes
     if mode in ["proxy", "hybrid"] and not target_url:
-        validation_result["errors"].append("target_url is required for proxy and hybrid modes")
+        validation_result["errors"].append(
+            "target_url is required for proxy and hybrid modes"
+        )
         validation_result["valid"] = False
 
     # Validate target_url format if provided
@@ -2635,7 +2813,9 @@ def _validate_plugin_parameters(
         try:
             parsed = urlparse(target_url)
             if not parsed.scheme or not parsed.netloc:
-                validation_result["errors"].append("target_url must be a valid URL with scheme and netloc")
+                validation_result["errors"].append(
+                    "target_url must be a valid URL with scheme and netloc"
+                )
                 validation_result["valid"] = False
         except Exception as e:
             validation_result["errors"].append(f"Invalid target_url format: {e!s}")
@@ -2646,7 +2826,9 @@ def _validate_plugin_parameters(
         auth_type = auth_config.get("type")
         valid_auth_types = ["api_key", "bearer", "oauth2", "basic", "custom"]
         if auth_type and auth_type not in valid_auth_types:
-            validation_result["warnings"].append(f"Unknown auth type '{auth_type}'. Supported types: {valid_auth_types}")
+            validation_result["warnings"].append(
+                f"Unknown auth type '{auth_type}'. Supported types: {valid_auth_types}"
+            )
 
     # Validate proxy_config if provided
     if proxy_config:
@@ -2655,8 +2837,12 @@ def _validate_plugin_parameters(
             validation_result["warnings"].append("timeout should be a positive integer")
 
         retry_attempts = proxy_config.get("retry_attempts")
-        if retry_attempts and (not isinstance(retry_attempts, int) or retry_attempts < 0):
-            validation_result["warnings"].append("retry_attempts should be a non-negative integer")
+        if retry_attempts and (
+            not isinstance(retry_attempts, int) or retry_attempts < 0
+        ):
+            validation_result["warnings"].append(
+                "retry_attempts should be a non-negative integer"
+            )
 
     return validation_result
 
@@ -2667,6 +2853,7 @@ async def _load_openapi_spec(spec_url_or_path: str) -> dict[str, Any]:
         # Check if it's a URL
         if spec_url_or_path.startswith(("http://", "https://")):
             import aiohttp
+
             async with aiohttp.ClientSession() as session:
                 async with session.get(spec_url_or_path) as response:
                     if response.status == 200:
@@ -2676,19 +2863,25 @@ async def _load_openapi_spec(spec_url_or_path: str) -> dict[str, Any]:
                         else:
                             # Try to parse as YAML
                             import yaml
+
                             text = await response.text()
                             return yaml.safe_load(text)
                     else:
-                        raise ValueError(f"HTTP {response.status}: Failed to fetch OpenAPI spec")
+                        raise ValueError(
+                            f"HTTP {response.status}: Failed to fetch OpenAPI spec"
+                        )
         else:
             # Treat as file path
             file_path = Path(spec_url_or_path)
             if not file_path.exists():
-                raise FileNotFoundError(f"OpenAPI spec file not found: {spec_url_or_path}")
+                raise FileNotFoundError(
+                    f"OpenAPI spec file not found: {spec_url_or_path}"
+                )
 
             with open(file_path, encoding="utf-8") as f:
                 if file_path.suffix.lower() in [".yaml", ".yml"]:
                     import yaml
+
                     return yaml.safe_load(f)
                 else:
                     return json.load(f)
@@ -2714,9 +2907,7 @@ def _generate_plugin_name(api_title: str) -> str:
 
 
 def _generate_endpoint_configs(
-    api_spec: dict[str, Any],
-    proxy_config: ProxyConfig,
-    mode: str
+    api_spec: dict[str, Any], proxy_config: ProxyConfig, mode: str
 ) -> list[EndpointConfig]:
     """Generate endpoint configurations from OpenAPI specification."""
     endpoints = []
@@ -2724,12 +2915,26 @@ def _generate_endpoint_configs(
 
     for path, methods in paths.items():
         for method, operation in methods.items():
-            if method.upper() in ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"]:
+            if method.upper() in [
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "PATCH",
+                "HEAD",
+                "OPTIONS",
+            ]:
                 # Create mock response from OpenAPI spec
                 mock_response = None
                 if mode in ["mock", "hybrid"]:
                     responses = operation.get("responses", {})
-                    success_response = responses.get("200") or responses.get("201") or next(iter(responses.values())) if responses else None
+                    success_response = (
+                        responses.get("200")
+                        or responses.get("201")
+                        or next(iter(responses.values()))
+                        if responses
+                        else None
+                    )
 
                     if success_response:
                         content = success_response.get("content", {})
@@ -2738,8 +2943,11 @@ def _generate_endpoint_configs(
 
                         mock_response = {
                             "status_code": 200,
-                            "content": example or {"message": f"Mock response for {method.upper()} {path}"},
-                            "headers": {"Content-Type": "application/json"}
+                            "content": example
+                            or {
+                                "message": f"Mock response for {method.upper()} {path}"
+                            },
+                            "headers": {"Content-Type": "application/json"},
                         }
 
                 # Create endpoint configuration
@@ -2747,10 +2955,12 @@ def _generate_endpoint_configs(
                     path=path,
                     method=method.upper(),
                     mock_response=mock_response,
-                    proxy_url=f"{proxy_config.base_url}{path}" if mode in ["proxy", "hybrid"] else None,
+                    proxy_url=f"{proxy_config.base_url}{path}"
+                    if mode in ["proxy", "hybrid"]
+                    else None,
                     auth_config=proxy_config.default_auth,
                     timeout=proxy_config.timeout,
-                    retry_count=proxy_config.retry_count
+                    retry_count=proxy_config.retry_count,
                 )
                 endpoints.append(endpoint)
 
@@ -2758,9 +2968,7 @@ def _generate_endpoint_configs(
 
 
 async def _create_mock_plugin(
-    api_spec: dict[str, Any],
-    plugin_name: str,
-    proxy_config: ProxyConfig
+    api_spec: dict[str, Any], plugin_name: str, proxy_config: ProxyConfig
 ) -> Path | None:
     """Create mock plugin using existing generate_mock_api functionality."""
     try:
@@ -2773,7 +2981,7 @@ async def _create_mock_plugin(
             admin_ui_enabled=True,
             storage_enabled=True,
             business_port=8000,
-            admin_port=8001
+            admin_port=8001,
         )
         return mock_server_path
     except Exception:
@@ -2799,21 +3007,21 @@ async def _create_proxy_plugin(plugin_config: PluginConfig) -> dict[str, Any]:
             auth_handler.add_credentials(
                 plugin_config.plugin_name,
                 auth_config.auth_type,
-                auth_config.credentials
+                auth_config.credentials,
             )
 
         # Create plugin
         plugin_id = plugin_manager.create_plugin(
             plugin_config.plugin_name,
             plugin_config.api_spec,
-            plugin_config.proxy_config.to_dict()
+            plugin_config.proxy_config.to_dict(),
         )
 
         return {
             "plugin_id": plugin_id,
             "proxy_handler_status": proxy_handler.get_status(),
             "auth_handler_apis": auth_handler.list_apis(),
-            "plugin_manager_status": plugin_manager.get_plugin_status(plugin_id)
+            "plugin_manager_status": plugin_manager.get_plugin_status(plugin_id),
         }
     except Exception as e:
         logger.exception("Failed to create proxy plugin")
@@ -2838,14 +3046,16 @@ def _generate_hybrid_routing_rules(api_spec: dict[str, Any]) -> list[dict[str, A
                     pattern=f"{method.upper()} {path}",
                     mode=ProxyMode(mode.upper()),
                     condition=None,
-                    priority=1
+                    priority=1,
                 )
                 rules.append(rule)
 
     return rules
 
 
-def _generate_mcp_configuration(plugin_config: PluginConfig, mode: str) -> dict[str, Any]:
+def _generate_mcp_configuration(
+    plugin_config: PluginConfig, mode: str
+) -> dict[str, Any]:
     """Generate MCP server configuration."""
     mcp_config = {
         "server_name": plugin_config.mcp_server_name,
@@ -2853,7 +3063,7 @@ def _generate_mcp_configuration(plugin_config: PluginConfig, mode: str) -> dict[
         "description": f"MCP plugin for {plugin_config.plugin_name} API",
         "mode": mode,
         "tools": [],
-        "resources": []
+        "resources": [],
     }
 
     # Generate tools based on API endpoints
@@ -2864,11 +3074,7 @@ def _generate_mcp_configuration(plugin_config: PluginConfig, mode: str) -> dict[
         tool = {
             "name": tool_name,
             "description": f"{endpoint.method} {endpoint.path}",
-            "inputSchema": {
-                "type": "object",
-                "properties": {},
-                "required": []
-            }
+            "inputSchema": {"type": "object", "properties": {}, "required": []},
         }
         mcp_config["tools"].append(tool)
 
@@ -2877,7 +3083,7 @@ def _generate_mcp_configuration(plugin_config: PluginConfig, mode: str) -> dict[
         "uri": f"api://{plugin_config.plugin_name}/spec",
         "name": f"{plugin_config.plugin_name} API Specification",
         "description": f"OpenAPI specification for {plugin_config.plugin_name}",
-        "mimeType": "application/json"
+        "mimeType": "application/json",
     }
     mcp_config["resources"].append(resource)
 
@@ -2894,7 +3100,7 @@ async def _register_mcp_plugin(plugin_config: PluginConfig) -> dict[str, Any]:
             "registered": True,
             "plugin_id": plugin_config.mcp_server_name,
             "registration_time": datetime.now(timezone.utc).isoformat(),
-            "message": f"Plugin {plugin_config.plugin_name} registered successfully"
+            "message": f"Plugin {plugin_config.plugin_name} registered successfully",
         }
 
         logger.info(f"MCP plugin registered: {plugin_config.plugin_name}")
@@ -2905,11 +3111,12 @@ async def _register_mcp_plugin(plugin_config: PluginConfig) -> dict[str, Any]:
             "status": "error",
             "registered": False,
             "error": str(e),
-            "registration_time": datetime.now(timezone.utc).isoformat()
+            "registration_time": datetime.now(timezone.utc).isoformat(),
         }
 
 
 # Enhanced Execute Test Plan Helper Functions
+
 
 async def _detect_plugin_mode(server_url: str, openapi_spec: dict[str, Any]) -> str:
     """
@@ -2927,7 +3134,9 @@ async def _detect_plugin_mode(server_url: str, openapi_spec: dict[str, Any]) -> 
         connectivity_result = await check_server_connectivity(server_url)
         if connectivity_result.get("status") == "healthy":
             # Check if it's a MockLoop server by looking for admin endpoints
-            servers = await discover_running_servers([int(server_url.split(":")[-1])], check_health=True)
+            servers = await discover_running_servers(
+                [int(server_url.split(":")[-1])], check_health=True
+            )
             for server in servers:
                 if server.get("is_mockloop_server"):
                     return "mock"
@@ -2954,7 +3163,7 @@ async def _generate_enhanced_scenario_config(
     endpoints: list[dict[str, Any]],
     scenario_name: str,
     mode: str,
-    openapi_spec: dict[str, Any]
+    openapi_spec: dict[str, Any],
 ) -> dict[str, Any]:
     """
     Generate enhanced scenario configuration with mode-specific features.
@@ -2970,7 +3179,9 @@ async def _generate_enhanced_scenario_config(
         Enhanced scenario configuration
     """
     # Start with basic scenario configuration
-    base_config = await generate_scenario_config(scenario_type, endpoints, scenario_name)
+    base_config = await generate_scenario_config(
+        scenario_type, endpoints, scenario_name
+    )
 
     # Add mode-specific enhancements
     if mode == "proxy":
@@ -2979,7 +3190,7 @@ async def _generate_enhanced_scenario_config(
             "target_url": openapi_spec.get("servers", [{}])[0].get("url", ""),
             "timeout": 30,
             "retry_count": 3,
-            "validate_ssl": True
+            "validate_ssl": True,
         }
     elif mode == "hybrid":
         # Add hybrid-specific configurations
@@ -2990,15 +3201,15 @@ async def _generate_enhanced_scenario_config(
                 {"pattern": "GET *", "mode": "mock"},
                 {"pattern": "POST *", "mode": "proxy"},
                 {"pattern": "PUT *", "mode": "proxy"},
-                {"pattern": "DELETE *", "mode": "proxy"}
-            ]
+                {"pattern": "DELETE *", "mode": "proxy"},
+            ],
         }
 
     # Add validation configuration
     base_config["validation_config"] = {
         "schema_validation": True,
         "response_validation": True,
-        "status_code_validation": True
+        "status_code_validation": True,
     }
 
     return base_config
@@ -3010,7 +3221,7 @@ async def _execute_proxy_aware_test(
     mode: str,
     validation_mode: str,
     comparison_config: dict[str, Any],
-    openapi_spec: dict[str, Any]
+    openapi_spec: dict[str, Any],
 ) -> dict[str, Any]:
     """
     Execute a test with proxy-aware capabilities.
@@ -3035,7 +3246,7 @@ async def _execute_proxy_aware_test(
         "live_responses": [],
         "request_logs": [],
         "validation_errors": [],
-        "performance_metrics": {}
+        "performance_metrics": {},
     }
 
     try:
@@ -3046,13 +3257,15 @@ async def _execute_proxy_aware_test(
                 scenario_name=scenario_config["scenario_name"],
                 duration_seconds=60,
                 monitor_performance=True,
-                collect_logs=True
+                collect_logs=True,
             )
             test_result.update(iteration_result)
 
         elif mode == "proxy":
             # Execute against live API
-            proxy_result = await _execute_proxy_test(server_url, scenario_config, openapi_spec)
+            proxy_result = await _execute_proxy_test(
+                server_url, scenario_config, openapi_spec
+            )
             test_result["live_responses"] = proxy_result.get("responses", [])
             test_result["request_logs"] = proxy_result.get("logs", [])
             test_result["performance_metrics"] = proxy_result.get("metrics", {})
@@ -3064,34 +3277,32 @@ async def _execute_proxy_aware_test(
                 scenario_name=scenario_config["scenario_name"],
                 duration_seconds=30,
                 monitor_performance=True,
-                collect_logs=True
+                collect_logs=True,
             )
 
-            proxy_result = await _execute_proxy_test(server_url, scenario_config, openapi_spec)
+            proxy_result = await _execute_proxy_test(
+                server_url, scenario_config, openapi_spec
+            )
 
             test_result["mock_responses"] = mock_result.get("request_logs", [])
             test_result["live_responses"] = proxy_result.get("responses", [])
-            test_result["request_logs"] = mock_result.get("request_logs", []) + proxy_result.get("logs", [])
+            test_result["request_logs"] = mock_result.get(
+                "request_logs", []
+            ) + proxy_result.get("logs", [])
             test_result["performance_metrics"] = {
                 "mock": mock_result.get("performance_metrics", {}),
-                "live": proxy_result.get("metrics", {})
+                "live": proxy_result.get("metrics", {}),
             }
 
         return test_result
 
     except Exception as e:
         logger.exception("Error executing proxy-aware test")
-        return {
-            **test_result,
-            "status": "error",
-            "error": str(e)
-        }
+        return {**test_result, "status": "error", "error": str(e)}
 
 
 async def _execute_proxy_test(
-    server_url: str,
-    scenario_config: dict[str, Any],
-    openapi_spec: dict[str, Any]
+    server_url: str, scenario_config: dict[str, Any], openapi_spec: dict[str, Any]
 ) -> dict[str, Any]:
     """
     Execute test against a live API through proxy.
@@ -3106,11 +3317,7 @@ async def _execute_proxy_test(
     """
     import aiohttp
 
-    result = {
-        "responses": [],
-        "logs": [],
-        "metrics": {}
-    }
+    result = {"responses": [], "logs": [], "metrics": {}}
 
     start_time = time.time()
 
@@ -3127,14 +3334,16 @@ async def _execute_proxy_test(
                 full_url = f"{base_url}{path}"
 
                 try:
-                    async with session.request(method, full_url, timeout=30) as response:
+                    async with session.request(
+                        method, full_url, timeout=30
+                    ) as response:
                         response_data = {
                             "url": full_url,
                             "method": method,
                             "status_code": response.status,
                             "headers": dict(response.headers),
                             "response_time_ms": 0,  # Simplified
-                            "timestamp": time.time()
+                            "timestamp": time.time(),
                         }
 
                         # Try to get response body
@@ -3155,7 +3364,7 @@ async def _execute_proxy_test(
                         "method": method,
                         "status_code": 0,
                         "error": str(e),
-                        "timestamp": time.time()
+                        "timestamp": time.time(),
                     }
                     result["responses"].append(error_data)
                     result["logs"].append(error_data)
@@ -3164,7 +3373,9 @@ async def _execute_proxy_test(
         result["metrics"] = {
             "total_time_ms": (end_time - start_time) * 1000,
             "requests_made": len(result["responses"]),
-            "successful_requests": len([r for r in result["responses"] if r.get("status_code", 0) < 400])
+            "successful_requests": len(
+                [r for r in result["responses"] if r.get("status_code", 0) < 400]
+            ),
         }
 
     except Exception as e:
@@ -3177,7 +3388,7 @@ async def _execute_proxy_test(
 async def _validate_responses_against_spec(
     request_logs: list[dict[str, Any]],
     openapi_spec: dict[str, Any],
-    validation_mode: str
+    validation_mode: str,
 ) -> dict[str, Any]:
     """
     Validate responses against OpenAPI specification.
@@ -3198,7 +3409,7 @@ async def _validate_responses_against_spec(
         "invalid_responses": 0,
         "validation_errors": [],
         "schema_violations": [],
-        "status_code_mismatches": []
+        "status_code_mismatches": [],
     }
 
     paths = openapi_spec.get("paths", {})
@@ -3216,24 +3427,28 @@ async def _validate_responses_against_spec(
                 break
 
         if not spec_path:
-            validation_result["validation_errors"].append({
-                "type": "path_not_found",
-                "path": path,
-                "method": method,
-                "message": f"Path {path} not found in OpenAPI specification"
-            })
+            validation_result["validation_errors"].append(
+                {
+                    "type": "path_not_found",
+                    "path": path,
+                    "method": method,
+                    "message": f"Path {path} not found in OpenAPI specification",
+                }
+            )
             validation_result["invalid_responses"] += 1
             continue
 
         # Check if method is defined
         path_spec = paths[spec_path]
         if method not in path_spec:
-            validation_result["validation_errors"].append({
-                "type": "method_not_allowed",
-                "path": path,
-                "method": method,
-                "message": f"Method {method.upper()} not defined for path {path}"
-            })
+            validation_result["validation_errors"].append(
+                {
+                    "type": "method_not_allowed",
+                    "path": path,
+                    "method": method,
+                    "message": f"Method {method.upper()} not defined for path {path}",
+                }
+            )
             validation_result["invalid_responses"] += 1
             continue
 
@@ -3241,12 +3456,14 @@ async def _validate_responses_against_spec(
         method_spec = path_spec[method]
         responses = method_spec.get("responses", {})
         if str(status_code) not in responses and "default" not in responses:
-            validation_result["status_code_mismatches"].append({
-                "path": path,
-                "method": method,
-                "actual_status": status_code,
-                "expected_statuses": list(responses.keys())
-            })
+            validation_result["status_code_mismatches"].append(
+                {
+                    "path": path,
+                    "method": method,
+                    "actual_status": status_code,
+                    "expected_statuses": list(responses.keys()),
+                }
+            )
             if validation_mode == "strict":
                 validation_result["invalid_responses"] += 1
                 continue
@@ -3260,12 +3477,14 @@ async def _validate_responses_against_spec(
                 # Simplified schema validation
                 schema = content_spec["application/json"].get("schema", {})
                 if schema and not _validate_json_schema(response_body, schema):
-                    validation_result["schema_violations"].append({
-                        "path": path,
-                        "method": method,
-                        "status_code": status_code,
-                        "message": "Response body does not match schema"
-                    })
+                    validation_result["schema_violations"].append(
+                        {
+                            "path": path,
+                            "method": method,
+                            "status_code": status_code,
+                            "message": "Response body does not match schema",
+                        }
+                    )
                     if validation_mode == "strict":
                         validation_result["invalid_responses"] += 1
                         continue
@@ -3275,7 +3494,11 @@ async def _validate_responses_against_spec(
     # Set overall status based on validation mode
     if validation_mode == "strict" and validation_result["invalid_responses"] > 0:
         validation_result["status"] = "failed"
-    elif validation_mode == "soft" and validation_result["invalid_responses"] > validation_result["valid_responses"]:
+    elif (
+        validation_mode == "soft"
+        and validation_result["invalid_responses"]
+        > validation_result["valid_responses"]
+    ):
         validation_result["status"] = "warning"
 
     return validation_result
@@ -3285,7 +3508,7 @@ async def _compare_responses(
     mock_responses: list[dict[str, Any]],
     live_responses: list[dict[str, Any]],
     ignore_fields: list[str],
-    tolerance: dict[str, Any]
+    tolerance: dict[str, Any],
 ) -> dict[str, Any]:
     """
     Compare mock and live API responses.
@@ -3305,7 +3528,7 @@ async def _compare_responses(
         "matching_responses": 0,
         "differing_responses": 0,
         "differences": [],
-        "summary": {}
+        "summary": {},
     }
 
     # Create lookup for live responses by path and method
@@ -3319,12 +3542,14 @@ async def _compare_responses(
         live_response = live_lookup.get(key)
 
         if not live_response:
-            comparison_result["differences"].append({
-                "type": "missing_live_response",
-                "path": mock_response.get("path", ""),
-                "method": mock_response.get("method", ""),
-                "message": "No corresponding live response found"
-            })
+            comparison_result["differences"].append(
+                {
+                    "type": "missing_live_response",
+                    "path": mock_response.get("path", ""),
+                    "method": mock_response.get("method", ""),
+                    "message": "No corresponding live response found",
+                }
+            )
             comparison_result["differing_responses"] += 1
             continue
 
@@ -3334,13 +3559,15 @@ async def _compare_responses(
         mock_status = mock_response.get("status_code", 0)
         live_status = live_response.get("status_code", 0)
         if mock_status != live_status:
-            comparison_result["differences"].append({
-                "type": "status_code_mismatch",
-                "path": mock_response.get("path", ""),
-                "method": mock_response.get("method", ""),
-                "mock_value": mock_status,
-                "live_value": live_status
-            })
+            comparison_result["differences"].append(
+                {
+                    "type": "status_code_mismatch",
+                    "path": mock_response.get("path", ""),
+                    "method": mock_response.get("method", ""),
+                    "mock_value": mock_status,
+                    "live_value": live_status,
+                }
+            )
 
         # Compare response bodies (simplified)
         mock_body = mock_response.get("body")
@@ -3348,19 +3575,23 @@ async def _compare_responses(
 
         if mock_body != live_body:
             # Perform deep comparison ignoring specified fields
-            differences = _deep_compare_objects(mock_body, live_body, ignore_fields, tolerance)
+            differences = _deep_compare_objects(
+                mock_body, live_body, ignore_fields, tolerance
+            )
             if differences:
-                comparison_result["differences"].extend([
-                    {
-                        "type": "body_difference",
-                        "path": mock_response.get("path", ""),
-                        "method": mock_response.get("method", ""),
-                        "field": diff["field"],
-                        "mock_value": diff["mock_value"],
-                        "live_value": diff["live_value"]
-                    }
-                    for diff in differences
-                ])
+                comparison_result["differences"].extend(
+                    [
+                        {
+                            "type": "body_difference",
+                            "path": mock_response.get("path", ""),
+                            "method": mock_response.get("method", ""),
+                            "field": diff["field"],
+                            "mock_value": diff["mock_value"],
+                            "live_value": diff["live_value"],
+                        }
+                        for diff in differences
+                    ]
+                )
                 comparison_result["differing_responses"] += 1
             else:
                 comparison_result["matching_responses"] += 1
@@ -3369,9 +3600,19 @@ async def _compare_responses(
 
     # Generate summary
     comparison_result["summary"] = {
-        "match_percentage": (comparison_result["matching_responses"] / max(comparison_result["total_comparisons"], 1)) * 100,
+        "match_percentage": (
+            comparison_result["matching_responses"]
+            / max(comparison_result["total_comparisons"], 1)
+        )
+        * 100,
         "total_differences": len(comparison_result["differences"]),
-        "critical_differences": len([d for d in comparison_result["differences"] if d["type"] == "status_code_mismatch"])
+        "critical_differences": len(
+            [
+                d
+                for d in comparison_result["differences"]
+                if d["type"] == "status_code_mismatch"
+            ]
+        ),
     }
 
     return comparison_result
@@ -3380,6 +3621,7 @@ async def _compare_responses(
 def _path_matches_pattern(path: str, pattern: str) -> bool:
     """Check if a path matches an OpenAPI path pattern."""
     import re
+
     # Convert OpenAPI path pattern to regex
     regex_pattern = pattern.replace("{", "(?P<").replace("}", ">[^/]+)")
     regex_pattern = f"^{regex_pattern}$"
@@ -3392,7 +3634,13 @@ def _validate_json_schema(data: Any, schema: dict[str, Any]) -> bool:
     # In a real implementation, you'd use a proper JSON schema validator
     if "type" in schema:
         expected_type = schema["type"]
-        if (expected_type == "object" and not isinstance(data, dict)) or (expected_type == "array" and not isinstance(data, list)) or (expected_type == "string" and not isinstance(data, str)) or (expected_type == "number" and not isinstance(data, int | float)) or (expected_type == "boolean" and not isinstance(data, bool)):
+        if (
+            (expected_type == "object" and not isinstance(data, dict))
+            or (expected_type == "array" and not isinstance(data, list))
+            or (expected_type == "string" and not isinstance(data, str))
+            or (expected_type == "number" and not isinstance(data, int | float))
+            or (expected_type == "boolean" and not isinstance(data, bool))
+        ):
             return False
 
     return True
@@ -3403,18 +3651,20 @@ def _deep_compare_objects(
     obj2: Any,
     ignore_fields: list[str],
     tolerance: dict[str, Any],
-    path: str = ""
+    path: str = "",
 ) -> list[dict[str, Any]]:
     """Deep compare two objects and return differences."""
     differences = []
 
     if not isinstance(obj1, type(obj2)):
-        differences.append({
-            "field": path or "root",
-            "mock_value": obj1,
-            "live_value": obj2,
-            "difference_type": "type_mismatch"
-        })
+        differences.append(
+            {
+                "field": path or "root",
+                "mock_value": obj1,
+                "live_value": obj2,
+                "difference_type": "type_mismatch",
+            }
+        )
         return differences
 
     if isinstance(obj1, dict) and isinstance(obj2, dict):
@@ -3426,52 +3676,68 @@ def _deep_compare_objects(
             field_path = f"{path}.{key}" if path else key
 
             if key not in obj1:
-                differences.append({
-                    "field": field_path,
-                    "mock_value": None,
-                    "live_value": obj2[key],
-                    "difference_type": "missing_in_mock"
-                })
+                differences.append(
+                    {
+                        "field": field_path,
+                        "mock_value": None,
+                        "live_value": obj2[key],
+                        "difference_type": "missing_in_mock",
+                    }
+                )
             elif key not in obj2:
-                differences.append({
-                    "field": field_path,
-                    "mock_value": obj1[key],
-                    "live_value": None,
-                    "difference_type": "missing_in_live"
-                })
+                differences.append(
+                    {
+                        "field": field_path,
+                        "mock_value": obj1[key],
+                        "live_value": None,
+                        "difference_type": "missing_in_live",
+                    }
+                )
             else:
-                differences.extend(_deep_compare_objects(obj1[key], obj2[key], ignore_fields, tolerance, field_path))
+                differences.extend(
+                    _deep_compare_objects(
+                        obj1[key], obj2[key], ignore_fields, tolerance, field_path
+                    )
+                )
 
     elif isinstance(obj1, list) and isinstance(obj2, list):
         if len(obj1) != len(obj2):
-            differences.append({
-                "field": f"{path}.length" if path else "length",
-                "mock_value": len(obj1),
-                "live_value": len(obj2),
-                "difference_type": "length_mismatch"
-            })
+            differences.append(
+                {
+                    "field": f"{path}.length" if path else "length",
+                    "mock_value": len(obj1),
+                    "live_value": len(obj2),
+                    "difference_type": "length_mismatch",
+                }
+            )
 
         for i, (item1, item2) in enumerate(zip(obj1, obj2, strict=False)):
             item_path = f"{path}[{i}]" if path else f"[{i}]"
-            differences.extend(_deep_compare_objects(item1, item2, ignore_fields, tolerance, item_path))
+            differences.extend(
+                _deep_compare_objects(item1, item2, ignore_fields, tolerance, item_path)
+            )
 
     elif isinstance(obj1, int | float) and isinstance(obj2, int | float):
         numeric_tolerance = tolerance.get("numeric_variance", 0.01)
         if abs(obj1 - obj2) > numeric_tolerance:
-            differences.append({
+            differences.append(
+                {
+                    "field": path or "root",
+                    "mock_value": obj1,
+                    "live_value": obj2,
+                    "difference_type": "numeric_difference",
+                }
+            )
+
+    elif obj1 != obj2:
+        differences.append(
+            {
                 "field": path or "root",
                 "mock_value": obj1,
                 "live_value": obj2,
-                "difference_type": "numeric_difference"
-            })
-
-    elif obj1 != obj2:
-        differences.append({
-            "field": path or "root",
-            "mock_value": obj1,
-            "live_value": obj2,
-            "difference_type": "value_mismatch"
-        })
+                "difference_type": "value_mismatch",
+            }
+        )
 
     return differences
 

@@ -36,15 +36,16 @@ if __package__ is None or __package__ == "":
         get_global_context_data,
         update_global_context_data,
         ContextType,
-        ContextStatus
+        ContextStatus,
     )
     from mcp_prompts import (
         analyze_openapi_for_testing,
         generate_scenario_config,
         optimize_scenario_for_load,
         generate_error_scenarios,
-        generate_security_test_scenarios
+        generate_security_test_scenarios,
     )
+
     # Import MCP Tools for automated test execution
     from mcp_tools import (
         validate_scenario_config,
@@ -62,8 +63,9 @@ if __package__ is None or __package__ == "":
         create_test_session,
         end_test_session,
         schedule_test_suite,
-        monitor_test_progress
+        monitor_test_progress,
     )
+
     # Import MCP Resources (placeholder for future community scenarios)
     from mcp_resources import (
         get_4xx_client_errors_pack,
@@ -82,13 +84,13 @@ if __package__ is None or __package__ == "":
         get_data_validation_pack,
         get_workflow_testing_pack,
         list_scenario_packs,
-        get_scenario_pack_by_uri
+        get_scenario_pack_by_uri,
     )
     from community_scenarios import (
         list_community_scenarios,
         get_community_scenario,
         refresh_community_cache,
-        get_community_architecture_info
+        get_community_architecture_info,
     )
 else:
     # Imported as part of the 'src.mockloop_mcp' package.
@@ -112,15 +114,16 @@ else:
         get_global_context_data,
         update_global_context_data,
         ContextType,
-        ContextStatus
+        ContextStatus,
     )
     from .mcp_prompts import (
         analyze_openapi_for_testing,
         generate_scenario_config,
         optimize_scenario_for_load,
         generate_error_scenarios,
-        generate_security_test_scenarios
+        generate_security_test_scenarios,
     )
+
     # Import MCP Tools for automated test execution
     from .mcp_tools import (
         validate_scenario_config,
@@ -138,8 +141,9 @@ else:
         create_test_session,
         end_test_session,
         schedule_test_suite,
-        monitor_test_progress
+        monitor_test_progress,
     )
+
     # Import MCP Resources (placeholder for future community scenarios)
     from .mcp_resources import (
         get_4xx_client_errors_pack,
@@ -158,13 +162,13 @@ else:
         get_data_validation_pack,
         get_workflow_testing_pack,
         list_scenario_packs,
-        get_scenario_pack_by_uri
+        get_scenario_pack_by_uri,
     )
     from .community_scenarios import (
         list_community_scenarios,
         get_community_scenario,
         refresh_community_cache,
-        get_community_architecture_info
+        get_community_architecture_info,
     )
 
 # Import FastMCP and Context from the MCP SDK
@@ -198,7 +202,7 @@ def get_audit_logger() -> MCPAuditLogger | None:
                 session_id=str(uuid.uuid4()),
                 user_id="mcp_server",
                 enable_performance_tracking=True,
-                enable_content_hashing=True
+                enable_content_hashing=True,
             )
         except Exception as e:
             logger.warning(f"Failed to initialize MCP audit logger: {e}")
@@ -212,7 +216,7 @@ def get_compliance_reporter() -> MCPComplianceReporter | None:
         try:
             _compliance_reporter = create_compliance_reporter(
                 audit_db_path=MCP_AUDIT_DB_PATH,
-                reports_output_dir=MCP_COMPLIANCE_REPORTS_DIR
+                reports_output_dir=MCP_COMPLIANCE_REPORTS_DIR,
             )
         except Exception as e:
             logger.warning(f"Failed to initialize MCP compliance reporter: {e}")
@@ -226,15 +230,13 @@ def get_context_manager():
         try:
             audit_logger = get_audit_logger()
             _context_manager = initialize_context_manager(
-                db_path=MCP_CONTEXT_DB_PATH,
-                audit_logger=audit_logger
+                db_path=MCP_CONTEXT_DB_PATH, audit_logger=audit_logger
             )
         except Exception as e:
             logger.warning(f"Failed to initialize MCP context manager: {e}")
             # Create a fallback context manager without audit logging
             _context_manager = initialize_context_manager(
-                db_path=MCP_CONTEXT_DB_PATH,
-                audit_logger=None
+                db_path=MCP_CONTEXT_DB_PATH, audit_logger=None
             )
     return _context_manager
 
@@ -246,6 +248,7 @@ def mcp_audit_tool(tool_name: str):
     Args:
         tool_name: Name of the MCP tool being audited
     """
+
     def decorator(func):
         @wraps(func)
         async def wrapper(*args, **kwargs):
@@ -262,7 +265,7 @@ def mcp_audit_tool(tool_name: str):
                         data_sources=[],
                         compliance_tags=["mcp_tool"],
                         processing_purpose="mcp_tool_execution",
-                        legal_basis="legitimate_interests"
+                        legal_basis="legitimate_interests",
                     )
 
                 # Execute the original function
@@ -274,12 +277,15 @@ def mcp_audit_tool(tool_name: str):
                     audit_logger.log_tool_execution(
                         tool_name=f"{tool_name}_completion",
                         input_parameters={"original_entry_id": entry_id},
-                        execution_result={"status": "success", "result_type": type(result).__name__},
+                        execution_result={
+                            "status": "success",
+                            "result_type": type(result).__name__,
+                        },
                         execution_time_ms=execution_time_ms,
                         data_sources=[],
                         compliance_tags=["mcp_tool", "completion"],
                         processing_purpose="mcp_tool_completion",
-                        legal_basis="legitimate_interests"
+                        legal_basis="legitimate_interests",
                     )
 
                 return result
@@ -291,17 +297,21 @@ def mcp_audit_tool(tool_name: str):
                     audit_logger.log_tool_execution(
                         tool_name=f"{tool_name}_error",
                         input_parameters={"original_entry_id": entry_id},
-                        execution_result={"status": "error", "error_type": type(e).__name__},
+                        execution_result={
+                            "status": "error",
+                            "error_type": type(e).__name__,
+                        },
                         execution_time_ms=execution_time_ms,
                         data_sources=[],
                         compliance_tags=["mcp_tool", "error"],
                         processing_purpose="mcp_tool_error",
                         legal_basis="legitimate_interests",
-                        error_details=str(e)
+                        error_details=str(e),
                     )
                 raise
 
         return wrapper
+
     return decorator
 
 
@@ -892,47 +902,50 @@ async def manage_mock_data_tool(
 
 # Register MCP Tools for automated test execution
 
+
 @server.tool(
     name="validate_scenario_config",
     description="Validates scenario configuration before deployment. "
-    "Performs comprehensive validation including required fields, endpoint configurations, and test parameters."
+    "Performs comprehensive validation including required fields, endpoint configurations, and test parameters.",
 )
 @mcp_audit_tool("validate_scenario_config")
 async def validate_scenario_config_tool(
     scenario_config: dict[str, Any],
     strict_validation: bool = True,
-    check_endpoints: bool = True
+    check_endpoints: bool = True,
 ) -> dict[str, Any]:
     """Validate scenario configuration before deployment."""
-    return await validate_scenario_config(scenario_config, strict_validation, check_endpoints)
+    return await validate_scenario_config(
+        scenario_config, strict_validation, check_endpoints
+    )
 
 
 @server.tool(
     name="deploy_scenario",
     description="Deploys scenario to MockLoop server. "
-    "Validates configuration, deploys to server, and activates the scenario."
+    "Validates configuration, deploys to server, and activates the scenario.",
 )
 @mcp_audit_tool("deploy_scenario")
 async def deploy_scenario_tool(
     server_url: str,
     scenario_config: dict[str, Any],
     validate_before_deploy: bool = True,
-    force_deploy: bool = False
+    force_deploy: bool = False,
 ) -> dict[str, Any]:
     """Deploy scenario to MockLoop server."""
-    return await deploy_scenario(server_url, scenario_config, validate_before_deploy, force_deploy)
+    return await deploy_scenario(
+        server_url, scenario_config, validate_before_deploy, force_deploy
+    )
 
 
 @server.tool(
     name="switch_scenario",
     description="Switches active scenario on a server. "
-    "Changes the currently active scenario and optionally verifies the switch was successful."
+    "Changes the currently active scenario and optionally verifies the switch was successful.",
 )
 @mcp_audit_tool("switch_scenario")
 async def switch_scenario_tool(
-    server_url: str,
-    scenario_name: str,
-    verify_switch: bool = True
+    server_url: str, scenario_name: str, verify_switch: bool = True
 ) -> dict[str, Any]:
     """Switch active scenario on a server."""
     return await switch_scenario(server_url, scenario_name, verify_switch)
@@ -941,12 +954,11 @@ async def switch_scenario_tool(
 @server.tool(
     name="list_active_scenarios",
     description="Lists all active scenarios across servers. "
-    "Discovers running servers and retrieves their currently active scenarios."
+    "Discovers running servers and retrieves their currently active scenarios.",
 )
 @mcp_audit_tool("list_active_scenarios")
 async def list_active_scenarios_tool(
-    server_urls: list[str] | None = None,
-    discover_servers: bool = True
+    server_urls: list[str] | None = None, discover_servers: bool = True
 ) -> dict[str, Any]:
     """List all active scenarios across servers."""
     return await list_active_scenarios(server_urls, discover_servers)
@@ -955,7 +967,7 @@ async def list_active_scenarios_tool(
 @server.tool(
     name="execute_test_plan",
     description="Combines scenario generation and deployment in one operation. "
-    "Analyzes OpenAPI spec, generates scenarios, deploys them, and optionally executes tests immediately."
+    "Analyzes OpenAPI spec, generates scenarios, deploys them, and optionally executes tests immediately.",
 )
 @mcp_audit_tool("execute_test_plan")
 async def execute_test_plan_tool(
@@ -963,16 +975,22 @@ async def execute_test_plan_tool(
     server_url: str,
     test_focus: str = "comprehensive",
     auto_generate_scenarios: bool = True,
-    execute_immediately: bool = True
+    execute_immediately: bool = True,
 ) -> dict[str, Any]:
     """Execute complete test plan from OpenAPI specification."""
-    return await execute_test_plan(openapi_spec, server_url, test_focus, auto_generate_scenarios, execute_immediately)
+    return await execute_test_plan(
+        openapi_spec,
+        server_url,
+        test_focus,
+        auto_generate_scenarios,
+        execute_immediately,
+    )
 
 
 @server.tool(
     name="run_test_iteration",
     description="Executes a single test iteration with monitoring. "
-    "Runs a test iteration for a specified duration while collecting performance metrics and logs."
+    "Runs a test iteration for a specified duration while collecting performance metrics and logs.",
 )
 @mcp_audit_tool("run_test_iteration")
 async def run_test_iteration_tool(
@@ -980,16 +998,18 @@ async def run_test_iteration_tool(
     scenario_name: str,
     duration_seconds: int = 300,
     monitor_performance: bool = True,
-    collect_logs: bool = True
+    collect_logs: bool = True,
 ) -> dict[str, Any]:
     """Execute a single test iteration with monitoring."""
-    return await run_test_iteration(server_url, scenario_name, duration_seconds, monitor_performance, collect_logs)
+    return await run_test_iteration(
+        server_url, scenario_name, duration_seconds, monitor_performance, collect_logs
+    )
 
 
 @server.tool(
     name="run_load_test",
     description="Executes load testing with configurable parameters. "
-    "Performs comprehensive load testing with ramp-up, steady state, and ramp-down phases."
+    "Performs comprehensive load testing with ramp-up, steady state, and ramp-down phases.",
 )
 @mcp_audit_tool("run_load_test")
 async def run_load_test_tool(
@@ -997,16 +1017,18 @@ async def run_load_test_tool(
     target_load: int,
     duration_seconds: int = 300,
     ramp_up_time: int = 60,
-    scenario_name: str | None = None
+    scenario_name: str | None = None,
 ) -> dict[str, Any]:
     """Execute load testing with configurable parameters."""
-    return await run_load_test(server_url, target_load, duration_seconds, ramp_up_time, scenario_name)
+    return await run_load_test(
+        server_url, target_load, duration_seconds, ramp_up_time, scenario_name
+    )
 
 
 @server.tool(
     name="run_security_test",
     description="Executes security testing scenarios for vulnerability assessment. "
-    "Performs comprehensive security testing including authentication, authorization, and injection attacks."
+    "Performs comprehensive security testing including authentication, authorization, and injection attacks.",
 )
 @mcp_audit_tool("run_security_test")
 async def run_security_test_tool(
@@ -1014,68 +1036,76 @@ async def run_security_test_tool(
     api_spec: dict[str, Any],
     security_focus: list[str] | None = None,
     compliance_requirements: list[str] | None = None,
-    scenario_name: str | None = None
+    scenario_name: str | None = None,
 ) -> dict[str, Any]:
     """Execute security testing scenarios."""
-    return await run_security_test(server_url, api_spec, security_focus, compliance_requirements, scenario_name)
+    return await run_security_test(
+        server_url, api_spec, security_focus, compliance_requirements, scenario_name
+    )
 
 
 @server.tool(
     name="analyze_test_results",
     description="Analyzes test results and provides comprehensive insights. "
-    "Performs statistical analysis, identifies trends, and generates actionable recommendations."
+    "Performs statistical analysis, identifies trends, and generates actionable recommendations.",
 )
 @mcp_audit_tool("analyze_test_results")
 async def analyze_test_results_tool(
     test_results: list[dict[str, Any]],
     analysis_type: str = "comprehensive",
-    include_recommendations: bool = True
+    include_recommendations: bool = True,
 ) -> dict[str, Any]:
     """Analyze test results and provide insights."""
-    return await analyze_test_results(test_results, analysis_type, include_recommendations)
+    return await analyze_test_results(
+        test_results, analysis_type, include_recommendations
+    )
 
 
 @server.tool(
     name="generate_test_report",
     description="Generates formatted test reports in various formats. "
-    "Creates comprehensive reports with charts, analysis, and recommendations."
+    "Creates comprehensive reports with charts, analysis, and recommendations.",
 )
 @mcp_audit_tool("generate_test_report")
 async def generate_test_report_tool(
     test_results: list[dict[str, Any]],
     report_format: str = "comprehensive",
     include_charts: bool = True,
-    output_format: str = "json"
+    output_format: str = "json",
 ) -> dict[str, Any]:
     """Generate formatted test reports."""
-    return await generate_test_report(test_results, report_format, include_charts, output_format)
+    return await generate_test_report(
+        test_results, report_format, include_charts, output_format
+    )
 
 
 @server.tool(
     name="compare_test_runs",
     description="Compares multiple test runs to identify performance changes. "
-    "Performs statistical comparison and identifies regressions or improvements."
+    "Performs statistical comparison and identifies regressions or improvements.",
 )
 @mcp_audit_tool("compare_test_runs")
 async def compare_test_runs_tool(
     baseline_results: list[dict[str, Any]],
     comparison_results: list[dict[str, Any]],
-    comparison_metrics: list[str] | None = None
+    comparison_metrics: list[str] | None = None,
 ) -> dict[str, Any]:
     """Compare multiple test runs."""
-    return await compare_test_runs(baseline_results, comparison_results, comparison_metrics)
+    return await compare_test_runs(
+        baseline_results, comparison_results, comparison_metrics
+    )
 
 
 @server.tool(
     name="get_performance_metrics",
     description="Retrieves and analyzes performance metrics from test results. "
-    "Extracts key performance indicators and provides aggregated metrics."
+    "Extracts key performance indicators and provides aggregated metrics.",
 )
 @mcp_audit_tool("get_performance_metrics")
 async def get_performance_metrics_tool(
     test_results: list[dict[str, Any]],
     metric_types: list[str] | None = None,
-    aggregation_method: str = "average"
+    aggregation_method: str = "average",
 ) -> dict[str, Any]:
     """Get performance metrics from test results."""
     return await get_performance_metrics(test_results, metric_types, aggregation_method)
@@ -1084,13 +1114,13 @@ async def get_performance_metrics_tool(
 @server.tool(
     name="create_test_session",
     description="Creates a new test session for workflow management. "
-    "Initializes a test session with configuration and tracking capabilities."
+    "Initializes a test session with configuration and tracking capabilities.",
 )
 @mcp_audit_tool("create_test_session")
 async def create_test_session_tool(
     session_name: str,
     test_plan: dict[str, Any],
-    session_config: dict[str, Any] | None = None
+    session_config: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Create a new test session."""
     return await create_test_session(session_name, test_plan, session_config)
@@ -1099,12 +1129,11 @@ async def create_test_session_tool(
 @server.tool(
     name="end_test_session",
     description="Ends a test session and generates final reports. "
-    "Completes the test session, performs final analysis, and generates comprehensive reports."
+    "Completes the test session, performs final analysis, and generates comprehensive reports.",
 )
 @mcp_audit_tool("end_test_session")
 async def end_test_session_tool(
-    session_id: str,
-    generate_final_report: bool = True
+    session_id: str, generate_final_report: bool = True
 ) -> dict[str, Any]:
     """End a test session and generate final reports."""
     return await end_test_session(session_id, generate_final_report)
@@ -1113,13 +1142,13 @@ async def end_test_session_tool(
 @server.tool(
     name="schedule_test_suite",
     description="Schedules automated test suite execution. "
-    "Sets up automated testing schedules with configurable parameters and notifications."
+    "Sets up automated testing schedules with configurable parameters and notifications.",
 )
 @mcp_audit_tool("schedule_test_suite")
 async def schedule_test_suite_tool(
     test_suite: dict[str, Any],
     schedule_config: dict[str, Any],
-    notification_config: dict[str, Any] | None = None
+    notification_config: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Schedule automated test suite execution."""
     return await schedule_test_suite(test_suite, schedule_config, notification_config)
@@ -1128,30 +1157,31 @@ async def schedule_test_suite_tool(
 @server.tool(
     name="monitor_test_progress",
     description="Monitors ongoing test execution and provides real-time updates. "
-    "Tracks test progress, identifies issues, and provides performance insights during execution."
+    "Tracks test progress, identifies issues, and provides performance insights during execution.",
 )
 @mcp_audit_tool("monitor_test_progress")
 async def monitor_test_progress_tool(
-    session_id: str,
-    include_performance_data: bool = True,
-    alert_on_issues: bool = True
+    session_id: str, include_performance_data: bool = True, alert_on_issues: bool = True
 ) -> dict[str, Any]:
     """Monitor ongoing test execution."""
-    return await monitor_test_progress(session_id, include_performance_data, alert_on_issues)
+    return await monitor_test_progress(
+        session_id, include_performance_data, alert_on_issues
+    )
 
 
 # Register MCP Context Management Tools for stateful testing workflows
 
+
 @server.tool(
     name="create_test_session_context",
     description="Creates a new test session context for stateful testing workflows. "
-    "Enables tracking of test state, variables, and progress across multiple test iterations."
+    "Enables tracking of test state, variables, and progress across multiple test iterations.",
 )
 @mcp_audit_tool("create_test_session_context")
 async def create_test_session_context_tool(
     session_name: str,
     test_plan: dict[str, Any],
-    session_config: dict[str, Any] | None = None
+    session_config: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Create a new test session context."""
     try:
@@ -1160,39 +1190,39 @@ async def create_test_session_context_tool(
             return {
                 "status": "error",
                 "message": "Context manager not available",
-                "context_id": None
+                "context_id": None,
             }
 
         context_id = await create_test_session_context(
             session_name=session_name,
             test_plan=test_plan,
-            session_config=session_config or {}
+            session_config=session_config or {},
         )
 
         return {
             "status": "success",
             "message": f"Test session context '{session_name}' created successfully",
             "context_id": context_id,
-            "context_type": "test_session"
+            "context_type": "test_session",
         }
     except Exception as e:
         return {
             "status": "error",
             "message": f"Failed to create test session context: {e}",
-            "context_id": None
+            "context_id": None,
         }
 
 
 @server.tool(
     name="create_workflow_context",
     description="Creates a workflow context for managing complex testing workflows. "
-    "Enables coordination between multiple test sessions and cross-session data sharing."
+    "Enables coordination between multiple test sessions and cross-session data sharing.",
 )
 @mcp_audit_tool("create_workflow_context")
 async def create_workflow_context_tool(
     workflow_name: str,
     workflow_config: dict[str, Any],
-    parent_context_id: str | None = None
+    parent_context_id: str | None = None,
 ) -> dict[str, Any]:
     """Create a new workflow context."""
     try:
@@ -1201,40 +1231,40 @@ async def create_workflow_context_tool(
             return {
                 "status": "error",
                 "message": "Context manager not available",
-                "context_id": None
+                "context_id": None,
             }
 
         context_id = await create_workflow_context(
             workflow_name=workflow_name,
             workflow_config=workflow_config,
-            parent_context_id=parent_context_id
+            parent_context_id=parent_context_id,
         )
 
         return {
             "status": "success",
             "message": f"Workflow context '{workflow_name}' created successfully",
             "context_id": context_id,
-            "context_type": "workflow"
+            "context_type": "workflow",
         }
     except Exception as e:
         return {
             "status": "error",
             "message": f"Failed to create workflow context: {e}",
-            "context_id": None
+            "context_id": None,
         }
 
 
 @server.tool(
     name="create_agent_context",
     description="Creates an agent context for AI agent integration. "
-    "Enables AI agents to maintain state and coordinate with other agents in testing workflows."
+    "Enables AI agents to maintain state and coordinate with other agents in testing workflows.",
 )
 @mcp_audit_tool("create_agent_context")
 async def create_agent_context_tool(
     agent_name: str,
     agent_type: str,
     agent_config: dict[str, Any],
-    parent_context_id: str | None = None
+    parent_context_id: str | None = None,
 ) -> dict[str, Any]:
     """Create a new agent context."""
     try:
@@ -1243,39 +1273,38 @@ async def create_agent_context_tool(
             return {
                 "status": "error",
                 "message": "Context manager not available",
-                "context_id": None
+                "context_id": None,
             }
 
         context_id = await create_agent_context(
             agent_name=agent_name,
             agent_type=agent_type,
             agent_config=agent_config,
-            parent_context_id=parent_context_id
+            parent_context_id=parent_context_id,
         )
 
         return {
             "status": "success",
             "message": f"Agent context '{agent_name}' created successfully",
             "context_id": context_id,
-            "context_type": "agent"
+            "context_type": "agent",
         }
     except Exception as e:
         return {
             "status": "error",
             "message": f"Failed to create agent context: {e}",
-            "context_id": None
+            "context_id": None,
         }
 
 
 @server.tool(
     name="get_context_data",
     description="Retrieves data from a specific context. "
-    "Allows access to stored variables, state, and configuration data from any context."
+    "Allows access to stored variables, state, and configuration data from any context.",
 )
 @mcp_audit_tool("get_context_data")
 async def get_context_data_tool(
-    context_id: str,
-    keys: list[str] | None = None
+    context_id: str, keys: list[str] | None = None
 ) -> dict[str, Any]:
     """Get data from a context."""
     try:
@@ -1284,7 +1313,7 @@ async def get_context_data_tool(
             return {
                 "status": "error",
                 "message": "Context manager not available",
-                "data": {}
+                "data": {},
             }
 
         data = await get_context_data(context_id=context_id, keys=keys)
@@ -1293,35 +1322,30 @@ async def get_context_data_tool(
             "status": "success",
             "message": f"Retrieved data from context {context_id}",
             "data": data,
-            "context_id": context_id
+            "context_id": context_id,
         }
     except Exception as e:
         return {
             "status": "error",
             "message": f"Failed to get context data: {e}",
-            "data": {}
+            "data": {},
         }
 
 
 @server.tool(
     name="update_context_data",
     description="Updates data in a specific context. "
-    "Allows modification of stored variables, state, and configuration data."
+    "Allows modification of stored variables, state, and configuration data.",
 )
 @mcp_audit_tool("update_context_data")
 async def update_context_data_tool(
-    context_id: str,
-    data: dict[str, Any],
-    merge: bool = True
+    context_id: str, data: dict[str, Any], merge: bool = True
 ) -> dict[str, Any]:
     """Update data in a context."""
     try:
         context_manager = get_context_manager()
         if not context_manager:
-            return {
-                "status": "error",
-                "message": "Context manager not available"
-            }
+            return {"status": "error", "message": "Context manager not available"}
 
         await update_context_data(context_id=context_id, data=data, merge=merge)
 
@@ -1329,25 +1353,20 @@ async def update_context_data_tool(
             "status": "success",
             "message": f"Updated data in context {context_id}",
             "context_id": context_id,
-            "updated_keys": list(data.keys())
+            "updated_keys": list(data.keys()),
         }
     except Exception as e:
-        return {
-            "status": "error",
-            "message": f"Failed to update context data: {e}"
-        }
+        return {"status": "error", "message": f"Failed to update context data: {e}"}
 
 
 @server.tool(
     name="create_context_snapshot",
     description="Creates a snapshot of a context for rollback capabilities. "
-    "Enables saving context state at specific points for later restoration."
+    "Enables saving context state at specific points for later restoration.",
 )
 @mcp_audit_tool("create_context_snapshot")
 async def create_context_snapshot_tool(
-    context_id: str,
-    snapshot_name: str,
-    description: str | None = None
+    context_id: str, snapshot_name: str, description: str | None = None
 ) -> dict[str, Any]:
     """Create a context snapshot."""
     try:
@@ -1356,47 +1375,41 @@ async def create_context_snapshot_tool(
             return {
                 "status": "error",
                 "message": "Context manager not available",
-                "snapshot_id": None
+                "snapshot_id": None,
             }
 
         snapshot_id = await create_context_snapshot(
-            context_id=context_id,
-            snapshot_name=snapshot_name,
-            description=description
+            context_id=context_id, snapshot_name=snapshot_name, description=description
         )
 
         return {
             "status": "success",
             "message": f"Snapshot '{snapshot_name}' created for context {context_id}",
             "snapshot_id": snapshot_id,
-            "context_id": context_id
+            "context_id": context_id,
         }
     except Exception as e:
         return {
             "status": "error",
             "message": f"Failed to create context snapshot: {e}",
-            "snapshot_id": None
+            "snapshot_id": None,
         }
 
 
 @server.tool(
     name="restore_context_snapshot",
     description="Restores a context from a previously created snapshot. "
-    "Enables rollback to previous context states for testing and recovery."
+    "Enables rollback to previous context states for testing and recovery.",
 )
 @mcp_audit_tool("restore_context_snapshot")
 async def restore_context_snapshot_tool(
-    context_id: str,
-    snapshot_id: str
+    context_id: str, snapshot_id: str
 ) -> dict[str, Any]:
     """Restore a context from a snapshot."""
     try:
         context_manager = get_context_manager()
         if not context_manager:
-            return {
-                "status": "error",
-                "message": "Context manager not available"
-            }
+            return {"status": "error", "message": "Context manager not available"}
 
         await restore_context_snapshot(context_id=context_id, snapshot_id=snapshot_id)
 
@@ -1404,24 +1417,23 @@ async def restore_context_snapshot_tool(
             "status": "success",
             "message": f"Context {context_id} restored from snapshot {snapshot_id}",
             "context_id": context_id,
-            "snapshot_id": snapshot_id
+            "snapshot_id": snapshot_id,
         }
     except Exception as e:
         return {
             "status": "error",
-            "message": f"Failed to restore context snapshot: {e}"
+            "message": f"Failed to restore context snapshot: {e}",
         }
 
 
 @server.tool(
     name="list_contexts_by_type",
     description="Lists all contexts of a specific type. "
-    "Enables discovery and management of contexts across the testing environment."
+    "Enables discovery and management of contexts across the testing environment.",
 )
 @mcp_audit_tool("list_contexts_by_type")
 async def list_contexts_by_type_tool(
-    context_type: str | None = None,
-    status: str | None = None
+    context_type: str | None = None, status: str | None = None
 ) -> dict[str, Any]:
     """List contexts by type and status."""
     try:
@@ -1430,7 +1442,7 @@ async def list_contexts_by_type_tool(
             return {
                 "status": "error",
                 "message": "Context manager not available",
-                "contexts": []
+                "contexts": [],
             }
 
         # Convert string to ContextType enum if provided
@@ -1442,7 +1454,7 @@ async def list_contexts_by_type_tool(
                 return {
                     "status": "error",
                     "message": f"Invalid context type: {context_type}",
-                    "contexts": []
+                    "contexts": [],
                 }
 
         # Convert string to ContextStatus enum if provided
@@ -1454,12 +1466,11 @@ async def list_contexts_by_type_tool(
                 return {
                     "status": "error",
                     "message": f"Invalid status: {status}",
-                    "contexts": []
+                    "contexts": [],
                 }
 
         contexts = await list_contexts_by_type(
-            context_type=context_type_enum,
-            status=status_enum
+            context_type=context_type_enum, status=status_enum
         )
 
         return {
@@ -1467,25 +1478,23 @@ async def list_contexts_by_type_tool(
             "message": f"Found {len(contexts)} contexts",
             "contexts": contexts,
             "filter_type": context_type,
-            "filter_status": status
+            "filter_status": status,
         }
     except Exception as e:
         return {
             "status": "error",
             "message": f"Failed to list contexts: {e}",
-            "contexts": []
+            "contexts": [],
         }
 
 
 @server.tool(
     name="get_global_context_data",
     description="Retrieves data from the global context. "
-    "Enables access to shared data across all testing sessions and workflows."
+    "Enables access to shared data across all testing sessions and workflows.",
 )
 @mcp_audit_tool("get_global_context_data")
-async def get_global_context_data_tool(
-    keys: list[str] | None = None
-) -> dict[str, Any]:
+async def get_global_context_data_tool(keys: list[str] | None = None) -> dict[str, Any]:
     """Get data from the global context."""
     try:
         context_manager = get_context_manager()
@@ -1493,7 +1502,7 @@ async def get_global_context_data_tool(
             return {
                 "status": "error",
                 "message": "Context manager not available",
-                "data": {}
+                "data": {},
             }
 
         data = await get_global_context_data(keys=keys)
@@ -1501,60 +1510,57 @@ async def get_global_context_data_tool(
         return {
             "status": "success",
             "message": "Retrieved global context data",
-            "data": data
+            "data": data,
         }
     except Exception as e:
         return {
             "status": "error",
             "message": f"Failed to get global context data: {e}",
-            "data": {}
+            "data": {},
         }
 
 
 @server.tool(
     name="update_global_context_data",
     description="Updates data in the global context. "
-    "Enables modification of shared data accessible across all testing sessions and workflows."
+    "Enables modification of shared data accessible across all testing sessions and workflows.",
 )
 @mcp_audit_tool("update_global_context_data")
 async def update_global_context_data_tool(
-    data: dict[str, Any],
-    merge: bool = True
+    data: dict[str, Any], merge: bool = True
 ) -> dict[str, Any]:
     """Update data in the global context."""
     try:
         context_manager = get_context_manager()
         if not context_manager:
-            return {
-                "status": "error",
-                "message": "Context manager not available"
-            }
+            return {"status": "error", "message": "Context manager not available"}
 
         await update_global_context_data(data=data, merge=merge)
 
         return {
             "status": "success",
             "message": "Updated global context data",
-            "updated_keys": list(data.keys())
+            "updated_keys": list(data.keys()),
         }
     except Exception as e:
         return {
             "status": "error",
-            "message": f"Failed to update global context data: {e}"
+            "message": f"Failed to update global context data: {e}",
         }
 
 
 # Register MCP Prompts for AI-driven scenario generation
 
+
 @server.prompt(
     name="analyze_openapi_for_testing",
     description="Analyze an OpenAPI specification to identify testable scenarios and risk areas. "
-    "Generates comprehensive testing recommendations based on API structure and security configuration."
+    "Generates comprehensive testing recommendations based on API structure and security configuration.",
 )
 async def analyze_openapi_for_testing_prompt(
     openapi_spec: dict,
     testing_focus: str = "comprehensive",
-    risk_assessment: bool = True
+    risk_assessment: bool = True,
 ) -> dict:
     """
     MCP Prompt to analyze OpenAPI specifications for testing scenarios.
@@ -1567,19 +1573,21 @@ async def analyze_openapi_for_testing_prompt(
     Returns:
         Structured analysis with testable scenarios and risk areas
     """
-    return await analyze_openapi_for_testing(openapi_spec, testing_focus, risk_assessment)
+    return await analyze_openapi_for_testing(
+        openapi_spec, testing_focus, risk_assessment
+    )
 
 
 @server.prompt(
     name="generate_scenario_config",
     description="Generate a specific scenario configuration for MockLoop testing. "
-    "Creates detailed scenario configurations that can be directly used with MockLoop servers."
+    "Creates detailed scenario configurations that can be directly used with MockLoop servers.",
 )
 async def generate_scenario_config_prompt(
     scenario_type: str,
     endpoints: list,
     test_parameters: dict | None = None,
-    scenario_name: str | None = None
+    scenario_name: str | None = None,
 ) -> dict:
     """
     MCP Prompt to generate scenario configurations for MockLoop testing.
@@ -1593,18 +1601,18 @@ async def generate_scenario_config_prompt(
     Returns:
         Complete scenario configuration ready for MockLoop
     """
-    return await generate_scenario_config(scenario_type, endpoints, test_parameters, scenario_name)
+    return await generate_scenario_config(
+        scenario_type, endpoints, test_parameters, scenario_name
+    )
 
 
 @server.prompt(
     name="optimize_scenario_for_load",
     description="Optimize a scenario configuration for load testing performance. "
-    "Takes a base scenario and optimizes it for high-load testing by adjusting response times and concurrency settings."
+    "Takes a base scenario and optimizes it for high-load testing by adjusting response times and concurrency settings.",
 )
 async def optimize_scenario_for_load_prompt(
-    base_scenario: dict,
-    target_load: int,
-    performance_requirements: dict | None = None
+    base_scenario: dict, target_load: int, performance_requirements: dict | None = None
 ) -> dict:
     """
     MCP Prompt to optimize scenarios for load testing.
@@ -1617,18 +1625,18 @@ async def optimize_scenario_for_load_prompt(
     Returns:
         Optimized scenario configuration for load testing
     """
-    return await optimize_scenario_for_load(base_scenario, target_load, performance_requirements)
+    return await optimize_scenario_for_load(
+        base_scenario, target_load, performance_requirements
+    )
 
 
 @server.prompt(
     name="generate_error_scenarios",
     description="Generate error simulation scenarios for testing error handling. "
-    "Creates scenarios that simulate various error conditions to test API resilience."
+    "Creates scenarios that simulate various error conditions to test API resilience.",
 )
 async def generate_error_scenarios_prompt(
-    api_endpoints: list,
-    error_types: list | None = None,
-    severity_level: str = "medium"
+    api_endpoints: list, error_types: list | None = None, severity_level: str = "medium"
 ) -> dict:
     """
     MCP Prompt to generate error simulation scenarios.
@@ -1647,12 +1655,12 @@ async def generate_error_scenarios_prompt(
 @server.prompt(
     name="generate_security_test_scenarios",
     description="Generate security testing scenarios for API vulnerability assessment. "
-    "Creates scenarios that test for common security vulnerabilities and compliance with security standards."
+    "Creates scenarios that test for common security vulnerabilities and compliance with security standards.",
 )
 async def generate_security_test_scenarios_prompt(
     api_spec: dict,
     security_focus: list | None = None,
-    compliance_requirements: list | None = None
+    compliance_requirements: list | None = None,
 ) -> dict:
     """
     MCP Prompt to generate security testing scenarios.
@@ -1665,10 +1673,13 @@ async def generate_security_test_scenarios_prompt(
     Returns:
         Security testing scenario configuration
     """
-    return await generate_security_test_scenarios(api_spec, security_focus, compliance_requirements)
+    return await generate_security_test_scenarios(
+        api_spec, security_focus, compliance_requirements
+    )
 
 
 # Register MCP Resources for scenario packs
+
 
 # Error Simulation Scenario Packs
 @server.resource("scenario-pack://error-simulation/4xx-client-errors")
@@ -1676,20 +1687,24 @@ async def resource_4xx_client_errors():
     """4xx Client Error Simulation Scenario Pack"""
     return await get_4xx_client_errors_pack()
 
+
 @server.resource("scenario-pack://error-simulation/5xx-server-errors")
 async def resource_5xx_server_errors():
     """5xx Server Error Simulation Scenario Pack"""
     return await get_5xx_server_errors_pack()
+
 
 @server.resource("scenario-pack://error-simulation/network-timeouts")
 async def resource_network_timeouts():
     """Network Timeout Simulation Scenario Pack"""
     return await get_network_timeouts_pack()
 
+
 @server.resource("scenario-pack://error-simulation/rate-limiting")
 async def resource_rate_limiting():
     """Rate Limiting Simulation Scenario Pack"""
     return await get_rate_limiting_pack()
+
 
 # Performance Testing Scenario Packs
 @server.resource("scenario-pack://performance-testing/load-testing")
@@ -1697,20 +1712,24 @@ async def resource_load_testing():
     """Load Testing Scenario Pack"""
     return await get_load_testing_pack()
 
+
 @server.resource("scenario-pack://performance-testing/stress-testing")
 async def resource_stress_testing():
     """Stress Testing Scenario Pack"""
     return await get_stress_testing_pack()
+
 
 @server.resource("scenario-pack://performance-testing/spike-testing")
 async def resource_spike_testing():
     """Spike Testing Scenario Pack"""
     return await get_spike_testing_pack()
 
+
 @server.resource("scenario-pack://performance-testing/endurance-testing")
 async def resource_endurance_testing():
     """Endurance Testing Scenario Pack"""
     return await get_endurance_testing_pack()
+
 
 # Security Testing Scenario Packs
 @server.resource("scenario-pack://security-testing/auth-bypass")
@@ -1718,20 +1737,24 @@ async def resource_auth_bypass():
     """Authentication Bypass Testing Scenario Pack"""
     return await get_auth_bypass_pack()
 
+
 @server.resource("scenario-pack://security-testing/injection-attacks")
 async def resource_injection_attacks():
     """Injection Attack Testing Scenario Pack"""
     return await get_injection_attacks_pack()
+
 
 @server.resource("scenario-pack://security-testing/xss-attacks")
 async def resource_xss_attacks():
     """XSS Attack Testing Scenario Pack"""
     return await get_xss_attacks_pack()
 
+
 @server.resource("scenario-pack://security-testing/csrf-attacks")
 async def resource_csrf_attacks():
     """CSRF Attack Testing Scenario Pack"""
     return await get_csrf_attacks_pack()
+
 
 # Business Logic Testing Scenario Packs
 @server.resource("scenario-pack://business-logic/edge-cases")
@@ -1739,21 +1762,25 @@ async def resource_edge_cases():
     """Edge Case Testing Scenario Pack"""
     return await get_edge_cases_pack()
 
+
 @server.resource("scenario-pack://business-logic/data-validation")
 async def resource_data_validation():
     """Data Validation Testing Scenario Pack"""
     return await get_data_validation_pack()
+
 
 @server.resource("scenario-pack://business-logic/workflow-testing")
 async def resource_workflow_testing():
     """Workflow Testing Scenario Pack"""
     return await get_workflow_testing_pack()
 
+
 # Resource Discovery Endpoints
 @server.resource("scenario-pack://discovery/list-all")
 async def resource_list_all_packs():
     """List all available scenario packs"""
     return await list_scenario_packs()
+
 
 @server.resource("scenario-pack://discovery/community-info")
 async def resource_community_info():
@@ -1814,7 +1841,7 @@ def main():
     # Auto-detect stdio mode when run by Claude or other MCP clients
     # This happens when stdin is not a terminal (piped) and no explicit flags are given
     is_stdin_piped = not sys.stdin.isatty()
-    has_explicit_flags = any(arg.startswith('-') for arg in sys.argv[1:])
+    has_explicit_flags = any(arg.startswith("-") for arg in sys.argv[1:])
 
     # Check for explicit --stdio flag or auto-detect stdio mode
     if "--stdio" in sys.argv or (is_stdin_piped and not has_explicit_flags):
@@ -1849,10 +1876,10 @@ def main():
                             "admin_ui_enabled": {"type": "boolean", "default": True},
                             "storage_enabled": {"type": "boolean", "default": True},
                             "business_port": {"type": "integer", "default": 8000},
-                            "admin_port": {"type": "integer"}
+                            "admin_port": {"type": "integer"},
                         },
-                        "required": ["spec_url_or_path"]
-                    }
+                        "required": ["spec_url_or_path"],
+                    },
                 )
             ]
 
@@ -1865,7 +1892,11 @@ def main():
 
         async def stdio_main():
             async with stdio_server() as (read_stream, write_stream):
-                await mcp_server.run(read_stream, write_stream, mcp_server.create_initialization_options())
+                await mcp_server.run(
+                    read_stream,
+                    write_stream,
+                    mcp_server.create_initialization_options(),
+                )
 
         asyncio.run(stdio_main())
     elif "--cli" in sys.argv:

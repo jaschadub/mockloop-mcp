@@ -50,7 +50,7 @@ COMMUNITY_REPO_CONFIG = {
     "max_cache_size_mb": 100,
     "enable_auto_updates": True,
     "security_scanning_enabled": True,
-    "community_features_enabled": False  # Will be enabled in Phase 2
+    "community_features_enabled": False,  # Will be enabled in Phase 2
 }
 
 # Community scenario categories (placeholder structure)
@@ -60,27 +60,27 @@ COMMUNITY_CATEGORIES = {
         "healthcare": "Healthcare and medical API testing scenarios",
         "ecommerce": "E-commerce and retail testing scenarios",
         "gaming": "Gaming and entertainment API testing scenarios",
-        "iot": "Internet of Things device testing scenarios"
+        "iot": "Internet of Things device testing scenarios",
     },
     "technology": {
         "graphql": "GraphQL API testing scenarios",
         "grpc": "gRPC service testing scenarios",
         "websockets": "WebSocket connection testing scenarios",
         "microservices": "Microservices architecture testing scenarios",
-        "serverless": "Serverless function testing scenarios"
+        "serverless": "Serverless function testing scenarios",
     },
     "compliance": {
         "gdpr": "GDPR compliance testing scenarios",
         "hipaa": "HIPAA compliance testing scenarios",
         "pci-dss": "PCI DSS compliance testing scenarios",
-        "sox": "Sarbanes-Oxley compliance testing scenarios"
+        "sox": "Sarbanes-Oxley compliance testing scenarios",
     },
     "advanced": {
         "chaos-engineering": "Chaos engineering testing scenarios",
         "contract-testing": "API contract testing scenarios",
         "mutation-testing": "Mutation testing scenarios",
-        "property-testing": "Property-based testing scenarios"
-    }
+        "property-testing": "Property-based testing scenarios",
+    },
 }
 
 
@@ -103,12 +103,14 @@ class CommunityScenarioManager:
             self.audit_logger = create_audit_logger(
                 db_path="mcp_audit.db",
                 session_id="community_scenarios",
-                user_id="mcp_system"
+                user_id="mcp_system",
             )
         except Exception as e:
             logger.warning(f"Failed to initialize audit logger: {e}")
 
-    def _log_community_access(self, operation: str, details: dict[str, Any] | None = None):
+    def _log_community_access(
+        self, operation: str, details: dict[str, Any] | None = None
+    ):
         """Log community scenario access for audit purposes."""
         if self.audit_logger:
             try:
@@ -119,7 +121,7 @@ class CommunityScenarioManager:
                     data_sources=["community_repository"],
                     compliance_tags=["community_scenarios", "placeholder"],
                     processing_purpose="community_scenario_access",
-                    legal_basis="legitimate_interests"
+                    legal_basis="legitimate_interests",
                 )
             except Exception as e:
                 logger.warning(f"Failed to log community access: {e}")
@@ -127,12 +129,13 @@ class CommunityScenarioManager:
 
 # Placeholder functions for future community integration
 
+
 async def list_community_scenarios(
     category: str | None = None,
     technology: str | None = None,
     tags: list[str] | None = None,
     min_rating: float | None = None,
-    max_age_days: int | None = None
+    max_age_days: int | None = None,
 ) -> dict[str, Any]:
     """
     List available community scenarios with filtering.
@@ -155,13 +158,16 @@ async def list_community_scenarios(
         Filtered list of community scenarios with metadata
     """
     manager = CommunityScenarioManager()
-    manager._log_community_access("list_scenarios", {
-        "category": category,
-        "technology": technology,
-        "tags": tags,
-        "min_rating": min_rating,
-        "max_age_days": max_age_days
-    })
+    manager._log_community_access(
+        "list_scenarios",
+        {
+            "category": category,
+            "technology": technology,
+            "tags": tags,
+            "min_rating": min_rating,
+            "max_age_days": max_age_days,
+        },
+    )
 
     # Placeholder response
     return {
@@ -177,9 +183,9 @@ async def list_community_scenarios(
             "Automatic scenario updates",
             "Security scanning and validation",
             "Local caching with integrity verification",
-            "Contribution workflow for community members"
+            "Contribution workflow for community members",
         ],
-        "placeholder_note": "This function will be implemented in Phase 2 of the AI-native testing features"
+        "placeholder_note": "This function will be implemented in Phase 2 of the AI-native testing features",
     }
 
 
@@ -187,7 +193,7 @@ async def get_community_scenario(
     scenario_id: str,
     version: str | None = None,
     include_metadata: bool = True,
-    validate_integrity: bool = True
+    validate_integrity: bool = True,
 ) -> dict[str, Any]:
     """
     Get a specific community scenario by ID.
@@ -209,12 +215,15 @@ async def get_community_scenario(
         Complete scenario configuration or error information
     """
     manager = CommunityScenarioManager()
-    manager._log_community_access("get_scenario", {
-        "scenario_id": scenario_id,
-        "version": version,
-        "include_metadata": include_metadata,
-        "validate_integrity": validate_integrity
-    })
+    manager._log_community_access(
+        "get_scenario",
+        {
+            "scenario_id": scenario_id,
+            "version": version,
+            "include_metadata": include_metadata,
+            "validate_integrity": validate_integrity,
+        },
+    )
 
     # Placeholder response
     return {
@@ -228,16 +237,16 @@ async def get_community_scenario(
             "Community ratings and feedback",
             "Version history and rollback",
             "Security scanning results",
-            "Usage analytics and recommendations"
+            "Usage analytics and recommendations",
         ],
-        "placeholder_note": "This function will be implemented in Phase 2 of the AI-native testing features"
+        "placeholder_note": "This function will be implemented in Phase 2 of the AI-native testing features",
     }
 
 
 async def refresh_community_cache(
     force_refresh: bool = False,
     categories: list[str] | None = None,
-    max_age_hours: int | None = None
+    max_age_hours: int | None = None,
 ) -> dict[str, Any]:
     """
     Refresh the local cache of community scenarios.
@@ -258,11 +267,14 @@ async def refresh_community_cache(
         Cache refresh results and statistics
     """
     manager = CommunityScenarioManager()
-    manager._log_community_access("refresh_cache", {
-        "force_refresh": force_refresh,
-        "categories": categories,
-        "max_age_hours": max_age_hours
-    })
+    manager._log_community_access(
+        "refresh_cache",
+        {
+            "force_refresh": force_refresh,
+            "categories": categories,
+            "max_age_hours": max_age_hours,
+        },
+    )
 
     # Placeholder response
     return {
@@ -280,9 +292,9 @@ async def refresh_community_cache(
             "Background refresh scheduling",
             "Integrity verification for all scenarios",
             "Bandwidth-efficient incremental updates",
-            "Cache analytics and optimization"
+            "Cache analytics and optimization",
         ],
-        "placeholder_note": "This function will be implemented in Phase 2 of the AI-native testing features"
+        "placeholder_note": "This function will be implemented in Phase 2 of the AI-native testing features",
     }
 
 
@@ -292,7 +304,7 @@ async def search_community_scenarios(
     filters: dict[str, Any] | None = None,
     sort_by: str = "relevance",
     limit: int = 20,
-    offset: int = 0
+    offset: int = 0,
 ) -> dict[str, Any]:
     """
     Search community scenarios with advanced filtering and ranking.
@@ -316,14 +328,17 @@ async def search_community_scenarios(
         Search results with ranking and metadata
     """
     manager = CommunityScenarioManager()
-    manager._log_community_access("search_scenarios", {
-        "query": query,
-        "search_fields": search_fields,
-        "filters": filters,
-        "sort_by": sort_by,
-        "limit": limit,
-        "offset": offset
-    })
+    manager._log_community_access(
+        "search_scenarios",
+        {
+            "query": query,
+            "search_fields": search_fields,
+            "filters": filters,
+            "sort_by": sort_by,
+            "limit": limit,
+            "offset": offset,
+        },
+    )
 
     # Placeholder response
     return {
@@ -341,9 +356,9 @@ async def search_community_scenarios(
             "Search suggestions and auto-completion",
             "Personalized recommendations",
             "Search analytics and insights",
-            "Semantic search capabilities"
+            "Semantic search capabilities",
         ],
-        "placeholder_note": "This function will be implemented in Phase 2 of the AI-native testing features"
+        "placeholder_note": "This function will be implemented in Phase 2 of the AI-native testing features",
     }
 
 
@@ -351,7 +366,7 @@ async def validate_community_scenario(
     scenario_data: dict[str, Any],
     security_scan: bool = True,
     schema_validation: bool = True,
-    content_analysis: bool = True
+    content_analysis: bool = True,
 ) -> dict[str, Any]:
     """
     Validate a community scenario for security and compliance.
@@ -373,12 +388,15 @@ async def validate_community_scenario(
         Validation results with security and quality metrics
     """
     manager = CommunityScenarioManager()
-    manager._log_community_access("validate_scenario", {
-        "security_scan": security_scan,
-        "schema_validation": schema_validation,
-        "content_analysis": content_analysis,
-        "scenario_size": len(json.dumps(scenario_data))
-    })
+    manager._log_community_access(
+        "validate_scenario",
+        {
+            "security_scan": security_scan,
+            "schema_validation": schema_validation,
+            "content_analysis": content_analysis,
+            "scenario_size": len(json.dumps(scenario_data)),
+        },
+    )
 
     # Placeholder response
     return {
@@ -397,9 +415,9 @@ async def validate_community_scenario(
             "Content quality analysis and scoring",
             "Compliance checking for community guidelines",
             "Automated security patch suggestions",
-            "Integration with security databases"
+            "Integration with security databases",
         ],
-        "placeholder_note": "This function will be implemented in Phase 2 of the AI-native testing features"
+        "placeholder_note": "This function will be implemented in Phase 2 of the AI-native testing features",
     }
 
 
@@ -434,7 +452,7 @@ async def get_community_stats() -> dict[str, Any]:
         "quality_metrics": {
             "average_security_score": 0.0,
             "average_quality_score": 0.0,
-            "scenarios_with_issues": 0
+            "scenarios_with_issues": 0,
         },
         "phase_2_features": [
             "Real-time community statistics",
@@ -442,9 +460,9 @@ async def get_community_stats() -> dict[str, Any]:
             "Contributor leaderboards and recognition",
             "Quality and security metrics dashboard",
             "Community health insights",
-            "Usage analytics and recommendations"
+            "Usage analytics and recommendations",
         ],
-        "placeholder_note": "This function will be implemented in Phase 2 of the AI-native testing features"
+        "placeholder_note": "This function will be implemented in Phase 2 of the AI-native testing features",
     }
 
 
@@ -459,7 +477,6 @@ COMMUNITY_ARCHITECTURE_DOCS = {
     This extends the built-in scenario packs with specialized scenarios for
     specific industries, technologies, and testing patterns.
     """,
-
     "components": {
         "github_integration": {
             "description": "Integration with mockloop-scenarios GitHub repository",
@@ -467,89 +484,80 @@ COMMUNITY_ARCHITECTURE_DOCS = {
                 "Automatic scenario discovery and indexing",
                 "Version control and change tracking",
                 "Pull request workflow for contributions",
-                "Automated testing and validation pipeline"
-            ]
+                "Automated testing and validation pipeline",
+            ],
         },
-
         "local_cache": {
             "description": "Local caching system for performance and offline access",
             "features": [
                 "Intelligent caching with TTL management",
                 "Integrity verification with checksums",
                 "Bandwidth-efficient incremental updates",
-                "Offline mode with cached scenarios"
-            ]
+                "Offline mode with cached scenarios",
+            ],
         },
-
         "security_system": {
             "description": "Comprehensive security scanning and validation",
             "features": [
                 "Static analysis for malicious patterns",
                 "Schema validation against MockLoop standards",
                 "Community reporting and moderation",
-                "Automated security patch suggestions"
-            ]
+                "Automated security patch suggestions",
+            ],
         },
-
         "community_features": {
             "description": "Community engagement and collaboration features",
             "features": [
                 "Rating and review system",
                 "Usage analytics and recommendations",
                 "Contributor recognition and leaderboards",
-                "Discussion and feedback mechanisms"
-            ]
-        }
+                "Discussion and feedback mechanisms",
+            ],
+        },
     },
-
     "data_flow": [
         "1. Community contributors submit scenarios via GitHub",
         "2. Automated validation and security scanning",
         "3. Approved scenarios indexed in community registry",
         "4. Local cache updated with new/modified scenarios",
         "5. Users discover and download scenarios via MCP resources",
-        "6. Usage analytics fed back to community insights"
+        "6. Usage analytics fed back to community insights",
     ],
-
     "security_model": {
         "validation_pipeline": [
             "Schema validation against MockLoop standards",
             "Static analysis for security vulnerabilities",
             "Content analysis for malicious patterns",
             "Community review and moderation",
-            "Automated testing in sandboxed environment"
+            "Automated testing in sandboxed environment",
         ],
-
         "integrity_verification": [
             "Cryptographic checksums for all scenarios",
             "Digital signatures for trusted contributors",
             "Tamper detection and automatic re-validation",
-            "Audit logging for all access and modifications"
-        ]
+            "Audit logging for all access and modifications",
+        ],
     },
-
     "implementation_phases": {
         "phase_2a": [
             "Basic GitHub repository integration",
             "Local caching with integrity verification",
             "Schema validation and security scanning",
-            "Simple discovery and download functionality"
+            "Simple discovery and download functionality",
         ],
-
         "phase_2b": [
             "Advanced search and filtering capabilities",
             "Community rating and review system",
             "Usage analytics and recommendations",
-            "Contributor recognition and leaderboards"
+            "Contributor recognition and leaderboards",
         ],
-
         "phase_2c": [
             "Advanced security features and monitoring",
             "Automated quality assessment and scoring",
             "Community moderation and governance tools",
-            "Integration with external security databases"
-        ]
-    }
+            "Integration with external security databases",
+        ],
+    },
 }
 
 
@@ -566,13 +574,13 @@ def get_community_architecture_info() -> dict[str, Any]:
         "implementation_timeline": {
             "phase_2a": "Q2 2024 - Basic community integration",
             "phase_2b": "Q3 2024 - Advanced community features",
-            "phase_2c": "Q4 2024 - Security and governance enhancements"
+            "phase_2c": "Q4 2024 - Security and governance enhancements",
         },
         "technical_requirements": {
             "github_api_access": "Required for repository integration",
             "local_storage": "For caching and offline access",
             "security_scanning": "Static analysis and vulnerability detection",
-            "community_database": "For ratings, reviews, and analytics"
+            "community_database": "For ratings, reviews, and analytics",
         },
-        "placeholder_note": "This architecture will be implemented in Phase 2 of the AI-native testing features"
+        "placeholder_note": "This architecture will be implemented in Phase 2 of the AI-native testing features",
     }

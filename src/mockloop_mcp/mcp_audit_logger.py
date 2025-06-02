@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 class MCPOperationType(Enum):
     """Enumeration of MCP operation types for audit logging."""
+
     TOOL_EXECUTION = "tool_execution"
     RESOURCE_ACCESS = "resource_access"
     CONTEXT_OPERATION = "context_operation"
@@ -43,7 +44,7 @@ class MCPAuditLogger:
         user_id: str | None = None,
         enable_performance_tracking: bool = True,
         enable_content_hashing: bool = True,
-        auto_log_session: bool = False
+        auto_log_session: bool = False,
     ):
         """
         Initialize the MCP audit logger.
@@ -142,16 +143,26 @@ class MCPAuditLogger:
                 self._handle_schema_migrations(cursor)
 
                 # Create indexes for better performance
-                cursor.execute("CREATE INDEX IF NOT EXISTS idx_mcp_audit_logs_session ON mcp_audit_logs(session_id)")
-                cursor.execute("CREATE INDEX IF NOT EXISTS idx_mcp_audit_logs_operation ON mcp_audit_logs(operation_type)")
-                cursor.execute("CREATE INDEX IF NOT EXISTS idx_mcp_audit_logs_timestamp ON mcp_audit_logs(timestamp)")
-                cursor.execute("CREATE INDEX IF NOT EXISTS idx_mcp_data_lineage_entry ON mcp_data_lineage(entry_id)")
+                cursor.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_mcp_audit_logs_session ON mcp_audit_logs(session_id)"
+                )
+                cursor.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_mcp_audit_logs_operation ON mcp_audit_logs(operation_type)"
+                )
+                cursor.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_mcp_audit_logs_timestamp ON mcp_audit_logs(timestamp)"
+                )
+                cursor.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_mcp_data_lineage_entry ON mcp_data_lineage(entry_id)"
+                )
 
                 # Check if session_id column exists in mcp_compliance_events before creating index
                 cursor.execute("PRAGMA table_info(mcp_compliance_events)")
                 compliance_columns = [column[1] for column in cursor.fetchall()]
-                if 'session_id' in compliance_columns:
-                    cursor.execute("CREATE INDEX IF NOT EXISTS idx_mcp_compliance_events_session ON mcp_compliance_events(session_id)")
+                if "session_id" in compliance_columns:
+                    cursor.execute(
+                        "CREATE INDEX IF NOT EXISTS idx_mcp_compliance_events_session ON mcp_compliance_events(session_id)"
+                    )
 
                 conn.commit()
 
@@ -167,13 +178,17 @@ class MCPAuditLogger:
             lineage_columns = [column[1] for column in cursor.fetchall()]
 
             # If source_uri column doesn't exist, recreate the table
-            if 'source_uri' not in lineage_columns:
+            if "source_uri" not in lineage_columns:
                 logger.info("Migrating mcp_data_lineage table schema")
 
                 # Backup existing data if any
-                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='mcp_data_lineage'")
+                cursor.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name='mcp_data_lineage'"
+                )
                 if cursor.fetchone():
-                    cursor.execute("ALTER TABLE mcp_data_lineage RENAME TO mcp_data_lineage_backup")
+                    cursor.execute(
+                        "ALTER TABLE mcp_data_lineage RENAME TO mcp_data_lineage_backup"
+                    )
 
                 # Create new table with correct schema
                 cursor.execute("""
@@ -196,21 +211,36 @@ class MCPAuditLogger:
 
                 # Try to migrate data from backup if it exists and has compatible columns
                 try:
-                    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='mcp_data_lineage_backup'")
+                    cursor.execute(
+                        "SELECT name FROM sqlite_master WHERE type='table' AND name='mcp_data_lineage_backup'"
+                    )
                     if cursor.fetchone():
                         cursor.execute("PRAGMA table_info(mcp_data_lineage_backup)")
                         backup_columns = [column[1] for column in cursor.fetchall()]
 
                         # Find common columns for migration
                         common_columns = set(backup_columns) & set(lineage_columns)
-                        if common_columns and 'entry_id' in common_columns:
+                        if common_columns and "entry_id" in common_columns:
                             # Validate column names to prevent SQL injection
-                            valid_columns = {'id', 'entry_id', 'source_uri', 'source_type', 'source_identifier',
-                                           'source_metadata', 'transformation_applied', 'destination_uri',
-                                           'transformation_type', 'data_flow_direction', 'timestamp', 'created_at'}
-                            safe_columns = [col for col in common_columns if col in valid_columns]
+                            valid_columns = {
+                                "id",
+                                "entry_id",
+                                "source_uri",
+                                "source_type",
+                                "source_identifier",
+                                "source_metadata",
+                                "transformation_applied",
+                                "destination_uri",
+                                "transformation_type",
+                                "data_flow_direction",
+                                "timestamp",
+                                "created_at",
+                            }
+                            safe_columns = [
+                                col for col in common_columns if col in valid_columns
+                            ]
                             if safe_columns:
-                                columns_str = ', '.join(safe_columns)
+                                columns_str = ", ".join(safe_columns)
                                 # Safe SQL construction with validated column names from database schema
                                 sql_query = f"""
                                     INSERT INTO mcp_data_lineage ({columns_str})
@@ -234,9 +264,12 @@ class MCPAuditLogger:
             # Create a session start entry in the audit logs
             self.log_tool_execution(
                 tool_name="session_start",
-                input_parameters={"session_id": self.session_id, "user_id": self.user_id},
+                input_parameters={
+                    "session_id": self.session_id,
+                    "user_id": self.user_id,
+                },
                 processing_purpose="session_management",
-                legal_basis="legitimate_interests"
+                legal_basis="legitimate_interests",
             )
         except Exception:
             logger.exception("Failed to log session start")
@@ -255,7 +288,7 @@ class MCPAuditLogger:
         gdpr_applicable: bool = False,
         ccpa_applicable: bool = False,
         data_subject_id: str | None = None,
-        retention_policy: str | None = None
+        retention_policy: str | None = None,
     ) -> str:
         """
         Log a tool execution event.
@@ -287,7 +320,7 @@ class MCPAuditLogger:
             content_data = {
                 "tool_name": tool_name,
                 "input_parameters": input_parameters,
-                "execution_result": execution_result
+                "execution_result": execution_result,
             }
             content_hash = hashlib.sha256(
                 json.dumps(content_data, sort_keys=True).encode()
@@ -298,7 +331,8 @@ class MCPAuditLogger:
                 cursor = conn.cursor()
 
                 # Insert audit log entry
-                cursor.execute("""
+                cursor.execute(
+                    """
                     INSERT INTO mcp_audit_logs (
                         entry_id, session_id, user_id, timestamp, operation_type,
                         operation_name, input_parameters, output_data, execution_time_ms,
@@ -306,47 +340,52 @@ class MCPAuditLogger:
                         legal_basis, content_hash, gdpr_applicable, ccpa_applicable,
                         data_subject_id, retention_policy
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    entry_id,
-                    self.session_id,
-                    user_id or self.user_id,
-                    timestamp,
-                    MCPOperationType.TOOL_EXECUTION.value,
-                    tool_name,
-                    json.dumps(input_parameters) if input_parameters else None,
-                    json.dumps(execution_result) if execution_result else None,
-                    execution_time_ms,
-                    json.dumps(data_sources) if data_sources else None,
-                    json.dumps(compliance_tags) if compliance_tags else None,
-                    processing_purpose,
-                    legal_basis,
-                    content_hash,
-                    gdpr_applicable,
-                    ccpa_applicable,
-                    data_subject_id,
-                    retention_policy
-                ))
+                """,
+                    (
+                        entry_id,
+                        self.session_id,
+                        user_id or self.user_id,
+                        timestamp,
+                        MCPOperationType.TOOL_EXECUTION.value,
+                        tool_name,
+                        json.dumps(input_parameters) if input_parameters else None,
+                        json.dumps(execution_result) if execution_result else None,
+                        execution_time_ms,
+                        json.dumps(data_sources) if data_sources else None,
+                        json.dumps(compliance_tags) if compliance_tags else None,
+                        processing_purpose,
+                        legal_basis,
+                        content_hash,
+                        gdpr_applicable,
+                        ccpa_applicable,
+                        data_subject_id,
+                        retention_policy,
+                    ),
+                )
 
                 # Log data lineage if data sources are provided
                 if data_sources:
                     for source in data_sources:
-                        cursor.execute("""
+                        cursor.execute(
+                            """
                             INSERT INTO mcp_data_lineage (
                                 entry_id, source_uri, source_type, source_identifier,
                                 source_metadata, transformation_applied, transformation_type,
                                 data_flow_direction, timestamp
                             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        """, (
-                            entry_id,
-                            source,
-                            "external_api",
-                            source,
-                            json.dumps({"tool_name": tool_name}),
-                            "tool_execution",
-                            "tool_execution",
-                            "input",
-                            timestamp
-                        ))
+                        """,
+                            (
+                                entry_id,
+                                source,
+                                "external_api",
+                                source,
+                                json.dumps({"tool_name": tool_name}),
+                                "tool_execution",
+                                "tool_execution",
+                                "input",
+                                timestamp,
+                            ),
+                        )
 
                 conn.commit()
 
@@ -371,7 +410,7 @@ class MCPAuditLogger:
         ccpa_applicable: bool = False,
         data_subject_id: str | None = None,
         retention_policy: str | None = None,
-        execution_time_ms: float | None = None
+        execution_time_ms: float | None = None,
     ) -> str:
         """
         Log a resource access event.
@@ -406,7 +445,8 @@ class MCPAuditLogger:
                 cursor = conn.cursor()
 
                 # Insert audit log entry
-                cursor.execute("""
+                cursor.execute(
+                    """
                     INSERT INTO mcp_audit_logs (
                         entry_id, session_id, user_id, timestamp, operation_type,
                         operation_name, input_parameters, output_data,
@@ -414,48 +454,57 @@ class MCPAuditLogger:
                         legal_basis, content_hash, gdpr_applicable, ccpa_applicable,
                         data_subject_id, retention_policy
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    entry_id,
-                    self.session_id,
-                    user_id or self.user_id,
-                    timestamp,
-                    MCPOperationType.RESOURCE_ACCESS.value,
-                    f"resource_access_{access_type}",
-                    json.dumps({
-                        "uri": resource_uri,
-                        "access_type": access_type,
-                        "execution_time_ms": execution_time_ms
-                    }),
-                    json.dumps({"metadata": metadata, "content_preview": content_preview}),
-                    json.dumps(data_sources) if data_sources else None,
-                    json.dumps(compliance_tags) if compliance_tags else None,
-                    processing_purpose,
-                    legal_basis,
-                    content_hash,
-                    gdpr_applicable,
-                    ccpa_applicable,
-                    data_subject_id,
-                    retention_policy
-                ))
+                """,
+                    (
+                        entry_id,
+                        self.session_id,
+                        user_id or self.user_id,
+                        timestamp,
+                        MCPOperationType.RESOURCE_ACCESS.value,
+                        f"resource_access_{access_type}",
+                        json.dumps(
+                            {
+                                "uri": resource_uri,
+                                "access_type": access_type,
+                                "execution_time_ms": execution_time_ms,
+                            }
+                        ),
+                        json.dumps(
+                            {"metadata": metadata, "content_preview": content_preview}
+                        ),
+                        json.dumps(data_sources) if data_sources else None,
+                        json.dumps(compliance_tags) if compliance_tags else None,
+                        processing_purpose,
+                        legal_basis,
+                        content_hash,
+                        gdpr_applicable,
+                        ccpa_applicable,
+                        data_subject_id,
+                        retention_policy,
+                    ),
+                )
 
                 # Log data lineage
-                cursor.execute("""
+                cursor.execute(
+                    """
                     INSERT INTO mcp_data_lineage (
                         entry_id, source_uri, source_type, source_identifier,
                         source_metadata, transformation_applied, transformation_type,
                         data_flow_direction, timestamp
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    entry_id,
-                    resource_uri,
-                    "resource",
-                    resource_uri,
-                    json.dumps(metadata) if metadata else None,
-                    "resource_access",
-                    "resource_access",
-                    access_type,
-                    timestamp
-                ))
+                """,
+                    (
+                        entry_id,
+                        resource_uri,
+                        "resource",
+                        resource_uri,
+                        json.dumps(metadata) if metadata else None,
+                        "resource_access",
+                        "resource_access",
+                        access_type,
+                        timestamp,
+                    ),
+                )
 
                 conn.commit()
 
@@ -474,7 +523,7 @@ class MCPAuditLogger:
         compliance_tags: list[str] | None = None,
         processing_purpose: str | None = None,
         legal_basis: str | None = None,
-        user_id: str | None = None
+        user_id: str | None = None,
     ) -> str:
         """
         Log a context operation event.
@@ -500,27 +549,32 @@ class MCPAuditLogger:
                 cursor = conn.cursor()
 
                 # Insert audit log entry
-                cursor.execute("""
+                cursor.execute(
+                    """
                     INSERT INTO mcp_audit_logs (
                         entry_id, session_id, user_id, timestamp, operation_type,
                         operation_name, input_parameters, context_state_before,
                         context_state_after, compliance_tags, processing_purpose,
                         legal_basis
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    entry_id,
-                    self.session_id,
-                    user_id or self.user_id,
-                    timestamp,
-                    MCPOperationType.CONTEXT_OPERATION.value,
-                    f"context_{operation_type}",
-                    json.dumps({"context_key": context_key, "operation": operation_type}),
-                    json.dumps(state_before) if state_before else None,
-                    json.dumps(state_after) if state_after else None,
-                    json.dumps(compliance_tags) if compliance_tags else None,
-                    processing_purpose,
-                    legal_basis
-                ))
+                """,
+                    (
+                        entry_id,
+                        self.session_id,
+                        user_id or self.user_id,
+                        timestamp,
+                        MCPOperationType.CONTEXT_OPERATION.value,
+                        f"context_{operation_type}",
+                        json.dumps(
+                            {"context_key": context_key, "operation": operation_type}
+                        ),
+                        json.dumps(state_before) if state_before else None,
+                        json.dumps(state_after) if state_after else None,
+                        json.dumps(compliance_tags) if compliance_tags else None,
+                        processing_purpose,
+                        legal_basis,
+                    ),
+                )
 
                 conn.commit()
 
@@ -545,7 +599,7 @@ class MCPAuditLogger:
         ccpa_applicable: bool = False,
         data_subject_id: str | None = None,
         retention_policy: str | None = None,
-        generated_output: Any = None
+        generated_output: Any = None,
     ) -> str:
         """
         Log a prompt invocation event.
@@ -573,7 +627,9 @@ class MCPAuditLogger:
         timestamp = datetime.now(timezone.utc).isoformat()
 
         # Use generated_output if provided, otherwise use execution_result
-        output_data = generated_output if generated_output is not None else execution_result
+        output_data = (
+            generated_output if generated_output is not None else execution_result
+        )
 
         # Generate content hash if enabled
         content_hash = None
@@ -581,7 +637,7 @@ class MCPAuditLogger:
             content_data = {
                 "prompt_name": prompt_name,
                 "input_parameters": input_parameters,
-                "output_data": output_data
+                "output_data": output_data,
             }
             content_hash = hashlib.sha256(
                 json.dumps(content_data, sort_keys=True).encode()
@@ -592,7 +648,8 @@ class MCPAuditLogger:
                 cursor = conn.cursor()
 
                 # Insert audit log entry
-                cursor.execute("""
+                cursor.execute(
+                    """
                     INSERT INTO mcp_audit_logs (
                         entry_id, session_id, user_id, timestamp, operation_type,
                         operation_name, input_parameters, output_data, execution_time_ms,
@@ -600,47 +657,52 @@ class MCPAuditLogger:
                         legal_basis, content_hash, gdpr_applicable, ccpa_applicable,
                         data_subject_id, retention_policy
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    entry_id,
-                    self.session_id,
-                    user_id or self.user_id,
-                    timestamp,
-                    MCPOperationType.PROMPT_EXECUTION.value,
-                    prompt_name,
-                    json.dumps(input_parameters) if input_parameters else None,
-                    json.dumps(output_data) if output_data else None,
-                    execution_time_ms,
-                    json.dumps(data_sources) if data_sources else None,
-                    json.dumps(compliance_tags) if compliance_tags else None,
-                    processing_purpose,
-                    legal_basis,
-                    content_hash,
-                    gdpr_applicable,
-                    ccpa_applicable,
-                    data_subject_id,
-                    retention_policy
-                ))
+                """,
+                    (
+                        entry_id,
+                        self.session_id,
+                        user_id or self.user_id,
+                        timestamp,
+                        MCPOperationType.PROMPT_EXECUTION.value,
+                        prompt_name,
+                        json.dumps(input_parameters) if input_parameters else None,
+                        json.dumps(output_data) if output_data else None,
+                        execution_time_ms,
+                        json.dumps(data_sources) if data_sources else None,
+                        json.dumps(compliance_tags) if compliance_tags else None,
+                        processing_purpose,
+                        legal_basis,
+                        content_hash,
+                        gdpr_applicable,
+                        ccpa_applicable,
+                        data_subject_id,
+                        retention_policy,
+                    ),
+                )
 
                 # Log data lineage if data sources are provided
                 if data_sources:
                     for source in data_sources:
-                        cursor.execute("""
+                        cursor.execute(
+                            """
                             INSERT INTO mcp_data_lineage (
                                 entry_id, source_uri, source_type, source_identifier,
                                 source_metadata, transformation_applied, transformation_type,
                                 data_flow_direction, timestamp
                             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        """, (
-                            entry_id,
-                            source,
-                            "prompt_source",
-                            source,
-                            json.dumps({"prompt_name": prompt_name}),
-                            "prompt_execution",
-                            "prompt_execution",
-                            "input",
-                            timestamp
-                        ))
+                        """,
+                            (
+                                entry_id,
+                                source,
+                                "prompt_source",
+                                source,
+                                json.dumps({"prompt_name": prompt_name}),
+                                "prompt_execution",
+                                "prompt_execution",
+                                "input",
+                                timestamp,
+                            ),
+                        )
 
                 conn.commit()
 
@@ -657,7 +719,7 @@ class MCPAuditLogger:
         start_time: str | None = None,
         end_time: str | None = None,
         limit: int = 100,
-        offset: int = 0
+        offset: int = 0,
     ) -> list[dict[str, Any]]:
         """
         Query audit logs with optional filters.
@@ -725,10 +787,13 @@ class MCPAuditLogger:
                 cursor = conn.cursor()
 
                 # Delete expired logs
-                cursor.execute("""
+                cursor.execute(
+                    """
                     DELETE FROM mcp_audit_logs
                     WHERE expires_at IS NOT NULL AND expires_at < ?
-                """, (current_time,))
+                """,
+                    (current_time,),
+                )
 
                 deleted_count = cursor.rowcount
                 conn.commit()
@@ -747,7 +812,8 @@ class MCPAuditLogger:
                 cursor = conn.cursor()
 
                 # Get session statistics
-                cursor.execute("""
+                cursor.execute(
+                    """
                     SELECT
                         COUNT(*) as total_operations,
                         COUNT(CASE WHEN operation_type = ? THEN 1 END) as tool_executions,
@@ -757,12 +823,14 @@ class MCPAuditLogger:
                         MAX(timestamp) as last_activity
                     FROM mcp_audit_logs
                     WHERE session_id = ?
-                """, (
-                    MCPOperationType.TOOL_EXECUTION.value,
-                    MCPOperationType.RESOURCE_ACCESS.value,
-                    MCPOperationType.CONTEXT_OPERATION.value,
-                    self.session_id
-                ))
+                """,
+                    (
+                        MCPOperationType.TOOL_EXECUTION.value,
+                        MCPOperationType.RESOURCE_ACCESS.value,
+                        MCPOperationType.CONTEXT_OPERATION.value,
+                        self.session_id,
+                    ),
+                )
 
                 stats = cursor.fetchone()
 
@@ -774,7 +842,7 @@ class MCPAuditLogger:
                     "resource_accesses": stats["resource_accesses"],
                     "context_operations": stats["context_operations"],
                     "session_start": stats["session_start"],
-                    "last_activity": stats["last_activity"]
+                    "last_activity": stats["last_activity"],
                 }
 
         except Exception as e:
@@ -789,7 +857,7 @@ class MCPAuditLogger:
                 tool_name="session_end",
                 input_parameters={"session_id": self.session_id},
                 processing_purpose="session_management",
-                legal_basis="legitimate_interests"
+                legal_basis="legitimate_interests",
             )
         except Exception:
             logger.exception("Failed to close session")
@@ -800,7 +868,7 @@ def create_audit_logger(
     session_id: str | None = None,
     user_id: str | None = None,
     enable_performance_tracking: bool = True,
-    enable_content_hashing: bool = True
+    enable_content_hashing: bool = True,
 ) -> MCPAuditLogger:
     """
     Create and configure an MCP audit logger instance.
@@ -820,5 +888,5 @@ def create_audit_logger(
         session_id=session_id,
         user_id=user_id,
         enable_performance_tracking=enable_performance_tracking,
-        enable_content_hashing=enable_content_hashing
+        enable_content_hashing=enable_content_hashing,
     )

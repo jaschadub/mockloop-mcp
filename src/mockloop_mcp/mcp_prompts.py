@@ -41,7 +41,15 @@ SCENARIO_CONFIG_SCHEMA = {
     "properties": {
         "scenario_name": {"type": "string"},
         "description": {"type": "string"},
-        "scenario_type": {"type": "string", "enum": ["load_testing", "error_simulation", "security_testing", "functional_testing"]},
+        "scenario_type": {
+            "type": "string",
+            "enum": [
+                "load_testing",
+                "error_simulation",
+                "security_testing",
+                "functional_testing",
+            ],
+        },
         "endpoints": {
             "type": "array",
             "items": {
@@ -55,13 +63,13 @@ SCENARIO_CONFIG_SCHEMA = {
                             "status_code": {"type": "integer"},
                             "response_time_ms": {"type": "integer"},
                             "response_data": {"type": "object"},
-                            "headers": {"type": "object"}
+                            "headers": {"type": "object"},
                         },
-                        "required": ["status_code"]
-                    }
+                        "required": ["status_code"],
+                    },
                 },
-                "required": ["path", "method", "response_config"]
-            }
+                "required": ["path", "method", "response_config"],
+            },
         },
         "test_parameters": {
             "type": "object",
@@ -69,8 +77,8 @@ SCENARIO_CONFIG_SCHEMA = {
                 "concurrent_users": {"type": "integer"},
                 "duration_seconds": {"type": "integer"},
                 "ramp_up_time": {"type": "integer"},
-                "error_rate_threshold": {"type": "number"}
-            }
+                "error_rate_threshold": {"type": "number"},
+            },
         },
         "validation_rules": {
             "type": "array",
@@ -79,12 +87,12 @@ SCENARIO_CONFIG_SCHEMA = {
                 "properties": {
                     "rule_type": {"type": "string"},
                     "condition": {"type": "string"},
-                    "expected_value": {"type": ["string", "number", "boolean"]}
-                }
-            }
-        }
+                    "expected_value": {"type": ["string", "number", "boolean"]},
+                },
+            },
+        },
     },
-    "required": ["scenario_name", "description", "scenario_type", "endpoints"]
+    "required": ["scenario_name", "description", "scenario_type", "endpoints"],
 }
 
 OPENAPI_ANALYSIS_SCHEMA = {
@@ -96,9 +104,12 @@ OPENAPI_ANALYSIS_SCHEMA = {
                 "title": {"type": "string"},
                 "version": {"type": "string"},
                 "total_endpoints": {"type": "integer"},
-                "authentication_methods": {"type": "array", "items": {"type": "string"}},
-                "data_models": {"type": "array", "items": {"type": "string"}}
-            }
+                "authentication_methods": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                },
+                "data_models": {"type": "array", "items": {"type": "string"}},
+            },
         },
         "testable_scenarios": {
             "type": "array",
@@ -108,11 +119,17 @@ OPENAPI_ANALYSIS_SCHEMA = {
                     "scenario_type": {"type": "string"},
                     "priority": {"type": "string", "enum": ["high", "medium", "low"]},
                     "description": {"type": "string"},
-                    "endpoints_involved": {"type": "array", "items": {"type": "string"}},
-                    "test_complexity": {"type": "string", "enum": ["simple", "moderate", "complex"]},
-                    "estimated_duration": {"type": "string"}
-                }
-            }
+                    "endpoints_involved": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                    },
+                    "test_complexity": {
+                        "type": "string",
+                        "enum": ["simple", "moderate", "complex"],
+                    },
+                    "estimated_duration": {"type": "string"},
+                },
+            },
         },
         "risk_areas": {
             "type": "array",
@@ -120,14 +137,20 @@ OPENAPI_ANALYSIS_SCHEMA = {
                 "type": "object",
                 "properties": {
                     "area": {"type": "string"},
-                    "risk_level": {"type": "string", "enum": ["low", "medium", "high", "critical"]},
+                    "risk_level": {
+                        "type": "string",
+                        "enum": ["low", "medium", "high", "critical"],
+                    },
                     "description": {"type": "string"},
-                    "mitigation_suggestions": {"type": "array", "items": {"type": "string"}}
-                }
-            }
-        }
+                    "mitigation_suggestions": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                    },
+                },
+            },
+        },
     },
-    "required": ["api_summary", "testable_scenarios", "risk_areas"]
+    "required": ["api_summary", "testable_scenarios", "risk_areas"],
 }
 
 
@@ -138,13 +161,14 @@ def mcp_prompt_audit(prompt_name: str):
     Args:
         prompt_name: Name of the MCP prompt being audited
     """
+
     def decorator(func):
         @wraps(func)
         async def wrapper(*args, **kwargs):
             audit_logger = create_audit_logger(
                 db_path="mcp_audit.db",
                 session_id=f"mcp_prompt_{prompt_name}",
-                user_id="mcp_system"
+                user_id="mcp_system",
             )
             start_time = time.time()
             entry_id = None
@@ -158,7 +182,7 @@ def mcp_prompt_audit(prompt_name: str):
                         data_sources=["openapi_specification"],
                         compliance_tags=["mcp_prompt", "ai_generation"],
                         processing_purpose="ai_scenario_generation",
-                        legal_basis="legitimate_interests"
+                        legal_basis="legitimate_interests",
                     )
 
                 # Execute the original function
@@ -175,7 +199,7 @@ def mcp_prompt_audit(prompt_name: str):
                         data_sources=["openapi_specification"],
                         compliance_tags=["mcp_prompt", "ai_generation", "completion"],
                         processing_purpose="ai_scenario_generation_completion",
-                        legal_basis="legitimate_interests"
+                        legal_basis="legitimate_interests",
                     )
 
                 return result
@@ -192,15 +216,18 @@ def mcp_prompt_audit(prompt_name: str):
                         data_sources=["openapi_specification"],
                         compliance_tags=["mcp_prompt", "ai_generation", "error"],
                         processing_purpose="ai_scenario_generation_error",
-                        legal_basis="legitimate_interests"
+                        legal_basis="legitimate_interests",
                     )
                 raise
 
         return wrapper
+
     return decorator
 
 
-def validate_json_schema(data: dict[str, Any], schema: dict[str, Any]) -> tuple[bool, str | None]:
+def validate_json_schema(
+    data: dict[str, Any], schema: dict[str, Any]
+) -> tuple[bool, str | None]:
     """
     Validate JSON data against a schema.
 
@@ -213,6 +240,7 @@ def validate_json_schema(data: dict[str, Any], schema: dict[str, Any]) -> tuple[
     """
     try:
         import jsonschema
+
         jsonschema.validate(data, schema)
         return True, None
     except ImportError:
@@ -223,7 +251,9 @@ def validate_json_schema(data: dict[str, Any], schema: dict[str, Any]) -> tuple[
         return False, str(e)
 
 
-def _basic_schema_validation(data: dict[str, Any], schema: dict[str, Any]) -> tuple[bool, str | None]:
+def _basic_schema_validation(
+    data: dict[str, Any], schema: dict[str, Any]
+) -> tuple[bool, str | None]:
     """
     Basic schema validation fallback when jsonschema is not available.
 
@@ -248,11 +278,15 @@ def _basic_schema_validation(data: dict[str, Any], schema: dict[str, Any]) -> tu
                     expected_type = field_schema.get("type")
                     if expected_type == "string" and not isinstance(data[field], str):
                         return False, f"Field {field} must be a string"
-                    elif expected_type == "integer" and not isinstance(data[field], int):
+                    elif expected_type == "integer" and not isinstance(
+                        data[field], int
+                    ):
                         return False, f"Field {field} must be an integer"
                     elif expected_type == "array" and not isinstance(data[field], list):
                         return False, f"Field {field} must be an array"
-                    elif expected_type == "object" and not isinstance(data[field], dict):
+                    elif expected_type == "object" and not isinstance(
+                        data[field], dict
+                    ):
                         return False, f"Field {field} must be an object"
 
         return True, None
@@ -262,11 +296,12 @@ def _basic_schema_validation(data: dict[str, Any], schema: dict[str, Any]) -> tu
 
 # MCP Prompt Functions
 
+
 @mcp_prompt_audit("analyze_openapi_for_testing")
 async def analyze_openapi_for_testing(
     openapi_spec: dict[str, Any],
     testing_focus: str = "comprehensive",
-    risk_assessment: bool = True
+    risk_assessment: bool = True,
 ) -> dict[str, Any]:
     """
     Analyze an OpenAPI specification to identify testable scenarios and risk areas.
@@ -295,7 +330,7 @@ async def analyze_openapi_for_testing(
             "version": info.get("version", "1.0.0"),
             "total_endpoints": len(paths),
             "authentication_methods": _extract_auth_methods(security, components),
-            "data_models": list(components.get("schemas", {}).keys())
+            "data_models": list(components.get("schemas", {}).keys()),
         }
 
         # Generate testable scenarios based on endpoints
@@ -321,7 +356,7 @@ async def analyze_openapi_for_testing(
         result = {
             "api_summary": api_summary,
             "testable_scenarios": testable_scenarios,
-            "risk_areas": risk_areas
+            "risk_areas": risk_areas,
         }
 
         # Validate result against schema
@@ -338,7 +373,7 @@ async def analyze_openapi_for_testing(
                         "description": "Basic endpoint functionality testing",
                         "endpoints_involved": list(paths.keys())[:5],
                         "test_complexity": "simple",
-                        "estimated_duration": "30 minutes"
+                        "estimated_duration": "30 minutes",
                     }
                 ],
                 "risk_areas": [
@@ -346,9 +381,11 @@ async def analyze_openapi_for_testing(
                         "area": "general_testing",
                         "risk_level": "medium",
                         "description": "General API testing required",
-                        "mitigation_suggestions": ["Implement comprehensive test suite"]
+                        "mitigation_suggestions": [
+                            "Implement comprehensive test suite"
+                        ],
                     }
-                ]
+                ],
             }
 
         return result
@@ -362,7 +399,7 @@ async def analyze_openapi_for_testing(
                 "version": "1.0.0",
                 "total_endpoints": 0,
                 "authentication_methods": [],
-                "data_models": []
+                "data_models": [],
             },
             "testable_scenarios": [
                 {
@@ -371,7 +408,7 @@ async def analyze_openapi_for_testing(
                     "description": "Analysis failed, manual testing required",
                     "endpoints_involved": [],
                     "test_complexity": "complex",
-                    "estimated_duration": "Manual assessment needed"
+                    "estimated_duration": "Manual assessment needed",
                 }
             ],
             "risk_areas": [
@@ -379,9 +416,9 @@ async def analyze_openapi_for_testing(
                     "area": "analysis_failure",
                     "risk_level": "high",
                     "description": f"Automated analysis failed: {e!s}",
-                    "mitigation_suggestions": ["Manual specification review required"]
+                    "mitigation_suggestions": ["Manual specification review required"],
                 }
-            ]
+            ],
         }
 
 
@@ -390,7 +427,7 @@ async def generate_scenario_config(
     scenario_type: str,
     endpoints: list[dict[str, Any]],
     test_parameters: dict[str, Any] | None = None,
-    scenario_name: str | None = None
+    scenario_name: str | None = None,
 ) -> dict[str, Any]:
     """
     Generate a specific scenario configuration for MockLoop testing.
@@ -424,22 +461,28 @@ async def generate_scenario_config(
             processed_endpoints.append(processed_endpoint)
 
         # Generate validation rules
-        validation_rules = _generate_validation_rules(scenario_type, processed_endpoints)
+        validation_rules = _generate_validation_rules(
+            scenario_type, processed_endpoints
+        )
 
         # Create scenario configuration
         scenario_config = {
             "scenario_name": scenario_name,
-            "description": _generate_scenario_description(scenario_type, len(processed_endpoints)),
+            "description": _generate_scenario_description(
+                scenario_type, len(processed_endpoints)
+            ),
             "scenario_type": scenario_type,
             "endpoints": processed_endpoints,
             "test_parameters": test_parameters,
-            "validation_rules": validation_rules
+            "validation_rules": validation_rules,
         }
 
         # Validate result against schema
         is_valid, error = validate_json_schema(scenario_config, SCENARIO_CONFIG_SCHEMA)
         if not is_valid:
-            logger.warning(f"Generated scenario config failed schema validation: {error}")
+            logger.warning(
+                f"Generated scenario config failed schema validation: {error}"
+            )
             # Fix common validation issues
             scenario_config = _fix_scenario_config(scenario_config)
 
@@ -460,17 +503,17 @@ async def generate_scenario_config(
                         "status_code": 200,
                         "response_time_ms": 100,
                         "response_data": {"status": "ok"},
-                        "headers": {"Content-Type": "application/json"}
-                    }
+                        "headers": {"Content-Type": "application/json"},
+                    },
                 }
             ],
             "test_parameters": {
                 "concurrent_users": 1,
                 "duration_seconds": 60,
                 "ramp_up_time": 10,
-                "error_rate_threshold": 0.05
+                "error_rate_threshold": 0.05,
             },
-            "validation_rules": []
+            "validation_rules": [],
         }
 
 
@@ -478,7 +521,7 @@ async def generate_scenario_config(
 async def optimize_scenario_for_load(
     base_scenario: dict[str, Any],
     target_load: int,
-    performance_requirements: dict[str, Any] | None = None
+    performance_requirements: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """
     Optimize a scenario configuration for load testing performance.
@@ -504,28 +547,36 @@ async def optimize_scenario_for_load(
                 "max_response_time_ms": 2000,
                 "target_throughput_rps": target_load * 2,
                 "error_rate_threshold": 0.01,
-                "memory_usage_limit_mb": 1024
+                "memory_usage_limit_mb": 1024,
             }
 
         # Optimize test parameters for load
         optimized_scenario["test_parameters"] = {
             "concurrent_users": target_load,
             "duration_seconds": max(300, target_load * 2),  # Scale duration with load
-            "ramp_up_time": max(60, target_load // 10),     # Gradual ramp-up
-            "error_rate_threshold": performance_requirements.get("error_rate_threshold", 0.01)
+            "ramp_up_time": max(60, target_load // 10),  # Gradual ramp-up
+            "error_rate_threshold": performance_requirements.get(
+                "error_rate_threshold", 0.01
+            ),
         }
 
         # Optimize endpoint configurations
         optimized_endpoints = []
         for endpoint in optimized_scenario.get("endpoints", []):
-            optimized_endpoint = _optimize_endpoint_for_load(endpoint, target_load, performance_requirements)
+            optimized_endpoint = _optimize_endpoint_for_load(
+                endpoint, target_load, performance_requirements
+            )
             optimized_endpoints.append(optimized_endpoint)
 
         optimized_scenario["endpoints"] = optimized_endpoints
 
         # Update scenario metadata
-        optimized_scenario["scenario_name"] = f"load_optimized_{optimized_scenario.get('scenario_name', 'scenario')}"
-        optimized_scenario["description"] = f"Load-optimized scenario for {target_load} concurrent users"
+        optimized_scenario["scenario_name"] = (
+            f"load_optimized_{optimized_scenario.get('scenario_name', 'scenario')}"
+        )
+        optimized_scenario["description"] = (
+            f"Load-optimized scenario for {target_load} concurrent users"
+        )
         optimized_scenario["scenario_type"] = "load_testing"
 
         # Add load-specific validation rules
@@ -533,24 +584,32 @@ async def optimize_scenario_for_load(
             {
                 "rule_type": "response_time",
                 "condition": "max_response_time_ms",
-                "expected_value": performance_requirements.get("max_response_time_ms", 2000)
+                "expected_value": performance_requirements.get(
+                    "max_response_time_ms", 2000
+                ),
             },
             {
                 "rule_type": "throughput",
                 "condition": "min_requests_per_second",
-                "expected_value": performance_requirements.get("target_throughput_rps", target_load)
+                "expected_value": performance_requirements.get(
+                    "target_throughput_rps", target_load
+                ),
             },
             {
                 "rule_type": "error_rate",
                 "condition": "max_error_rate",
-                "expected_value": performance_requirements.get("error_rate_threshold", 0.01)
-            }
+                "expected_value": performance_requirements.get(
+                    "error_rate_threshold", 0.01
+                ),
+            },
         ]
 
         optimized_scenario["validation_rules"] = load_validation_rules
 
         # Validate result
-        is_valid, error = validate_json_schema(optimized_scenario, SCENARIO_CONFIG_SCHEMA)
+        is_valid, error = validate_json_schema(
+            optimized_scenario, SCENARIO_CONFIG_SCHEMA
+        )
         if not is_valid:
             logger.warning(f"Optimized scenario failed schema validation: {error}")
             optimized_scenario = _fix_scenario_config(optimized_scenario)
@@ -565,7 +624,7 @@ async def optimize_scenario_for_load(
             "concurrent_users": target_load,
             "duration_seconds": 300,
             "ramp_up_time": 60,
-            "error_rate_threshold": 0.05
+            "error_rate_threshold": 0.05,
         }
         return fallback_scenario
 
@@ -574,7 +633,7 @@ async def optimize_scenario_for_load(
 async def generate_error_scenarios(
     api_endpoints: list[dict[str, Any]],
     error_types: list[str] | None = None,
-    severity_level: str = "medium"
+    severity_level: str = "medium",
 ) -> dict[str, Any]:
     """
     Generate error simulation scenarios for testing error handling.
@@ -599,7 +658,9 @@ async def generate_error_scenarios(
         error_endpoints = []
         for endpoint in api_endpoints:
             for error_type in error_types:
-                error_endpoint = _create_error_endpoint(endpoint, error_type, severity_level)
+                error_endpoint = _create_error_endpoint(
+                    endpoint, error_type, severity_level
+                )
                 error_endpoints.append(error_endpoint)
 
         # Create error scenario configuration
@@ -614,20 +675,20 @@ async def generate_error_scenarios(
                 "concurrent_users": 10,
                 "duration_seconds": 180,
                 "ramp_up_time": 30,
-                "error_rate_threshold": 1.0  # Expect errors in this scenario
+                "error_rate_threshold": 1.0,  # Expect errors in this scenario
             },
             "validation_rules": [
                 {
                     "rule_type": "error_handling",
                     "condition": "proper_error_responses",
-                    "expected_value": True
+                    "expected_value": True,
                 },
                 {
                     "rule_type": "response_format",
                     "condition": "valid_error_format",
-                    "expected_value": True
-                }
-            ]
+                    "expected_value": True,
+                },
+            ],
         }
 
         # Validate result
@@ -653,17 +714,17 @@ async def generate_error_scenarios(
                         "status_code": 500,
                         "response_time_ms": 100,
                         "response_data": {"error": "Internal server error"},
-                        "headers": {"Content-Type": "application/json"}
-                    }
+                        "headers": {"Content-Type": "application/json"},
+                    },
                 }
             ],
             "test_parameters": {
                 "concurrent_users": 5,
                 "duration_seconds": 60,
                 "ramp_up_time": 10,
-                "error_rate_threshold": 1.0
+                "error_rate_threshold": 1.0,
             },
-            "validation_rules": []
+            "validation_rules": [],
         }
 
 
@@ -671,7 +732,7 @@ async def generate_error_scenarios(
 async def generate_security_test_scenarios(
     api_spec: dict[str, Any],
     security_focus: list[str] | None = None,
-    compliance_requirements: list[str] | None = None
+    compliance_requirements: list[str] | None = None,
 ) -> dict[str, Any]:
     """
     Generate security testing scenarios for API vulnerability assessment.
@@ -695,7 +756,7 @@ async def generate_security_test_scenarios(
                 "authorization",
                 "input_validation",
                 "rate_limiting",
-                "data_exposure"
+                "data_exposure",
             ]
 
         # Extract security-relevant information from API spec
@@ -724,13 +785,17 @@ async def generate_security_test_scenarios(
                 "concurrent_users": 5,
                 "duration_seconds": 300,
                 "ramp_up_time": 60,
-                "error_rate_threshold": 0.8  # Expect many security-related errors
+                "error_rate_threshold": 0.8,  # Expect many security-related errors
             },
-            "validation_rules": _generate_security_validation_rules(security_focus, compliance_requirements)
+            "validation_rules": _generate_security_validation_rules(
+                security_focus, compliance_requirements
+            ),
         }
 
         # Validate result
-        is_valid, error = validate_json_schema(security_scenario, SCENARIO_CONFIG_SCHEMA)
+        is_valid, error = validate_json_schema(
+            security_scenario, SCENARIO_CONFIG_SCHEMA
+        )
         if not is_valid:
             logger.warning(f"Security scenario failed schema validation: {error}")
             security_scenario = _fix_scenario_config(security_scenario)
@@ -752,21 +817,22 @@ async def generate_security_test_scenarios(
                         "status_code": 401,
                         "response_time_ms": 100,
                         "response_data": {"error": "Unauthorized"},
-                        "headers": {"Content-Type": "application/json"}
-                    }
+                        "headers": {"Content-Type": "application/json"},
+                    },
                 }
             ],
             "test_parameters": {
                 "concurrent_users": 3,
                 "duration_seconds": 120,
                 "ramp_up_time": 30,
-                "error_rate_threshold": 0.9
+                "error_rate_threshold": 0.9,
             },
-            "validation_rules": []
+            "validation_rules": [],
         }
 
 
 # Helper functions for prompt implementations
+
 
 def _extract_auth_methods(security: list[dict], components: dict) -> list[str]:
     """Extract authentication methods from OpenAPI security configuration."""
@@ -792,14 +858,16 @@ def _generate_functional_scenarios(paths: dict) -> list[dict]:
                 crud_endpoints.append(f"{method.upper()} {path}")
 
     if crud_endpoints:
-        scenarios.append({
-            "scenario_type": "crud_operations",
-            "priority": "high",
-            "description": "Test basic CRUD operations across all endpoints",
-            "endpoints_involved": crud_endpoints[:10],  # Limit to first 10
-            "test_complexity": "moderate",
-            "estimated_duration": "45 minutes"
-        })
+        scenarios.append(
+            {
+                "scenario_type": "crud_operations",
+                "priority": "high",
+                "description": "Test basic CRUD operations across all endpoints",
+                "endpoints_involved": crud_endpoints[:10],  # Limit to first 10
+                "test_complexity": "moderate",
+                "estimated_duration": "45 minutes",
+            }
+        )
 
     # Data validation scenario
     post_put_endpoints = []
@@ -809,14 +877,16 @@ def _generate_functional_scenarios(paths: dict) -> list[dict]:
                 post_put_endpoints.append(f"{method.upper()} {path}")
 
     if post_put_endpoints:
-        scenarios.append({
-            "scenario_type": "data_validation",
-            "priority": "medium",
-            "description": "Test input validation and data integrity",
-            "endpoints_involved": post_put_endpoints[:5],
-            "test_complexity": "moderate",
-            "estimated_duration": "30 minutes"
-        })
+        scenarios.append(
+            {
+                "scenario_type": "data_validation",
+                "priority": "medium",
+                "description": "Test input validation and data integrity",
+                "endpoints_involved": post_put_endpoints[:5],
+                "test_complexity": "moderate",
+                "estimated_duration": "30 minutes",
+            }
+        )
 
     return scenarios
 
@@ -832,24 +902,28 @@ def _generate_performance_scenarios(paths: dict) -> list[dict]:
             get_endpoints.append(f"GET {path}")
 
     if get_endpoints:
-        scenarios.append({
-            "scenario_type": "load_testing",
-            "priority": "high",
-            "description": "Load testing for high-frequency read operations",
-            "endpoints_involved": get_endpoints[:5],
-            "test_complexity": "complex",
-            "estimated_duration": "60 minutes"
-        })
+        scenarios.append(
+            {
+                "scenario_type": "load_testing",
+                "priority": "high",
+                "description": "Load testing for high-frequency read operations",
+                "endpoints_involved": get_endpoints[:5],
+                "test_complexity": "complex",
+                "estimated_duration": "60 minutes",
+            }
+        )
 
     # Stress testing scenario
-    scenarios.append({
-        "scenario_type": "stress_testing",
-        "priority": "medium",
-        "description": "Stress testing to find breaking points",
-        "endpoints_involved": list(paths.keys())[:3],
-        "test_complexity": "complex",
-        "estimated_duration": "90 minutes"
-    })
+    scenarios.append(
+        {
+            "scenario_type": "stress_testing",
+            "priority": "medium",
+            "description": "Stress testing to find breaking points",
+            "endpoints_involved": list(paths.keys())[:3],
+            "test_complexity": "complex",
+            "estimated_duration": "90 minutes",
+        }
+    )
 
     return scenarios
 
@@ -860,26 +934,34 @@ def _generate_security_scenarios(paths: dict, security: list) -> list[dict]:
 
     # Authentication testing
     if security:
-        scenarios.append({
-            "scenario_type": "authentication_testing",
-            "priority": "high",
-            "description": "Test authentication mechanisms and unauthorized access",
-            "endpoints_involved": list(paths.keys())[:5],
-            "test_complexity": "moderate",
-            "estimated_duration": "45 minutes"
-        })
+        scenarios.append(
+            {
+                "scenario_type": "authentication_testing",
+                "priority": "high",
+                "description": "Test authentication mechanisms and unauthorized access",
+                "endpoints_involved": list(paths.keys())[:5],
+                "test_complexity": "moderate",
+                "estimated_duration": "45 minutes",
+            }
+        )
 
     # Input validation security
-    post_endpoints = [path for path in paths if any(method in ["post", "put", "patch"] for method in paths[path])]
+    post_endpoints = [
+        path
+        for path in paths
+        if any(method in ["post", "put", "patch"] for method in paths[path])
+    ]
     if post_endpoints:
-        scenarios.append({
-            "scenario_type": "input_security_testing",
-            "priority": "high",
-            "description": "Test for injection attacks and malicious input handling",
-            "endpoints_involved": post_endpoints[:5],
-            "test_complexity": "moderate",
-            "estimated_duration": "30 minutes"
-        })
+        scenarios.append(
+            {
+                "scenario_type": "input_security_testing",
+                "priority": "high",
+                "description": "Test for injection attacks and malicious input handling",
+                "endpoints_involved": post_endpoints[:5],
+                "test_complexity": "moderate",
+                "estimated_duration": "30 minutes",
+            }
+        )
 
     return scenarios
 
@@ -894,32 +976,55 @@ def _assess_api_risks(openapi_spec: dict[str, Any]) -> list[dict[str, Any]]:
 
     # Check for missing authentication
     if not security and not components.get("securitySchemes"):
-        risks.append({
-            "area": "authentication",
-            "risk_level": "high",
-            "description": "No authentication mechanisms defined",
-            "mitigation_suggestions": ["Implement authentication", "Add security schemes"]
-        })
+        risks.append(
+            {
+                "area": "authentication",
+                "risk_level": "high",
+                "description": "No authentication mechanisms defined",
+                "mitigation_suggestions": [
+                    "Implement authentication",
+                    "Add security schemes",
+                ],
+            }
+        )
 
     # Check for sensitive data exposure
     for path in paths:
-        if any(sensitive in path.lower() for sensitive in ["password", "token", "secret", "key"]):
-            risks.append({
-                "area": "data_exposure",
-                "risk_level": "critical",
-                "description": f"Potentially sensitive data in path: {path}",
-                "mitigation_suggestions": ["Review path naming", "Implement proper data protection"]
-            })
+        if any(
+            sensitive in path.lower()
+            for sensitive in ["password", "token", "secret", "key"]
+        ):
+            risks.append(
+                {
+                    "area": "data_exposure",
+                    "risk_level": "critical",
+                    "description": f"Potentially sensitive data in path: {path}",
+                    "mitigation_suggestions": [
+                        "Review path naming",
+                        "Implement proper data protection",
+                    ],
+                }
+            )
 
     # Check for missing input validation
-    post_methods = sum(1 for methods in paths.values() for method in methods if method.lower() in ["post", "put", "patch"])
+    post_methods = sum(
+        1
+        for methods in paths.values()
+        for method in methods
+        if method.lower() in ["post", "put", "patch"]
+    )
     if post_methods > 0:
-        risks.append({
-            "area": "input_validation",
-            "risk_level": "medium",
-            "description": "Input validation testing required for data modification endpoints",
-            "mitigation_suggestions": ["Implement input validation", "Add request body schemas"]
-        })
+        risks.append(
+            {
+                "area": "input_validation",
+                "risk_level": "medium",
+                "description": "Input validation testing required for data modification endpoints",
+                "mitigation_suggestions": [
+                    "Implement input validation",
+                    "Add request body schemas",
+                ],
+            }
+        )
 
     return risks
 
@@ -931,32 +1036,34 @@ def _get_default_test_parameters(scenario_type: str) -> dict[str, Any]:
             "concurrent_users": 50,
             "duration_seconds": 300,
             "ramp_up_time": 60,
-            "error_rate_threshold": 0.05
+            "error_rate_threshold": 0.05,
         },
         "error_simulation": {
             "concurrent_users": 10,
             "duration_seconds": 180,
             "ramp_up_time": 30,
-            "error_rate_threshold": 1.0
+            "error_rate_threshold": 1.0,
         },
         "security_testing": {
             "concurrent_users": 5,
             "duration_seconds": 240,
             "ramp_up_time": 60,
-            "error_rate_threshold": 0.8
+            "error_rate_threshold": 0.8,
         },
         "functional_testing": {
             "concurrent_users": 10,
             "duration_seconds": 120,
             "ramp_up_time": 20,
-            "error_rate_threshold": 0.1
-        }
+            "error_rate_threshold": 0.1,
+        },
     }
 
     return defaults.get(scenario_type, defaults["functional_testing"])
 
 
-def _process_endpoint_for_scenario(endpoint: dict[str, Any], scenario_type: str) -> dict[str, Any]:
+def _process_endpoint_for_scenario(
+    endpoint: dict[str, Any], scenario_type: str
+) -> dict[str, Any]:
     """Process an endpoint configuration for a specific scenario type."""
     processed = {
         "path": endpoint.get("path", "/"),
@@ -965,8 +1072,8 @@ def _process_endpoint_for_scenario(endpoint: dict[str, Any], scenario_type: str)
             "status_code": 200,
             "response_time_ms": 100,
             "response_data": {"message": "success"},
-            "headers": {"Content-Type": "application/json"}
-        }
+            "headers": {"Content-Type": "application/json"},
+        },
     }
 
     # Adjust based on scenario type
@@ -982,39 +1089,47 @@ def _process_endpoint_for_scenario(endpoint: dict[str, Any], scenario_type: str)
     return processed
 
 
-def _generate_validation_rules(scenario_type: str, endpoints: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _generate_validation_rules(
+    scenario_type: str, endpoints: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
     """Generate validation rules based on scenario type and endpoints."""
     rules = []
 
     if scenario_type == "load_testing":
-        rules.extend([
-            {
-                "rule_type": "response_time",
-                "condition": "max_response_time_ms",
-                "expected_value": 2000
-            },
-            {
-                "rule_type": "throughput",
-                "condition": "min_requests_per_second",
-                "expected_value": 100
-            }
-        ])
+        rules.extend(
+            [
+                {
+                    "rule_type": "response_time",
+                    "condition": "max_response_time_ms",
+                    "expected_value": 2000,
+                },
+                {
+                    "rule_type": "throughput",
+                    "condition": "min_requests_per_second",
+                    "expected_value": 100,
+                },
+            ]
+        )
     elif scenario_type == "error_simulation":
-        rules.extend([
-            {
-                "rule_type": "error_handling",
-                "condition": "proper_error_responses",
-                "expected_value": True
-            }
-        ])
+        rules.extend(
+            [
+                {
+                    "rule_type": "error_handling",
+                    "condition": "proper_error_responses",
+                    "expected_value": True,
+                }
+            ]
+        )
     elif scenario_type == "security_testing":
-        rules.extend([
-            {
-                "rule_type": "security",
-                "condition": "unauthorized_access_blocked",
-                "expected_value": True
-            }
-        ])
+        rules.extend(
+            [
+                {
+                    "rule_type": "security",
+                    "condition": "unauthorized_access_blocked",
+                    "expected_value": True,
+                }
+            ]
+        )
 
     return rules
 
@@ -1025,17 +1140,21 @@ def _generate_scenario_description(scenario_type: str, endpoint_count: int) -> s
         "load_testing": f"Load testing scenario with {endpoint_count} endpoints to assess performance under high traffic",
         "error_simulation": f"Error simulation scenario with {endpoint_count} endpoints to test error handling capabilities",
         "security_testing": f"Security testing scenario with {endpoint_count} endpoints to identify vulnerabilities",
-        "functional_testing": f"Functional testing scenario with {endpoint_count} endpoints to verify basic functionality"
+        "functional_testing": f"Functional testing scenario with {endpoint_count} endpoints to verify basic functionality",
     }
 
-    return descriptions.get(scenario_type, f"Testing scenario with {endpoint_count} endpoints")
+    return descriptions.get(
+        scenario_type, f"Testing scenario with {endpoint_count} endpoints"
+    )
 
 
 def _fix_scenario_config(scenario_config: dict[str, Any]) -> dict[str, Any]:
     """Fix common validation issues in scenario configuration."""
     # Ensure required fields exist
     if "scenario_name" not in scenario_config:
-        scenario_config["scenario_name"] = f"fixed_scenario_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        scenario_config["scenario_name"] = (
+            f"fixed_scenario_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        )
 
     if "description" not in scenario_config:
         scenario_config["description"] = "Auto-generated scenario configuration"
@@ -1052,8 +1171,8 @@ def _fix_scenario_config(scenario_config: dict[str, Any]) -> dict[str, Any]:
                     "status_code": 200,
                     "response_time_ms": 100,
                     "response_data": {"status": "ok"},
-                    "headers": {"Content-Type": "application/json"}
-                }
+                    "headers": {"Content-Type": "application/json"},
+                },
             }
         ]
 
@@ -1067,19 +1186,26 @@ def _fix_scenario_config(scenario_config: dict[str, Any]) -> dict[str, Any]:
     return scenario_config
 
 
-def _optimize_endpoint_for_load(endpoint: dict[str, Any], target_load: int, performance_requirements: dict[str, Any]) -> dict[str, Any]:
+def _optimize_endpoint_for_load(
+    endpoint: dict[str, Any], target_load: int, performance_requirements: dict[str, Any]
+) -> dict[str, Any]:
     """Optimize an endpoint configuration for load testing."""
     optimized = endpoint.copy()
 
     # Reduce response time for high load
     max_response_time = performance_requirements.get("max_response_time_ms", 2000)
-    optimized_response_time = min(max_response_time // 2, 500)  # Cap at 500ms for load testing
+    optimized_response_time = min(
+        max_response_time // 2, 500
+    )  # Cap at 500ms for load testing
 
     if "response_config" in optimized:
         optimized["response_config"]["response_time_ms"] = optimized_response_time
 
         # Simplify response data for better performance
-        optimized["response_config"]["response_data"] = {"status": "ok", "load_optimized": True}
+        optimized["response_config"]["response_data"] = {
+            "status": "ok",
+            "load_optimized": True,
+        }
 
     return optimized
 
@@ -1089,21 +1215,54 @@ def _get_default_error_types(severity_level: str) -> list[str]:
     error_types = {
         "low": ["timeout", "rate_limit"],
         "medium": ["timeout", "rate_limit", "server_error", "bad_request"],
-        "high": ["timeout", "rate_limit", "server_error", "bad_request", "database_error", "service_unavailable"]
+        "high": [
+            "timeout",
+            "rate_limit",
+            "server_error",
+            "bad_request",
+            "database_error",
+            "service_unavailable",
+        ],
     }
 
     return error_types.get(severity_level, error_types["medium"])
 
 
-def _create_error_endpoint(endpoint: dict[str, Any], error_type: str, severity_level: str) -> dict[str, Any]:
+def _create_error_endpoint(
+    endpoint: dict[str, Any], error_type: str, severity_level: str
+) -> dict[str, Any]:
     """Create an error endpoint configuration."""
     error_configs = {
-        "timeout": {"status_code": 408, "response_time_ms": 30000, "response_data": {"error": "Request timeout"}},
-        "rate_limit": {"status_code": 429, "response_time_ms": 100, "response_data": {"error": "Rate limit exceeded"}},
-        "server_error": {"status_code": 500, "response_time_ms": 200, "response_data": {"error": "Internal server error"}},
-        "bad_request": {"status_code": 400, "response_time_ms": 100, "response_data": {"error": "Bad request"}},
-        "database_error": {"status_code": 503, "response_time_ms": 5000, "response_data": {"error": "Database unavailable"}},
-        "service_unavailable": {"status_code": 503, "response_time_ms": 100, "response_data": {"error": "Service unavailable"}}
+        "timeout": {
+            "status_code": 408,
+            "response_time_ms": 30000,
+            "response_data": {"error": "Request timeout"},
+        },
+        "rate_limit": {
+            "status_code": 429,
+            "response_time_ms": 100,
+            "response_data": {"error": "Rate limit exceeded"},
+        },
+        "server_error": {
+            "status_code": 500,
+            "response_time_ms": 200,
+            "response_data": {"error": "Internal server error"},
+        },
+        "bad_request": {
+            "status_code": 400,
+            "response_time_ms": 100,
+            "response_data": {"error": "Bad request"},
+        },
+        "database_error": {
+            "status_code": 503,
+            "response_time_ms": 5000,
+            "response_data": {"error": "Database unavailable"},
+        },
+        "service_unavailable": {
+            "status_code": 503,
+            "response_time_ms": 100,
+            "response_data": {"error": "Service unavailable"},
+        },
     }
 
     error_config = error_configs.get(error_type, error_configs["server_error"])
@@ -1113,121 +1272,147 @@ def _create_error_endpoint(endpoint: dict[str, Any], error_type: str, severity_l
         "method": endpoint.get("method", "GET").upper(),
         "response_config": {
             **error_config,
-            "headers": {"Content-Type": "application/json"}
-        }
+            "headers": {"Content-Type": "application/json"},
+        },
     }
 
 
-def _generate_security_endpoints_for_area(focus_area: str, paths: dict, security_schemes: dict, global_security: list) -> list[dict[str, Any]]:
+def _generate_security_endpoints_for_area(
+    focus_area: str, paths: dict, security_schemes: dict, global_security: list
+) -> list[dict[str, Any]]:
     """Generate security test endpoints for a specific focus area."""
     endpoints = []
 
     if focus_area == "authentication":
-        endpoints.append({
-            "path": "/auth-test-unauthorized",
-            "method": "GET",
-            "response_config": {
-                "status_code": 401,
-                "response_time_ms": 100,
-                "response_data": {"error": "Unauthorized"},
-                "headers": {"Content-Type": "application/json"}
+        endpoints.append(
+            {
+                "path": "/auth-test-unauthorized",
+                "method": "GET",
+                "response_config": {
+                    "status_code": 401,
+                    "response_time_ms": 100,
+                    "response_data": {"error": "Unauthorized"},
+                    "headers": {"Content-Type": "application/json"},
+                },
             }
-        })
+        )
 
     elif focus_area == "authorization":
-        endpoints.append({
-            "path": "/auth-test-forbidden",
-            "method": "GET",
-            "response_config": {
-                "status_code": 403,
-                "response_time_ms": 100,
-                "response_data": {"error": "Forbidden"},
-                "headers": {"Content-Type": "application/json"}
+        endpoints.append(
+            {
+                "path": "/auth-test-forbidden",
+                "method": "GET",
+                "response_config": {
+                    "status_code": 403,
+                    "response_time_ms": 100,
+                    "response_data": {"error": "Forbidden"},
+                    "headers": {"Content-Type": "application/json"},
+                },
             }
-        })
+        )
 
     elif focus_area == "input_validation":
-        endpoints.append({
-            "path": "/input-validation-test",
-            "method": "POST",
-            "response_config": {
-                "status_code": 422,
-                "response_time_ms": 150,
-                "response_data": {"error": "Validation failed"},
-                "headers": {"Content-Type": "application/json"}
+        endpoints.append(
+            {
+                "path": "/input-validation-test",
+                "method": "POST",
+                "response_config": {
+                    "status_code": 422,
+                    "response_time_ms": 150,
+                    "response_data": {"error": "Validation failed"},
+                    "headers": {"Content-Type": "application/json"},
+                },
             }
-        })
+        )
 
     elif focus_area == "rate_limiting":
-        endpoints.append({
-            "path": "/rate-limit-test",
-            "method": "GET",
-            "response_config": {
-                "status_code": 429,
-                "response_time_ms": 100,
-                "response_data": {"error": "Rate limit exceeded"},
-                "headers": {"Content-Type": "application/json"}
+        endpoints.append(
+            {
+                "path": "/rate-limit-test",
+                "method": "GET",
+                "response_config": {
+                    "status_code": 429,
+                    "response_time_ms": 100,
+                    "response_data": {"error": "Rate limit exceeded"},
+                    "headers": {"Content-Type": "application/json"},
+                },
             }
-        })
+        )
 
     elif focus_area == "data_exposure":
-        endpoints.append({
-            "path": "/data-exposure-test",
-            "method": "GET",
-            "response_config": {
-                "status_code": 200,
-                "response_time_ms": 100,
-                "response_data": {"message": "No sensitive data exposed"},
-                "headers": {"Content-Type": "application/json"}
+        endpoints.append(
+            {
+                "path": "/data-exposure-test",
+                "method": "GET",
+                "response_config": {
+                    "status_code": 200,
+                    "response_time_ms": 100,
+                    "response_data": {"message": "No sensitive data exposed"},
+                    "headers": {"Content-Type": "application/json"},
+                },
             }
-        })
+        )
 
     return endpoints
 
 
-def _generate_security_validation_rules(security_focus: list[str], compliance_requirements: list[str] | None) -> list[dict[str, Any]]:
+def _generate_security_validation_rules(
+    security_focus: list[str], compliance_requirements: list[str] | None
+) -> list[dict[str, Any]]:
     """Generate security validation rules based on focus areas and compliance requirements."""
     rules = []
 
     for focus_area in security_focus:
         if focus_area == "authentication":
-            rules.append({
-                "rule_type": "security",
-                "condition": "authentication_required",
-                "expected_value": True
-            })
+            rules.append(
+                {
+                    "rule_type": "security",
+                    "condition": "authentication_required",
+                    "expected_value": True,
+                }
+            )
         elif focus_area == "authorization":
-            rules.append({
-                "rule_type": "security",
-                "condition": "proper_authorization",
-                "expected_value": True
-            })
+            rules.append(
+                {
+                    "rule_type": "security",
+                    "condition": "proper_authorization",
+                    "expected_value": True,
+                }
+            )
         elif focus_area == "input_validation":
-            rules.append({
-                "rule_type": "security",
-                "condition": "input_sanitization",
-                "expected_value": True
-            })
+            rules.append(
+                {
+                    "rule_type": "security",
+                    "condition": "input_sanitization",
+                    "expected_value": True,
+                }
+            )
         elif focus_area == "rate_limiting":
-            rules.append({
-                "rule_type": "security",
-                "condition": "rate_limiting_active",
-                "expected_value": True
-            })
+            rules.append(
+                {
+                    "rule_type": "security",
+                    "condition": "rate_limiting_active",
+                    "expected_value": True,
+                }
+            )
         elif focus_area == "data_exposure":
-            rules.append({
-                "rule_type": "security",
-                "condition": "no_sensitive_data_exposure",
-                "expected_value": True
-            })
+            rules.append(
+                {
+                    "rule_type": "security",
+                    "condition": "no_sensitive_data_exposure",
+                    "expected_value": True,
+                }
+            )
 
     # Add compliance-specific rules
     if compliance_requirements:
         for requirement in compliance_requirements:
-            rules.append({
-                "rule_type": "compliance",
-                "condition": f"{requirement}_compliance",
-                "expected_value": True
-            })
+            rules.append(
+                {
+                    "rule_type": "compliance",
+                    "condition": f"{requirement}_compliance",
+                    "expected_value": True,
+                }
+            )
 
     return rules

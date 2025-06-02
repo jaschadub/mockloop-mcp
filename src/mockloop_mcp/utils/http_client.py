@@ -33,6 +33,7 @@ class MockServerClient:
         if admin_port is not None:
             # Dual-port architecture: admin runs on separate port
             from urllib.parse import urlparse
+
             parsed = urlparse(self.base_url)
             self.admin_base_url = f"{parsed.scheme}://{parsed.hostname}:{admin_port}"
         else:
@@ -402,7 +403,9 @@ class MockServerClient:
                 admin_url = f"{self.admin_base_url}/api/mock-data/scenarios/active"
             else:
                 # Legacy: admin API on same port with /admin/api/* paths
-                admin_url = f"{self.admin_base_url}/admin/api/mock-data/scenarios/active"
+                admin_url = (
+                    f"{self.admin_base_url}/admin/api/mock-data/scenarios/active"
+                )
 
             async with aiohttp.ClientSession(timeout=self.timeout) as session:
                 async with session.get(admin_url) as response:
@@ -491,7 +494,9 @@ async def discover_running_servers(
                         debug_result = await client.get_debug_info()
                         if debug_result.get("status") == "success":
                             server_info["is_mockloop_server"] = True
-                            server_info["debug_info"] = debug_result.get("debug_info", {})
+                            server_info["debug_info"] = debug_result.get(
+                                "debug_info", {}
+                            )
                             server_info["server_type"] = "business"
 
                             # Check if this might be part of a dual-port setup
@@ -501,11 +506,15 @@ async def discover_running_servers(
                                 potential_admin_ports.add(potential_admin_port)
                         else:
                             # Try as admin server (dual-port admin)
-                            admin_client = MockServerClient(server_url, timeout=5, admin_port=port)
+                            admin_client = MockServerClient(
+                                server_url, timeout=5, admin_port=port
+                            )
                             admin_debug_result = await admin_client.get_debug_info()
                             if admin_debug_result.get("status") == "success":
                                 server_info["is_mockloop_server"] = True
-                                server_info["debug_info"] = admin_debug_result.get("debug_info", {})
+                                server_info["debug_info"] = admin_debug_result.get(
+                                    "debug_info", {}
+                                )
                                 server_info["server_type"] = "admin"
                             else:
                                 server_info["is_mockloop_server"] = False
@@ -520,9 +529,11 @@ async def discover_running_servers(
 
     # Post-process to identify dual-port setups
     for server in discovered_servers:
-        if (server.get("is_mockloop_server") and
-            server.get("server_type") == "business" and
-            server["port"] + 1 in potential_admin_ports):
+        if (
+            server.get("is_mockloop_server")
+            and server.get("server_type") == "business"
+            and server["port"] + 1 in potential_admin_ports
+        ):
             # Check if the next port is actually the admin port for this business server
             admin_port = server["port"] + 1
             admin_servers = [s for s in discovered_servers if s["port"] == admin_port]
