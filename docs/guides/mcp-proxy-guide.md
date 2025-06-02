@@ -448,4 +448,4 @@ CMD ["python", "run_proxy_tests.py"]
 - [`create_mcp_plugin()`](https://github.com/MockLoop/mockloop-mcp/blob/main/src/mockloop_mcp/mcp_tools.py#L1080): Create dynamic MCP plugins
 - [`execute_test_plan()`](https://github.com/MockLoop/mockloop-mcp/blob/main/src/mockloop_mcp/mcp_tools.py#L577): Execute proxy-aware test plans
 
-For detailed API documentation, see the [API Reference](../docs/api/).
+For detailed API documentation, see the [API Reference](../api/).

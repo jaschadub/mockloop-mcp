@@ -78,6 +78,7 @@ nav:
   - User Guides:
     - Basic Usage: guides/basic-usage.md
     - Advanced Features: guides/advanced-features.md
+    - MCP Proxy Guide: guides/mcp-proxy-guide.md
     - Mock Server Management: guides/mock-server-management.md
     - Request/Response Logging: guides/logging.md
     - Performance Monitoring: guides/performance-monitoring.md
