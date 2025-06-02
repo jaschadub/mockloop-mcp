@@ -41,11 +41,11 @@ MockLoop MCP represents a paradigm shift in API testing, introducing the world's
 
 ### MCP Prompts (5 AI-Driven Capabilities)  
 **Intelligent scenario generation powered by AI**  
-- [`analyze_openapi_for_testing`](src/mockloop_mcp/mcp_prompts.py:301) - Comprehensive API analysis for testing strategies
-- [`generate_scenario_config`](src/mockloop_mcp/mcp_prompts.py:426) - Dynamic test scenario configuration
-- [`optimize_scenario_for_load`](src/mockloop_mcp/mcp_prompts.py:521) - Load testing optimization
-- [`generate_error_scenarios`](src/mockloop_mcp/mcp_prompts.py:633) - Error condition simulation
-- [`generate_security_test_scenarios`](src/mockloop_mcp/mcp_prompts.py:732) - Security vulnerability testing
+- [`analyze_openapi_for_testing`](https://github.com/MockLoop/mockloop-mcp/blob/main/src/mockloop_mcp/mcp_prompts.py#L301) - Comprehensive API analysis for testing strategies
+- [`generate_scenario_config`](https://github.com/MockLoop/mockloop-mcp/blob/main/src/mockloop_mcp/mcp_prompts.py#L426) - Dynamic test scenario configuration
+- [`optimize_scenario_for_load`](https://github.com/MockLoop/mockloop-mcp/blob/main/src/mockloop_mcp/mcp_prompts.py#L521) - Load testing optimization
+- [`generate_error_scenarios`](https://github.com/MockLoop/mockloop-mcp/blob/main/src/mockloop_mcp/mcp_prompts.py#L633) - Error condition simulation
+- [`generate_security_test_scenarios`](https://github.com/MockLoop/mockloop-mcp/blob/main/src/mockloop_mcp/mcp_prompts.py#L732) - Security vulnerability testing
 
 ### MCP Resources (15 Scenario Packs)  
 **Community-driven testing scenarios with advanced architecture**  
@@ -60,49 +60,49 @@ MockLoop MCP represents a paradigm shift in API testing, introducing the world's
 **Complete automated test execution capabilities**  
 
 #### Scenario Management (4 tools)  
-- [`validate_scenario_config`](src/mockloop_mcp/mcp_tools.py:174) - Scenario validation and verification
-- [`deploy_scenario`](src/mockloop_mcp/mcp_tools.py:267) - Automated scenario deployment
-- [`switch_scenario`](src/mockloop_mcp/mcp_tools.py:385) - Dynamic scenario switching
-- [`list_active_scenarios`](src/mockloop_mcp/mcp_tools.py:476) - Active scenario monitoring
+- [`validate_scenario_config`](https://github.com/MockLoop/mockloop-mcp/blob/main/src/mockloop_mcp/mcp_tools.py#L174) - Scenario validation and verification
+- [`deploy_scenario`](https://github.com/MockLoop/mockloop-mcp/blob/main/src/mockloop_mcp/mcp_tools.py#L267) - Automated scenario deployment
+- [`switch_scenario`](https://github.com/MockLoop/mockloop-mcp/blob/main/src/mockloop_mcp/mcp_tools.py#L385) - Dynamic scenario switching
+- [`list_active_scenarios`](https://github.com/MockLoop/mockloop-mcp/blob/main/src/mockloop_mcp/mcp_tools.py#L476) - Active scenario monitoring
 
 #### Test Execution (4 tools)  
-- [`execute_test_plan`](src/mockloop_mcp/mcp_tools.py:577) - Comprehensive test plan execution
-- [`run_test_iteration`](src/mockloop_mcp/mcp_tools.py:816) - Individual test iteration management
-- [`run_load_test`](src/mockloop_mcp/mcp_tools.py:945) - Load testing execution
-- [`run_security_test`](src/mockloop_mcp/mcp_tools.py:2019) - Security testing automation
+- [`execute_test_plan`](https://github.com/MockLoop/mockloop-mcp/blob/main/src/mockloop_mcp/mcp_tools.py#L577) - Comprehensive test plan execution
+- [`run_test_iteration`](https://github.com/MockLoop/mockloop-mcp/blob/main/src/mockloop_mcp/mcp_tools.py#L816) - Individual test iteration management
+- [`run_load_test`](https://github.com/MockLoop/mockloop-mcp/blob/main/src/mockloop_mcp/mcp_tools.py#L945) - Load testing execution
+- [`run_security_test`](https://github.com/MockLoop/mockloop-mcp/blob/main/src/mockloop_mcp/mcp_tools.py#L2019) - Security testing automation
 
 #### Analysis & Reporting (4 tools)
-- [`analyze_test_results`](src/mockloop_mcp/mcp_tools.py:2142) - Intelligent test result analysis
-- [`generate_test_report`](src/mockloop_mcp/mcp_tools.py:2225) - Comprehensive reporting
-- [`compare_test_runs`](src/mockloop_mcp/mcp_tools.py:2310) - Test run comparison and trends
-- [`get_performance_metrics`](src/mockloop_mcp/mcp_tools.py:2418) - Performance metrics collection
+- [`analyze_test_results`](https://github.com/MockLoop/mockloop-mcp/blob/main/src/mockloop_mcp/mcp_tools.py#L2142) - Intelligent test result analysis
+- [`generate_test_report`](https://github.com/MockLoop/mockloop-mcp/blob/main/src/mockloop_mcp/mcp_tools.py#L2225) - Comprehensive reporting
+- [`compare_test_runs`](https://github.com/MockLoop/mockloop-mcp/blob/main/src/mockloop_mcp/mcp_tools.py#L2310) - Test run comparison and trends
+- [`get_performance_metrics`](https://github.com/MockLoop/mockloop-mcp/blob/main/src/mockloop_mcp/mcp_tools.py#L2418) - Performance metrics collection
 
 #### Workflow Management (4 tools)
-- [`create_test_session`](src/mockloop_mcp/mcp_tools.py:2524) - Test session initialization
-- [`end_test_session`](src/mockloop_mcp/mcp_tools.py:2579) - Session cleanup and finalization
-- [`schedule_test_suite`](src/mockloop_mcp/mcp_tools.py:2646) - Automated test scheduling
-- [`monitor_test_progress`](src/mockloop_mcp/mcp_tools.py:2702) - Real-time progress monitoring
+- [`create_test_session`](https://github.com/MockLoop/mockloop-mcp/blob/main/src/mockloop_mcp/mcp_tools.py#L2524) - Test session initialization
+- [`end_test_session`](https://github.com/MockLoop/mockloop-mcp/blob/main/src/mockloop_mcp/mcp_tools.py#L2579) - Session cleanup and finalization
+- [`schedule_test_suite`](https://github.com/MockLoop/mockloop-mcp/blob/main/src/mockloop_mcp/mcp_tools.py#L2646) - Automated test scheduling
+- [`monitor_test_progress`](https://github.com/MockLoop/mockloop-mcp/blob/main/src/mockloop_mcp/mcp_tools.py#L2702) - Real-time progress monitoring
 
 ### MCP Context Management (10 Stateful Workflow Tools)
 **Advanced state management for complex testing workflows**
 
 #### Context Creation & Management
-- [`create_test_session_context`](src/mockloop_mcp/mcp_context.py:1431) - Test session state management
-- [`create_workflow_context`](src/mockloop_mcp/mcp_context.py:1447) - Complex workflow orchestration
-- [`create_agent_context`](src/mockloop_mcp/mcp_context.py:1463) - AI agent state management
+- [`create_test_session_context`](https://github.com/MockLoop/mockloop-mcp/blob/main/src/mockloop_mcp/mcp_context.py#L1431) - Test session state management
+- [`create_workflow_context`](https://github.com/MockLoop/mockloop-mcp/blob/main/src/mockloop_mcp/mcp_context.py#L1447) - Complex workflow orchestration
+- [`create_agent_context`](https://github.com/MockLoop/mockloop-mcp/blob/main/src/mockloop_mcp/mcp_context.py#L1463) - AI agent state management
 
 #### Data Management
-- [`get_context_data`](src/mockloop_mcp/mcp_context.py:1477) - Context data retrieval
-- [`update_context_data`](src/mockloop_mcp/mcp_context.py:1486) - Dynamic context updates
-- [`list_contexts_by_type`](src/mockloop_mcp/mcp_context.py:1508) - Context discovery and listing
+- [`get_context_data`](https://github.com/MockLoop/mockloop-mcp/blob/main/src/mockloop_mcp/mcp_context.py#L1477) - Context data retrieval
+- [`update_context_data`](https://github.com/MockLoop/mockloop-mcp/blob/main/src/mockloop_mcp/mcp_context.py#L1486) - Dynamic context updates
+- [`list_contexts_by_type`](https://github.com/MockLoop/mockloop-mcp/blob/main/src/mockloop_mcp/mcp_context.py#L1508) - Context discovery and listing
 
 #### Snapshot & Recovery
-- [`create_context_snapshot`](src/mockloop_mcp/mcp_context.py:1494) - State snapshot creation
-- [`restore_context_snapshot`](src/mockloop_mcp/mcp_context.py:1502) - State rollback capabilities
+- [`create_context_snapshot`](https://github.com/MockLoop/mockloop-mcp/blob/main/src/mockloop_mcp/mcp_context.py#L1494) - State snapshot creation
+- [`restore_context_snapshot`](https://github.com/MockLoop/mockloop-mcp/blob/main/src/mockloop_mcp/mcp_context.py#L1502) - State rollback capabilities
 
 #### Global Context
-- [`get_global_context_data`](src/mockloop_mcp/mcp_context.py:1516) - Cross-session data sharing
-- [`update_global_context_data`](src/mockloop_mcp/mcp_context.py:1523) - Global state management
+- [`get_global_context_data`](https://github.com/MockLoop/mockloop-mcp/blob/main/src/mockloop_mcp/mcp_context.py#L1516) - Cross-session data sharing
+- [`update_global_context_data`](https://github.com/MockLoop/mockloop-mcp/blob/main/src/mockloop_mcp/mcp_context.py#L1523) - Global state management
 
 ## 🚀 Quick Start
 

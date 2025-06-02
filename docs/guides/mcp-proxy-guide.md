@@ -67,7 +67,7 @@ plugin_result = await create_mcp_plugin(
 
 ### 2. Operating in Different Modes
 
-The proxy mode (mock, proxy, or hybrid) is typically set when creating the MCP plugin using the `mode` parameter in the [`create_mcp_plugin()`](../src/mockloop_mcp/mcp_tools.py:997) tool.
+The proxy mode (mock, proxy, or hybrid) is typically set when creating the MCP plugin using the `mode` parameter in the [`create_mcp_plugin()`](https://github.com/MockLoop/mockloop-mcp/blob/main/src/mockloop_mcp/mcp_tools.py#L1080) tool.
 
 **Example: Creating a plugin directly in Proxy Mode**
 ```python
@@ -87,9 +87,9 @@ proxy_plugin_result = await create_mcp_plugin(
 # The plugin 'shodan_api_proxy_instance' will now operate by forwarding requests to 'https://api.shodan.io'.
 ```
 
-If you need to change the operational mode for an API after its initial plugin configuration, you would typically re-configure by calling [`create_mcp_plugin()`](../src/mockloop_mcp/mcp_tools.py:997) again with the new desired `mode` and potentially other updated configurations.
+If you need to change the operational mode for an API after its initial plugin configuration, you would typically re-configure by calling [`create_mcp_plugin()`](https://github.com/MockLoop/mockloop-mcp/blob/main/src/mockloop_mcp/mcp_tools.py#L1080) again with the new desired `mode` and potentially other updated configurations.
 
-While the underlying [`ProxyHandler`](../src/mockloop_mcp/proxy/proxy_handler.py:23) class (see API Reference below) contains a [`switch_mode()`](../src/mockloop_mcp/proxy/proxy_handler.py:80) method, direct manipulation of `ProxyHandler` instances is generally an advanced use case. The recommended approach for managing proxy behavior is through the `create_mcp_plugin` tool.
+While the underlying [`ProxyHandler`](https://github.com/MockLoop/mockloop-mcp/blob/main/src/mockloop_mcp/proxy/proxy_handler.py#L24) class (see API Reference below) contains a [`switch_mode()`](https://github.com/MockLoop/mockloop-mcp/blob/main/src/mockloop_mcp/proxy/proxy_handler.py#L87) method, direct manipulation of `ProxyHandler` instances is generally an advanced use case. The recommended approach for managing proxy behavior is through the `create_mcp_plugin` tool.
 
 ### 3. Execute Proxy-Aware Tests
 
@@ -438,14 +438,14 @@ CMD ["python", "run_proxy_tests.py"]
 
 ### Core Classes
 
-- [`ProxyConfig`](../src/mockloop_mcp/proxy/config.py): Main configuration class
-- [`ProxyHandler`](../src/mockloop_mcp/proxy/proxy_handler.py:23): Request handling and routing. Note: The detailed implementation for specific request handling methods ([`_handle_mock_request()`](src/mockloop_mcp/proxy/proxy_handler.py:65), [`_handle_proxy_request()`](src/mockloop_mcp/proxy/proxy_handler.py:70), [`_handle_hybrid_request()`](src/mockloop_mcp/proxy/proxy_handler.py:75)) within this class may be under development. Users typically interact with proxy capabilities through higher-level tools like [`create_mcp_plugin()`](../src/mockloop_mcp/mcp_tools.py:997).
-- [`AuthHandler`](../src/mockloop_mcp/proxy/auth_handler.py): Authentication management
-- [`PluginManager`](../src/mockloop_mcp/proxy/plugin_manager.py): Plugin lifecycle management
+- [`ProxyConfig`](https://github.com/MockLoop/mockloop-mcp/blob/main/src/mockloop_mcp/proxy/config.py#L133): Main configuration class
+- [`ProxyHandler`](https://github.com/MockLoop/mockloop-mcp/blob/main/src/mockloop_mcp/proxy/proxy_handler.py#L24): Request handling and routing. Note: The detailed implementation for specific request handling methods may be under development. Users typically interact with proxy capabilities through higher-level tools like [`create_mcp_plugin()`](https://github.com/MockLoop/mockloop-mcp/blob/main/src/mockloop_mcp/mcp_tools.py#L1080).
+- [`AuthHandler`](https://github.com/MockLoop/mockloop-mcp/blob/main/src/mockloop_mcp/proxy/auth_handler.py): Authentication management
+- [`PluginManager`](https://github.com/MockLoop/mockloop-mcp/blob/main/src/mockloop_mcp/proxy/plugin_manager.py): Plugin lifecycle management
 
 ### MCP Tools
 
-- [`create_mcp_plugin()`](../src/mockloop_mcp/mcp_tools.py): Create dynamic MCP plugins
-- [`execute_test_plan()`](../src/mockloop_mcp/mcp_tools.py): Execute proxy-aware test plans
+- [`create_mcp_plugin()`](https://github.com/MockLoop/mockloop-mcp/blob/main/src/mockloop_mcp/mcp_tools.py#L1080): Create dynamic MCP plugins
+- [`execute_test_plan()`](https://github.com/MockLoop/mockloop-mcp/blob/main/src/mockloop_mcp/mcp_tools.py#L577): Execute proxy-aware test plans
 
 For detailed API documentation, see the [API Reference](../docs/api/).
