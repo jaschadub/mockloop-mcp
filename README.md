@@ -289,21 +289,93 @@ Dynamic response management without server restart.
 
 ## 🌐 MCP Proxy Functionality
 
-MockLoop MCP includes powerful proxy capabilities, allowing seamless switching between mock and live API environments. This feature is invaluable for comprehensive testing strategies, enabling developers to:
+MockLoop MCP includes revolutionary proxy capabilities that enable seamless switching between mock and live API environments. This powerful feature transforms your testing workflow by providing:
 
-- Develop against mock APIs when live services are unavailable or unstable.
-- Transition to live APIs for integration and end-to-end testing.
-- Utilize a hybrid mode to selectively mock or proxy specific endpoints based on routing rules.
-- Compare responses between mock and live services to ensure consistency and identify discrepancies.
+### Core Proxy Capabilities
 
-**Key Features:**
+- **🔄 Seamless Mode Switching**: Transition between mock, proxy, and hybrid modes without code changes
+- **🎯 Intelligent Routing**: Smart request routing based on configurable rules and conditions
+- **🔐 Universal Authentication**: Support for API Key, Bearer Token, Basic Auth, and OAuth2
+- **📊 Response Comparison**: Automated comparison between mock and live API responses
+- **⚡ Zero-Downtime Switching**: Change modes dynamically without service interruption
 
-- **Multiple Modes**: Operate in `mock`, `proxy`, or `hybrid` mode.
-- **Dynamic Configuration**: Configure proxy behavior, target URLs, authentication, and routing rules through the [`create_mcp_plugin`](src/mockloop_mcp/mcp_tools.py:997) tool.
-- **Authentication Handling**: Supports various authentication schemes (API Key, Bearer Token, Basic Auth, OAuth2) for proxied requests.
-- **Routing Rules**: Define sophisticated rules in `hybrid` mode to determine whether a request should be mocked or proxied.
+### Operational Modes
 
-For a detailed guide on using the MCP Proxy, including configuration and examples, please refer to the [MCP Proxy Guide](docs/mcp-proxy-guide.md).
+#### Mock Mode (`MOCK`)
+- All requests handled by generated mock responses
+- Predictable, consistent testing environment
+- Ideal for early development and isolated testing
+- No external dependencies or network calls
+
+#### Proxy Mode (`PROXY`)
+- All requests forwarded to live API endpoints
+- Real-time data and authentic responses
+- Full integration testing capabilities
+- Network-dependent operation with live credentials
+
+#### Hybrid Mode (`HYBRID`)
+- Intelligent routing between mock and proxy based on rules
+- Conditional switching based on request patterns, headers, or parameters
+- Gradual migration from mock to live environments
+- A/B testing and selective endpoint proxying
+
+### Quick Start Example
+
+```python
+from mockloop_mcp.mcp_tools import create_mcp_plugin
+
+# Create a proxy-enabled plugin
+plugin_result = await create_mcp_plugin(
+    spec_url_or_path="https://api.example.com/openapi.json",
+    mode="hybrid",  # Start with hybrid mode
+    plugin_name="example_api",
+    target_url="https://api.example.com",
+    auth_config={
+        "auth_type": "bearer_token",
+        "credentials": {"token": "your-token"}
+    },
+    routing_rules=[
+        {
+            "pattern": "/api/critical/*",
+            "mode": "proxy",  # Critical endpoints use live API
+            "priority": 10
+        },
+        {
+            "pattern": "/api/dev/*",
+            "mode": "mock",   # Development endpoints use mocks
+            "priority": 5
+        }
+    ]
+)
+```
+
+### Advanced Features
+
+- **🔍 Response Validation**: Compare mock vs live responses for consistency
+- **📈 Performance Monitoring**: Track response times and throughput across modes
+- **🛡️ Error Handling**: Graceful fallback mechanisms and retry policies
+- **🎛️ Dynamic Configuration**: Runtime mode switching and rule updates
+- **📋 Audit Logging**: Complete request/response tracking across all modes
+
+### Authentication Support
+
+The proxy system supports comprehensive authentication schemes:
+
+- **API Key**: Header, query parameter, or cookie-based authentication
+- **Bearer Token**: OAuth2 and JWT token support
+- **Basic Auth**: Username/password combinations
+- **OAuth2**: Full OAuth2 flow with token refresh
+- **Custom**: Extensible authentication handlers for proprietary schemes
+
+### Use Cases
+
+- **Development Workflow**: Start with mocks, gradually introduce live APIs
+- **Integration Testing**: Validate against real services while maintaining test isolation
+- **Performance Testing**: Compare mock vs live API performance characteristics
+- **Staging Validation**: Ensure mock responses match production API behavior
+- **Hybrid Deployments**: Route critical operations to live APIs, others to mocks
+
+**📚 Complete Guide**: For detailed configuration, examples, and best practices, see the [MCP Proxy Guide](docs/guides/mcp-proxy-guide.md).
 ## 🤖 AI Framework Integration
 
 MockLoop MCP provides native integration with popular AI frameworks:

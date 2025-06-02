@@ -45,6 +45,7 @@ The world's first AI-native API testing platform powered by the Model Context Pr
 ## Key Features
 
 - **Mock Server Generation**: Creates mock servers from OpenAPI v2/v3 specifications
+- **MCP Proxy Functionality**: Seamless switching between mock, proxy, and hybrid modes
 - **Dual-Port Architecture**: Separate ports for business API (8000) and admin UI (8001)
 - **Request Logging**: SQLite-based logging with query capabilities
 - **Docker Support**: Containerized deployment with Docker Compose
@@ -78,9 +79,38 @@ Or if using virtual environment:
 `claude mcp add -t stdio mockloop-mcp /path/to/venv/bin/mockloop_mcp`
 
 
+## MCP Proxy Functionality
+
+MockLoop MCP includes powerful proxy capabilities that enable seamless switching between mock and live API environments:
+
+### Proxy Modes
+- **Mock Mode**: All requests handled by generated mock responses
+- **Proxy Mode**: All requests forwarded to live API endpoints
+- **Hybrid Mode**: Intelligent routing between mock and proxy based on rules
+
+### Key Capabilities
+- **Universal Authentication**: API Key, Bearer Token, Basic Auth, OAuth2 support
+- **Dynamic Routing**: Configure rules to route requests based on patterns and conditions
+- **Response Comparison**: Automated comparison between mock and live responses
+- **Zero-Downtime Switching**: Change modes without service interruption
+
+### Quick Example
+```python
+# Create a proxy-enabled plugin
+plugin_result = await create_mcp_plugin(
+    spec_url_or_path="https://api.example.com/openapi.json",
+    mode="hybrid",
+    target_url="https://api.example.com",
+    auth_config={"auth_type": "bearer_token", "credentials": {"token": "your-token"}}
+)
+```
+
+**📚 [Complete MCP Proxy Guide](guides/mcp-proxy-guide.md)** - Detailed configuration, examples, and best practices
+
 ## Documentation
 
 - **[Getting Started](getting-started/installation.md)**: Installation and basic setup
+- **[MCP Proxy Guide](guides/mcp-proxy-guide.md)**: Proxy functionality and configuration
 - **[User Guides](guides/basic-usage.md)**: Using MockLoop features
 - **[AI Integration](ai-integration/overview.md)**: Integration with AI frameworks
 - **[API Reference](api/mcp-tools.md)**: Complete MCP tool documentation
