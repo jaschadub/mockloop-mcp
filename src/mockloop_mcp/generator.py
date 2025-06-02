@@ -526,7 +526,7 @@ async def get_debug_info():
 
         health_endpoint_str = '@app.get("/health", summary="Health check endpoint", tags=["_system"])\nasync def health_check(): return {"status": "healthy"}\n'
 
-        # Create separate main sections for business and admin servers
+        # Create separate main sections for mocked API and admin servers
         business_main_section_str = f'''if __name__ == "__main__":
     import uvicorn
     import threading
@@ -565,12 +565,12 @@ async def get_debug_info():
         admin_thread.start()
         time.sleep(1)  # Give admin server time to start
 
-        print(f"Business API server starting on port {business_port}")
+        print(f"Mocked API server starting on port {business_port}")
         print(f"Admin UI server running on port {admin_port}")
     else:
-        print(f"Business API server starting on port {business_port}")
+        print(f"Mocked API server starting on port {business_port}")
 
-    # Start business server (main thread)
+    # Start mocked API server (main thread)
     run_business_server()
 '''
 

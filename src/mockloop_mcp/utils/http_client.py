@@ -484,7 +484,7 @@ async def discover_running_servers(
                 server_info = {"url": server_url, "port": port, "status": "discovered"}
 
                 if check_health:
-                    # First try as business server (legacy single-port or dual-port business)
+                    # First try as mocked API server (legacy single-port or dual-port mocked API)
                     client = MockServerClient(server_url, timeout=5)
                     health_result = await client.health_check()
                     server_info.update(health_result)
@@ -534,7 +534,7 @@ async def discover_running_servers(
             and server.get("server_type") == "business"
             and server["port"] + 1 in potential_admin_ports
         ):
-            # Check if the next port is actually the admin port for this business server
+            # Check if the next port is actually the admin port for this mocked API server
             admin_port = server["port"] + 1
             admin_servers = [s for s in discovered_servers if s["port"] == admin_port]
             if admin_servers:

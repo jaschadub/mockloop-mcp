@@ -67,7 +67,7 @@ The world's first AI-native API testing platform powered by the Model Context Pr
    Use the `generate_mock_api` tool with your OpenAPI specification
 
 4. **Access Mock Server**
-   Business API: `http://localhost:8000`
+   Mocked API: `http://localhost:8000`
    Admin UI: `http://localhost:8001`
 
 ## Add to Claude Code
@@ -120,7 +120,7 @@ plugin_result = await create_mcp_plugin(
 ## Architecture
 
 ### Dual-Port Design
-- **Business Port (8000)**: Serves mock API endpoints
+- **Mocked API Port (8000)**: Serves mock API endpoints
 - **Admin Port (8001)**: Management interface and logging
 - **No Path Conflicts**: Eliminates `/admin` endpoint conflicts
 

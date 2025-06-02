@@ -228,7 +228,7 @@ Generate sophisticated FastAPI mock servers with dual-port architecture.
 - `storage_enabled` (boolean, optional): Enable storage functionality (default: true)
 
 **Revolutionary Dual-Port Architecture:**
-- **Business API Port**: Serves your API endpoints (default: 8000)
+- **Mocked API Port**: Serves your API endpoints (default: 8000)
 - **Admin UI Port**: Separate admin interface (default: 8001)
 - **Conflict Resolution**: Eliminates /admin path conflicts in OpenAPI specs
 - **Enhanced Security**: Port-based access control and isolation
@@ -647,7 +647,7 @@ MockLoop MCP introduces a revolutionary **dual-port architecture** that eliminat
 # Generate mock with dual-port architecture
 result = mockloop.generate_mock_api(
     spec_url_or_path="https://api.example.com/openapi.json",
-    business_port=8000,  # Business API port
+    business_port=8000,  # Mocked API port
     admin_port=8001,     # Admin UI port
     admin_ui_enabled=True
 )
@@ -655,7 +655,7 @@ result = mockloop.generate_mock_api(
 
 ### Access Points
 
-- **Business API**: `http://localhost:8000` - Your API endpoints
+- **Mocked API**: `http://localhost:8000` - Your API endpoints
 - **Admin UI**: `http://localhost:8001` - Management interface
 - **API Documentation**: `http://localhost:8000/docs` - Interactive Swagger UI
 - **Health Check**: `http://localhost:8000/health` - Server status
@@ -758,7 +758,7 @@ cd generated_mocks/your_api_mock
 docker-compose up --build
 
 # Access points:
-# Business API: http://localhost:8000
+# Mocked API: http://localhost:8000
 # Admin UI: http://localhost:8001
 ```
 
