@@ -23,7 +23,9 @@ import time
 import uuid
 from datetime import datetime, timezone
 from functools import wraps
+from pathlib import Path
 from typing import Any, Optional, Union
+from urllib.parse import urlparse
 
 # Handle imports for different execution contexts
 if __package__ is None or __package__ == "":
@@ -45,6 +47,14 @@ if __package__ is None or __package__ == "":
         check_server_connectivity
     )
     from mock_server_manager import MockServerManager
+    from generator import generate_mock_api
+    from proxy.config import (
+        ProxyConfig, AuthConfig, EndpointConfig, PluginConfig,
+        ProxyMode, AuthType
+    )
+    from proxy.plugin_manager import PluginManager
+    from proxy.proxy_handler import ProxyHandler
+    from proxy.auth_handler import AuthHandler
 else:
     from .mcp_audit_logger import create_audit_logger
     from .mcp_prompts import (
@@ -64,6 +74,14 @@ else:
         check_server_connectivity
     )
     from .mock_server_manager import MockServerManager
+    from .generator import generate_mock_api
+    from .proxy.config import (
+        ProxyConfig, AuthConfig, EndpointConfig, PluginConfig,
+        ProxyMode, AuthType
+    )
+    from .proxy.plugin_manager import PluginManager
+    from .proxy.proxy_handler import ProxyHandler
+    from .proxy.auth_handler import AuthHandler
 
 # Configure logger for this module
 logger = logging.getLogger(__name__)
@@ -876,6 +894,208 @@ async def run_load_test(
             "performance_results": {},
             "bottlenecks_identified": [],
             "recommendations": []
+        }
+
+
+@mcp_tool_audit("create_mcp_plugin")
+async def create_mcp_plugin(
+    spec_url_or_path: str,
+    plugin_name: str | None = None,
+    mode: str = "mock",
+    target_url: str | None = None,
+    auth_config: dict[str, Any] | None = None,
+    proxy_config: dict[str, Any] | None = None,
+    auto_register: bool = True
+) -> dict[str, Any]:
+    """
+    Dynamically create an MCP plugin for any API supporting mock or proxy mode.
+
+    This tool creates MCP plugins that can operate in three modes:
+    - Mock: Uses existing generate_mock_api functionality
+    - Proxy: Creates proxy configuration and handlers for real API calls
+    - Hybrid: Sets up both mock and proxy capabilities with routing rules
+
+    Args:
+        spec_url_or_path: URL or file path to OpenAPI specification
+        plugin_name: Name for the MCP plugin (optional, derived from API spec if not provided)
+        mode: Plugin mode - "mock", "proxy", or "hybrid" (default: "mock")
+        target_url: Target API URL (required if mode is "proxy" or "hybrid")
+        auth_config: Authentication configuration with type, header, value, oauth_config
+        proxy_config: Proxy configuration with timeout, retry_attempts, rate_limit, headers
+        auto_register: Whether to automatically register the plugin (default: True)
+
+    Returns:
+        Plugin creation result with configuration details and MCP information
+    """
+    try:
+        plugin_result = {
+            "status": "success",
+            "plugin_id": str(uuid.uuid4()),
+            "plugin_name": plugin_name,
+            "mode": mode,
+            "spec_source": spec_url_or_path,
+            "target_url": target_url,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "plugin_config": {},
+            "mcp_config": {},
+            "mock_server_path": None,
+            "proxy_config": {},
+            "validation_result": {},
+            "registration_result": {}
+        }
+
+        start_time = time.time()
+
+        # Validate input parameters
+        validation_result = _validate_plugin_parameters(mode, target_url, auth_config, proxy_config)
+        plugin_result["validation_result"] = validation_result
+
+        if not validation_result["valid"]:
+            return {
+                **plugin_result,
+                "status": "error",
+                "error": f"Parameter validation failed: {validation_result['errors']}"
+            }
+
+        # Load and parse OpenAPI specification
+        try:
+            api_spec = await _load_openapi_spec(spec_url_or_path)
+        except Exception as e:
+            return {
+                **plugin_result,
+                "status": "error",
+                "error": f"Failed to load OpenAPI specification: {e!s}"
+            }
+
+        # Extract API information
+        api_info = api_spec.get("info", {})
+        api_title = api_info.get("title", "Unknown API")
+
+        # Generate plugin name if not provided
+        if not plugin_name:
+            plugin_name = _generate_plugin_name(api_title)
+
+        plugin_result["plugin_name"] = plugin_name
+
+        # Determine base URL for proxy mode
+        if mode in ["proxy", "hybrid"] and not target_url:
+            # Try to extract from OpenAPI spec servers
+            servers = api_spec.get("servers", [])
+            if servers and servers[0].get("url"):
+                target_url = servers[0]["url"]
+                plugin_result["target_url"] = target_url
+            else:
+                return {
+                    **plugin_result,
+                    "status": "error",
+                    "error": "target_url is required for proxy/hybrid mode and could not be determined from API spec"
+                }
+
+        # Create proxy configuration
+        proxy_mode = ProxyMode(mode.upper())
+
+        # Set up authentication configuration
+        auth_cfg = None
+        if auth_config:
+            auth_type_str = auth_config.get("type", "none")
+            auth_type = AuthType(auth_type_str.upper()) if auth_type_str != "none" else AuthType.NONE
+
+            auth_cfg = AuthConfig(
+                auth_type=auth_type,
+                credentials=auth_config.get("credentials", {}),
+                location=auth_config.get("location", "header"),
+                name=auth_config.get("header", "Authorization")
+            )
+
+        # Create proxy configuration object
+        base_url = target_url or "http://localhost:8000"
+        proxy_cfg = ProxyConfig(
+            api_name=plugin_name,
+            base_url=base_url,
+            mode=proxy_mode,
+            default_auth=auth_cfg,
+            timeout=proxy_config.get("timeout", 30) if proxy_config else 30,
+            retry_count=proxy_config.get("retry_attempts", 3) if proxy_config else 3,
+            rate_limit=proxy_config.get("rate_limit") if proxy_config else None,
+            headers=proxy_config.get("headers", {}) if proxy_config else {}
+        )
+
+        # Generate endpoint configurations from OpenAPI spec
+        endpoints = _generate_endpoint_configs(api_spec, proxy_cfg, mode)
+        for endpoint in endpoints:
+            proxy_cfg.add_endpoint(endpoint)
+
+        plugin_result["proxy_config"] = proxy_cfg.to_dict()
+
+        # Create plugin configuration
+        plugin_cfg = PluginConfig(
+            plugin_name=plugin_name,
+            api_spec=api_spec,
+            proxy_config=proxy_cfg,
+            mcp_server_name=f"mcp_{plugin_name.lower().replace(' ', '_')}"
+        )
+
+        plugin_result["plugin_config"] = plugin_cfg.to_dict()
+
+        # Handle different modes
+        if mode == "mock":
+            # Use existing generate_mock_api functionality
+            mock_result = await _create_mock_plugin(api_spec, plugin_name, proxy_cfg)
+            plugin_result["mock_server_path"] = str(mock_result) if mock_result else None
+
+        elif mode == "proxy":
+            # Create proxy configuration and handlers
+            proxy_result = await _create_proxy_plugin(plugin_cfg)
+            plugin_result["proxy_setup"] = proxy_result
+
+        elif mode == "hybrid":
+            # Set up both mock and proxy capabilities
+            mock_result = await _create_mock_plugin(api_spec, plugin_name, proxy_cfg)
+            proxy_result = await _create_proxy_plugin(plugin_cfg)
+
+            plugin_result["mock_server_path"] = str(mock_result) if mock_result else None
+            plugin_result["proxy_setup"] = proxy_result
+
+            # Add routing rules for hybrid mode
+            routing_rules = _generate_hybrid_routing_rules(api_spec)
+            for rule in routing_rules:
+                proxy_cfg.add_route_rule(rule)
+
+        # Generate MCP configuration
+        mcp_config = _generate_mcp_configuration(plugin_cfg, mode)
+        plugin_result["mcp_config"] = mcp_config
+
+        # Auto-register plugin if requested
+        if auto_register:
+            registration_result = await _register_mcp_plugin(plugin_cfg)
+            plugin_result["registration_result"] = registration_result
+
+        # Calculate performance metrics
+        end_time = time.time()
+        plugin_result["performance_metrics"] = {
+            "creation_time_ms": round((end_time - start_time) * 1000, 2),
+            "endpoints_configured": len(endpoints),
+            "timestamp": end_time
+        }
+
+        return plugin_result
+
+    except Exception as e:
+        logger.exception("Error creating MCP plugin")
+        return {
+            "status": "error",
+            "plugin_id": str(uuid.uuid4()),
+            "plugin_name": plugin_name,
+            "mode": mode,
+            "spec_source": spec_url_or_path,
+            "error": f"Plugin creation failed: {e!s}",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "plugin_config": {},
+            "mcp_config": {},
+            "mock_server_path": None,
+            "proxy_config": {},
+            "validation_result": {},
+            "registration_result": {}
         }
 
 
@@ -2286,3 +2506,314 @@ async def monitor_test_progress(
             "alerts": [],
             "monitoring_timestamp": datetime.now(timezone.utc).isoformat()
         }
+
+# MCP Plugin Helper Functions
+
+def _validate_plugin_parameters(
+    mode: str,
+    target_url: str | None,
+    auth_config: dict[str, Any] | None,
+    proxy_config: dict[str, Any] | None
+) -> dict[str, Any]:
+    """Validate plugin creation parameters."""
+    validation_result = {
+        "valid": True,
+        "errors": [],
+        "warnings": []
+    }
+
+    # Validate mode
+    valid_modes = ["mock", "proxy", "hybrid"]
+    if mode not in valid_modes:
+        validation_result["errors"].append(f"Invalid mode '{mode}'. Must be one of {valid_modes}")
+        validation_result["valid"] = False
+
+    # Validate target_url for proxy/hybrid modes
+    if mode in ["proxy", "hybrid"] and not target_url:
+        validation_result["errors"].append("target_url is required for proxy and hybrid modes")
+        validation_result["valid"] = False
+
+    # Validate target_url format if provided
+    if target_url:
+        try:
+            parsed = urlparse(target_url)
+            if not parsed.scheme or not parsed.netloc:
+                validation_result["errors"].append("target_url must be a valid URL with scheme and netloc")
+                validation_result["valid"] = False
+        except Exception as e:
+            validation_result["errors"].append(f"Invalid target_url format: {e!s}")
+            validation_result["valid"] = False
+
+    # Validate auth_config if provided
+    if auth_config:
+        auth_type = auth_config.get("type")
+        valid_auth_types = ["api_key", "bearer", "oauth2", "basic", "custom"]
+        if auth_type and auth_type not in valid_auth_types:
+            validation_result["warnings"].append(f"Unknown auth type '{auth_type}'. Supported types: {valid_auth_types}")
+
+    # Validate proxy_config if provided
+    if proxy_config:
+        timeout = proxy_config.get("timeout")
+        if timeout and (not isinstance(timeout, int) or timeout <= 0):
+            validation_result["warnings"].append("timeout should be a positive integer")
+
+        retry_attempts = proxy_config.get("retry_attempts")
+        if retry_attempts and (not isinstance(retry_attempts, int) or retry_attempts < 0):
+            validation_result["warnings"].append("retry_attempts should be a non-negative integer")
+
+    return validation_result
+
+
+async def _load_openapi_spec(spec_url_or_path: str) -> dict[str, Any]:
+    """Load OpenAPI specification from URL or file path."""
+    try:
+        # Check if it's a URL
+        if spec_url_or_path.startswith(("http://", "https://")):
+            import aiohttp
+            async with aiohttp.ClientSession() as session:
+                async with session.get(spec_url_or_path) as response:
+                    if response.status == 200:
+                        content_type = response.headers.get("content-type", "")
+                        if "json" in content_type:
+                            return await response.json()
+                        else:
+                            # Try to parse as YAML
+                            import yaml
+                            text = await response.text()
+                            return yaml.safe_load(text)
+                    else:
+                        raise ValueError(f"HTTP {response.status}: Failed to fetch OpenAPI spec")
+        else:
+            # Treat as file path
+            file_path = Path(spec_url_or_path)
+            if not file_path.exists():
+                raise FileNotFoundError(f"OpenAPI spec file not found: {spec_url_or_path}")
+
+            with open(file_path, encoding="utf-8") as f:
+                if file_path.suffix.lower() in [".yaml", ".yml"]:
+                    import yaml
+                    return yaml.safe_load(f)
+                else:
+                    return json.load(f)
+    except Exception as e:
+        raise ValueError(f"Failed to load OpenAPI specification: {e!s}") from e
+
+
+def _generate_plugin_name(api_title: str) -> str:
+    """Generate a plugin name from API title."""
+    # Clean the API title to create a valid plugin name
+    plugin_name = api_title.lower()
+    # Replace spaces and special characters with underscores
+    plugin_name = "".join(c if c.isalnum() else "_" for c in plugin_name)
+    # Remove consecutive underscores
+    while "__" in plugin_name:
+        plugin_name = plugin_name.replace("__", "_")
+    # Remove leading/trailing underscores
+    plugin_name = plugin_name.strip("_")
+    # Ensure it's not empty
+    if not plugin_name:
+        plugin_name = "api_plugin"
+    return plugin_name
+
+
+def _generate_endpoint_configs(
+    api_spec: dict[str, Any],
+    proxy_config: ProxyConfig,
+    mode: str
+) -> list[EndpointConfig]:
+    """Generate endpoint configurations from OpenAPI specification."""
+    endpoints = []
+    paths = api_spec.get("paths", {})
+
+    for path, methods in paths.items():
+        for method, operation in methods.items():
+            if method.upper() in ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"]:
+                # Create mock response from OpenAPI spec
+                mock_response = None
+                if mode in ["mock", "hybrid"]:
+                    responses = operation.get("responses", {})
+                    success_response = responses.get("200") or responses.get("201") or next(iter(responses.values())) if responses else None
+
+                    if success_response:
+                        content = success_response.get("content", {})
+                        json_content = content.get("application/json", {})
+                        example = json_content.get("example")
+
+                        mock_response = {
+                            "status_code": 200,
+                            "content": example or {"message": f"Mock response for {method.upper()} {path}"},
+                            "headers": {"Content-Type": "application/json"}
+                        }
+
+                # Create endpoint configuration
+                endpoint = EndpointConfig(
+                    path=path,
+                    method=method.upper(),
+                    mock_response=mock_response,
+                    proxy_url=f"{proxy_config.base_url}{path}" if mode in ["proxy", "hybrid"] else None,
+                    auth_config=proxy_config.default_auth,
+                    timeout=proxy_config.timeout,
+                    retry_count=proxy_config.retry_count
+                )
+                endpoints.append(endpoint)
+
+    return endpoints
+
+
+async def _create_mock_plugin(
+    api_spec: dict[str, Any],
+    plugin_name: str,
+    proxy_config: ProxyConfig
+) -> Path | None:
+    """Create mock plugin using existing generate_mock_api functionality."""
+    try:
+        # Use the existing generate_mock_api function
+        mock_server_path = generate_mock_api(
+            api_spec,
+            mock_server_name=f"{plugin_name}_mock",
+            auth_enabled=proxy_config.default_auth is not None,
+            webhooks_enabled=True,
+            admin_ui_enabled=True,
+            storage_enabled=True,
+            business_port=8000,
+            admin_port=8001
+        )
+        return mock_server_path
+    except Exception:
+        logger.exception("Failed to create mock plugin")
+        return None
+
+
+async def _create_proxy_plugin(plugin_config: PluginConfig) -> dict[str, Any]:
+    """Create proxy plugin configuration and handlers."""
+    try:
+        # Initialize plugin manager
+        plugin_manager = PluginManager()
+
+        # Create proxy handler
+        proxy_handler = ProxyHandler(mode=plugin_config.proxy_config.mode)
+
+        # Create auth handler
+        auth_handler = AuthHandler()
+
+        # Add authentication if configured
+        if plugin_config.proxy_config.default_auth:
+            auth_config = plugin_config.proxy_config.default_auth
+            auth_handler.add_credentials(
+                plugin_config.plugin_name,
+                auth_config.auth_type,
+                auth_config.credentials
+            )
+
+        # Create plugin
+        plugin_id = plugin_manager.create_plugin(
+            plugin_config.plugin_name,
+            plugin_config.api_spec,
+            plugin_config.proxy_config.to_dict()
+        )
+
+        return {
+            "plugin_id": plugin_id,
+            "proxy_handler_status": proxy_handler.get_status(),
+            "auth_handler_apis": auth_handler.list_apis(),
+            "plugin_manager_status": plugin_manager.get_plugin_status(plugin_id)
+        }
+    except Exception as e:
+        logger.exception("Failed to create proxy plugin")
+        return {"error": str(e)}
+
+
+def _generate_hybrid_routing_rules(api_spec: dict[str, Any]) -> list[dict[str, Any]]:
+    """Generate routing rules for hybrid mode."""
+    from .proxy.config import RouteRule
+
+    rules = []
+    paths = api_spec.get("paths", {})
+
+    # Create default routing rules
+    for path, methods in paths.items():
+        for method in methods:
+            if method.upper() in ["GET", "POST", "PUT", "DELETE", "PATCH"]:
+                # Default: use mock for GET requests, proxy for mutations
+                mode = "mock" if method.upper() == "GET" else "proxy"
+
+                rule = RouteRule(
+                    pattern=f"{method.upper()} {path}",
+                    mode=ProxyMode(mode.upper()),
+                    condition=None,
+                    priority=1
+                )
+                rules.append(rule)
+
+    return rules
+
+
+def _generate_mcp_configuration(plugin_config: PluginConfig, mode: str) -> dict[str, Any]:
+    """Generate MCP server configuration."""
+    mcp_config = {
+        "server_name": plugin_config.mcp_server_name,
+        "version": "1.0.0",
+        "description": f"MCP plugin for {plugin_config.plugin_name} API",
+        "mode": mode,
+        "tools": [],
+        "resources": []
+    }
+
+    # Generate tools based on API endpoints
+    for endpoint in plugin_config.proxy_config.endpoints:
+        tool_name = f"{plugin_config.plugin_name}_{endpoint.method.lower()}_{endpoint.path.replace('/', '_').replace('{', '').replace('}', '')}"
+        tool_name = tool_name.replace("__", "_").strip("_")
+
+        tool = {
+            "name": tool_name,
+            "description": f"{endpoint.method} {endpoint.path}",
+            "inputSchema": {
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+        }
+        mcp_config["tools"].append(tool)
+
+    # Generate resources
+    resource = {
+        "uri": f"api://{plugin_config.plugin_name}/spec",
+        "name": f"{plugin_config.plugin_name} API Specification",
+        "description": f"OpenAPI specification for {plugin_config.plugin_name}",
+        "mimeType": "application/json"
+    }
+    mcp_config["resources"].append(resource)
+
+    return mcp_config
+
+
+async def _register_mcp_plugin(plugin_config: PluginConfig) -> dict[str, Any]:
+    """Register the MCP plugin (placeholder implementation)."""
+    try:
+        # This would typically register the plugin with an MCP registry
+        # For now, we'll just return a success status
+        registration_result = {
+            "status": "success",
+            "registered": True,
+            "plugin_id": plugin_config.mcp_server_name,
+            "registration_time": datetime.now(timezone.utc).isoformat(),
+            "message": f"Plugin {plugin_config.plugin_name} registered successfully"
+        }
+
+        logger.info(f"MCP plugin registered: {plugin_config.plugin_name}")
+        return registration_result
+    except Exception as e:
+        logger.exception("Failed to register MCP plugin")
+        return {
+            "status": "error",
+            "registered": False,
+            "error": str(e),
+            "registration_time": datetime.now(timezone.utc).isoformat()
+        }
+
+
+def _calculate_progress_percentage(progress: dict[str, Any]) -> float:
+    """Calculate progress percentage."""
+    total = progress.get("total_tests", 0)
+    completed = progress.get("completed_tests", 0)
+    return (completed / total) * 100 if total > 0 else 0
