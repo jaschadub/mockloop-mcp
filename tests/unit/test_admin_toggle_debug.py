@@ -18,88 +18,61 @@ def test_admin_toggle_functionality(base_url="http://localhost:8000"):
         base_url: Base URL of the mock API server
     """
 
-    try:
-        # Step 1: Make some non-admin requests to create logs
-        for _i in range(3):
-            response = requests.get(f"{base_url}/health")
-            time.sleep(0.1)
+    # Step 1: Make some non-admin requests to create logs
+    for _i in range(3):
+        response = requests.get(f"{base_url}/health", timeout=10)
+        time.sleep(0.1)
 
-        # Step 2: Make some admin requests to create admin logs
-        for _i in range(2):
-            response = requests.get(f"{base_url}/admin/api/requests?limit=1")
-            time.sleep(0.1)
+    # Step 2: Make some admin requests to create admin logs
+    for _i in range(2):
+        response = requests.get(f"{base_url}/admin/api/requests?limit=1", timeout=10)
+        time.sleep(0.1)
 
-        # Step 3: Test the admin API with include_admin=false (default)
-        response = requests.get(f"{base_url}/admin/api/requests?include_admin=false")
-        if response.status_code == 200:
-            logs = response.json()
-            admin_logs = [
-                log for log in logs if log.get("path", "").startswith("/admin")
-            ]
-            [log for log in logs if not log.get("path", "").startswith("/admin")]
+    # Step 3: Test the admin API with include_admin=false (default)
+    response = requests.get(f"{base_url}/admin/api/requests?include_admin=false", timeout=10)
+    assert response.status_code == 200, f"Expected status 200, got {response.status_code}"
 
-            if admin_logs:
-                pass
-            else:
-                pass
-        else:
-            return False
+    logs = response.json()
+    admin_logs = [
+        log for log in logs if log.get("path", "").startswith("/admin")
+    ]
+    # Admin logs should be filtered out when include_admin=false
+    assert len(admin_logs) == 0, f"Expected no admin logs, but found {len(admin_logs)}"
 
-        # Step 4: Test the admin API with include_admin=true
-        response = requests.get(f"{base_url}/admin/api/requests?include_admin=true")
-        if response.status_code == 200:
-            logs = response.json()
-            admin_logs = [
-                log for log in logs if log.get("path", "").startswith("/admin")
-            ]
-            [log for log in logs if not log.get("path", "").startswith("/admin")]
+    # Step 4: Test the admin API with include_admin=true
+    response = requests.get(f"{base_url}/admin/api/requests?include_admin=true", timeout=10)
+    assert response.status_code == 200, f"Expected status 200, got {response.status_code}"
 
-            if admin_logs:
-                pass
-            else:
-                pass
-        else:
-            return False
+    logs = response.json()
+    admin_logs = [
+        log for log in logs if log.get("path", "").startswith("/admin")
+    ]
+    # Admin logs should be included when include_admin=true
+    assert len(admin_logs) > 0, f"Expected admin logs to be included, but found {len(admin_logs)}"
 
-        # Step 5: Test the default behavior (no include_admin parameter)
-        response = requests.get(f"{base_url}/admin/api/requests")
-        if response.status_code == 200:
-            logs = response.json()
-            admin_logs = [
-                log for log in logs if log.get("path", "").startswith("/admin")
-            ]
-            [log for log in logs if not log.get("path", "").startswith("/admin")]
+    # Step 5: Test the default behavior (no include_admin parameter)
+    response = requests.get(f"{base_url}/admin/api/requests", timeout=10)
+    assert response.status_code == 200, f"Expected status 200, got {response.status_code}"
 
-            if admin_logs:
-                pass
-            else:
-                pass
-        else:
-            return False
+    logs = response.json()
+    admin_logs = [
+        log for log in logs if log.get("path", "").startswith("/admin")
+    ]
+    # Default behavior should filter out admin logs
+    assert len(admin_logs) == 0, f"Expected no admin logs by default, but found {len(admin_logs)}"
 
-        # Step 6: Check database directly if possible
-        try:
-            # Try to get a specific log to see its structure
-            response = requests.get(
-                f"{base_url}/admin/api/requests?limit=1&include_admin=true"
-            )
-            if response.status_code == 200:
-                logs = response.json()
-                if logs:
-                    sample_log = logs[0]
-                    if "is_admin" in sample_log:
-                        pass
-                    else:
-                        pass
-                else:
-                    pass
-        except Exception:
-            pass
+    # Step 6: Check database directly if possible
+    # Try to get a specific log to see its structure
+    response = requests.get(
+        f"{base_url}/admin/api/requests?limit=1&include_admin=true", timeout=10
+    )
+    assert response.status_code == 200, f"Expected status 200, got {response.status_code}"
 
-        return True
-
-    except Exception:
-        return False
+    logs = response.json()
+    if logs:
+        sample_log = logs[0]
+        # Check if log has expected structure
+        assert isinstance(sample_log, dict), "Log should be a dictionary"
 
 
 def main():
@@ -107,13 +80,17 @@ def main():
 
     input("Press Enter to continue...")
 
-    success = test_admin_toggle_functionality(base_url)
-
-    if success:
-        return 0
-    else:
-        return 1
+    try:
+        test_admin_toggle_functionality(base_url)
+        print("Admin toggle functionality test passed!")
+    except Exception as e:
+        print(f"Test failed: {e}")
+        raise
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        main()
+        sys.exit(0)
+    except Exception:
+        sys.exit(1)
