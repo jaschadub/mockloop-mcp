@@ -1782,56 +1782,15 @@ def main():
         if "--stdio" in sys.argv:
             sys.argv.remove("--stdio")
 
-        # Run in stdio mode for Claude Code using standard MCP server
+        # Run in stdio mode with full feature parity
+        # Handle imports for different execution contexts
+        if __package__ is None or __package__ == "":
+            from stdio_server import run_stdio_server
+        else:
+            from .stdio_server import run_stdio_server
+
         import asyncio
-        from mcp.server.stdio import stdio_server
-        from mcp.server import Server
-        from mcp.types import Tool
-
-        # Create standard MCP server for stdio mode
-        mcp_server = Server("MockLoop")
-
-        # Register tools with standard MCP server
-        @mcp_server.list_tools()
-        async def list_tools():
-            return [
-                Tool(
-                    name="generate_mock_api",
-                    description="Generates a FastAPI mock server from an API specification (e.g., OpenAPI). "
-                    "The mock server includes request/response logging and Docker support.",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "spec_url_or_path": {"type": "string"},
-                            "output_dir_name": {"type": "string"},
-                            "auth_enabled": {"type": "boolean", "default": True},
-                            "webhooks_enabled": {"type": "boolean", "default": True},
-                            "admin_ui_enabled": {"type": "boolean", "default": True},
-                            "storage_enabled": {"type": "boolean", "default": True},
-                            "business_port": {"type": "integer", "default": 8000},
-                            "admin_port": {"type": "integer"},
-                        },
-                        "required": ["spec_url_or_path"],
-                    },
-                )
-            ]
-
-        @mcp_server.call_tool()
-        async def call_tool(name: str, arguments: dict):
-            if name == "generate_mock_api":
-                return await generate_mock_api_tool(**arguments)
-            else:
-                raise ValueError(f"Unknown tool: {name}")
-
-        async def stdio_main():
-            async with stdio_server() as (read_stream, write_stream):
-                await mcp_server.run(
-                    read_stream,
-                    write_stream,
-                    mcp_server.create_initialization_options(),
-                )
-
-        asyncio.run(stdio_main())
+        asyncio.run(run_stdio_server())
     elif "--cli" in sys.argv:
         # Remove --cli from sys.argv so argparse doesn't see it
         sys.argv.remove("--cli")
