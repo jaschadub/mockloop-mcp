@@ -454,25 +454,26 @@ async def favicon():
 
         admin_api_endpoints_str = ""
         if admin_ui_enabled_bool:
-            admin_api_endpoints_str = """# --- Admin API Endpoints ---
-@admin_app.get("/api/export", tags=["_admin"])
-async def export_data():
-    import io
-    import zipfile
-    from fastapi.responses import StreamingResponse
-    # Implementation here...
-    return {"message": "Export functionality"}
+            admin_api_endpoints_str = """    # --- Admin API Endpoints ---
+    @admin_app.get("/api/export", tags=["_admin"])
+    async def export_data():
+        import io
+        import zipfile
+        from fastapi.responses import StreamingResponse
+        # Implementation here...
+        return {"message": "Export functionality"}
 
-@admin_app.get("/api/requests", tags=["_admin"])
-async def get_request_logs(limit: int = 100, offset: int = 0):
-    return {"logs": [], "count": 0}
+    @admin_app.get("/api/requests", tags=["_admin"])
+    async def get_request_logs(limit: int = 100, offset: int = 0):
+        return {"logs": [], "count": 0}
 
-@admin_app.get("/api/debug", tags=["_admin"])
-async def get_debug_info():
-    return {"status": "ok"}"""
+    @admin_app.get("/api/debug", tags=["_admin"])
+    async def get_debug_info():
+        return {"status": "ok"}"""
         webhook_api_endpoints_str = ""
         if webhooks_enabled_bool and admin_ui_enabled_bool:
-            _webhook_api_endpoints_raw = """    @admin_app.get("/api/webhooks", tags=["_admin"])
+            _webhook_api_endpoints_raw = """
+    @admin_app.get("/api/webhooks", tags=["_admin"])
     async def admin_get_webhooks():
         return get_webhooks()
 
@@ -495,12 +496,12 @@ async def get_debug_info():
 
     @admin_app.get("/api/webhooks/history", tags=["_admin"])
     async def admin_get_webhook_history():
-        return get_webhook_history()
-"""
+        return get_webhook_history()"""
             webhook_api_endpoints_str = _webhook_api_endpoints_raw.strip()
         storage_api_endpoints_str = ""
         if storage_enabled_bool and admin_ui_enabled_bool:
-            _storage_api_endpoints_raw = """    @admin_app.get("/api/storage/stats", tags=["_admin"])
+            _storage_api_endpoints_raw = """
+    @admin_app.get("/api/storage/stats", tags=["_admin"])
     async def admin_get_storage_stats():
         return get_storage_stats()
 
