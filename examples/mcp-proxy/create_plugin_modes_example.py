@@ -6,6 +6,7 @@ to create MCP plugins configured for 'proxy' and 'hybrid' modes.
 
 For a 'mock' mode example, please see `basic-mock-example.py`.
 """
+
 import asyncio
 import json
 from mockloop_mcp.mcp_tools import create_mcp_plugin
@@ -13,6 +14,7 @@ from mockloop_mcp.mcp_tools import create_mcp_plugin
 # A publicly available OpenAPI specification for demonstration purposes
 PETSTORE_SPEC_URL = "https://petstore.swagger.io/v2/swagger.json"
 PETSTORE_TARGET_URL = "https://petstore.swagger.io/v2"
+
 
 async def main():
     """
@@ -28,17 +30,19 @@ async def main():
     try:
         proxy_auth_config = {
             "auth_type": "api_key",  # Example: Petstore uses API key in header
-            "credentials": {"api_key": "YOUR_PETSTORE_API_KEY"}, # Replace with a real key if needed
+            "credentials": {
+                "api_key": "YOUR_PETSTORE_API_KEY"
+            },  # Replace with a real key if needed
             "location": "header",
-            "name": "api_key"
+            "name": "api_key",
         }
         proxy_plugin_result = await create_mcp_plugin(
             spec_url_or_path=PETSTORE_SPEC_URL,
             plugin_name="petstore_proxy_plugin",
             mode="proxy",  # Explicitly set to proxy mode
-            target_url=PETSTORE_TARGET_URL, # Required for proxy mode
+            target_url=PETSTORE_TARGET_URL,  # Required for proxy mode
             auth_config=proxy_auth_config,
-            auto_register=False
+            auto_register=False,
         )
         print("PROXY mode plugin creation result:")
         print(json.dumps(proxy_plugin_result, indent=2))
@@ -56,15 +60,15 @@ async def main():
             "auth_type": "api_key",
             "credentials": {"api_key": "YOUR_PETSTORE_API_KEY_HYBRID"},
             "location": "header",
-            "name": "special_api_key" # Potentially different for hybrid scenarios
+            "name": "special_api_key",  # Potentially different for hybrid scenarios
         }
         hybrid_plugin_result = await create_mcp_plugin(
             spec_url_or_path=PETSTORE_SPEC_URL,
             plugin_name="petstore_hybrid_plugin",
-            mode="hybrid", # Explicitly set to hybrid mode
-            target_url=PETSTORE_TARGET_URL, # Required for hybrid mode
+            mode="hybrid",  # Explicitly set to hybrid mode
+            target_url=PETSTORE_TARGET_URL,  # Required for hybrid mode
             auth_config=hybrid_auth_config,
-            auto_register=False
+            auto_register=False,
         )
         print("HYBRID mode plugin creation result:")
         print(json.dumps(hybrid_plugin_result, indent=2))
@@ -74,6 +78,7 @@ async def main():
         print("-" * 50)
 
     print("\nPlugin creation demonstration finished.")
+
 
 if __name__ == "__main__":
     asyncio.run(main())

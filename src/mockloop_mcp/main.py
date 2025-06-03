@@ -1788,10 +1788,11 @@ def main_cli():
 
     # Add version argument
     parser.add_argument(
-        "--version", "-V",
+        "--version",
+        "-V",
         action="version",
         version=f"%(prog)s {__version__}",
-        help="Show version information and exit"
+        help="Show version information and exit",
     )
 
     # Add mode selection arguments
@@ -1799,17 +1800,13 @@ def main_cli():
     mode_group.add_argument(
         "--stdio",
         action="store_true",
-        help="Run in stdio mode for MCP client communication"
+        help="Run in stdio mode for MCP client communication",
     )
     mode_group.add_argument(
-        "--sse",
-        action="store_true",
-        help="Run in Server-Sent Events mode (default)"
+        "--sse", action="store_true", help="Run in Server-Sent Events mode (default)"
     )
     mode_group.add_argument(
-        "--cli",
-        action="store_true",
-        help="Run in CLI mode for direct API generation"
+        "--cli", action="store_true", help="Run in CLI mode for direct API generation"
     )
 
     # CLI-specific arguments (only used when --cli is specified)
@@ -1817,10 +1814,11 @@ def main_cli():
     cli_group.add_argument(
         "spec_source",
         nargs="?",
-        help="URL or local file path to the API specification (required for CLI mode)"
+        help="URL or local file path to the API specification (required for CLI mode)",
     )
     cli_group.add_argument(
-        "-o", "--output-name",
+        "-o",
+        "--output-name",
         help="Optional name for the generated mock server directory",
         default=None,
     )
@@ -1828,75 +1826,63 @@ def main_cli():
         "--auth-enabled",
         action="store_true",
         default=True,
-        help="Enable authentication middleware (default: enabled)"
+        help="Enable authentication middleware (default: enabled)",
     )
     cli_group.add_argument(
-        "--no-auth",
-        action="store_true",
-        help="Disable authentication middleware"
+        "--no-auth", action="store_true", help="Disable authentication middleware"
     )
     cli_group.add_argument(
         "--webhooks-enabled",
         action="store_true",
         default=True,
-        help="Enable webhook support (default: enabled)"
+        help="Enable webhook support (default: enabled)",
     )
     cli_group.add_argument(
-        "--no-webhooks",
-        action="store_true",
-        help="Disable webhook support"
+        "--no-webhooks", action="store_true", help="Disable webhook support"
     )
     cli_group.add_argument(
         "--admin-ui-enabled",
         action="store_true",
         default=True,
-        help="Enable admin UI (default: enabled)"
+        help="Enable admin UI (default: enabled)",
     )
     cli_group.add_argument(
-        "--no-admin-ui",
-        action="store_true",
-        help="Disable admin UI"
+        "--no-admin-ui", action="store_true", help="Disable admin UI"
     )
     cli_group.add_argument(
         "--storage-enabled",
         action="store_true",
         default=True,
-        help="Enable storage functionality (default: enabled)"
+        help="Enable storage functionality (default: enabled)",
     )
     cli_group.add_argument(
-        "--no-storage",
-        action="store_true",
-        help="Disable storage functionality"
+        "--no-storage", action="store_true", help="Disable storage functionality"
     )
     cli_group.add_argument(
         "--mock-port",
         type=int,
         default=8000,
-        help="Port for the mock API (default: 8000)"
+        help="Port for the mock API (default: 8000)",
     )
     cli_group.add_argument(
         "--admin-port",
         type=int,
-        help="Port for the admin API (if different from business port)"
+        help="Port for the admin API (if different from business port)",
     )
 
     # Logging and debug options
     debug_group = parser.add_argument_group("debug and logging options")
     debug_group.add_argument(
-        "-v", "--verbose",
-        action="store_true",
-        help="Enable verbose output"
+        "-v", "--verbose", action="store_true", help="Enable verbose output"
     )
     debug_group.add_argument(
-        "-q", "--quiet",
-        action="store_true",
-        help="Suppress non-error output"
+        "-q", "--quiet", action="store_true", help="Suppress non-error output"
     )
     debug_group.add_argument(
         "--log-level",
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
         default="INFO",
-        help="Set logging level (default: INFO)"
+        help="Set logging level (default: INFO)",
     )
 
     args = parser.parse_args()
@@ -1909,8 +1895,7 @@ def main_cli():
         log_level = logging.ERROR
 
     logging.basicConfig(
-        level=log_level,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        level=log_level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     )
 
     # Handle CLI mode
@@ -1925,16 +1910,19 @@ def main_cli():
         storage_enabled = args.storage_enabled and not args.no_storage
 
         import asyncio
-        asyncio.run(run_tool_from_cli_enhanced(
-            args.spec_source,
-            args.output_name,
-            auth_enabled,
-            webhooks_enabled,
-            admin_ui_enabled,
-            storage_enabled,
-            args.mock_port,
-            args.admin_port
-        ))
+
+        asyncio.run(
+            run_tool_from_cli_enhanced(
+                args.spec_source,
+                args.output_name,
+                auth_enabled,
+                webhooks_enabled,
+                admin_ui_enabled,
+                storage_enabled,
+                args.mock_port,
+                args.admin_port,
+            )
+        )
     else:
         # Default behavior - show help if no mode specified
         parser.print_help()
@@ -1972,7 +1960,9 @@ def main():
     has_positional_args = any(not arg.startswith("-") for arg in sys.argv[1:])
 
     # Determine mode based on flags and context
-    if has_stdio_flag or (is_stdin_piped and not has_explicit_flags and not has_positional_args):
+    if has_stdio_flag or (
+        is_stdin_piped and not has_explicit_flags and not has_positional_args
+    ):
         # Remove --stdio from sys.argv if present
         if "--stdio" in sys.argv:
             sys.argv.remove("--stdio")
@@ -1985,6 +1975,7 @@ def main():
             from .stdio_server import run_stdio_server
 
         import asyncio
+
         asyncio.run(run_stdio_server())
     elif has_cli_flag or has_positional_args:
         # CLI mode - either explicit --cli flag or positional arguments provided

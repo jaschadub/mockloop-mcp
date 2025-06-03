@@ -26,7 +26,7 @@ async def main():
         "info": {
             "title": "User Management API",
             "version": "1.0.0",
-            "description": "A simple user management API for demonstration"
+            "description": "A simple user management API for demonstration",
         },
         "paths": {
             "/users": {
@@ -43,19 +43,19 @@ async def main():
                                             "id": 1,
                                             "name": "John Doe",
                                             "email": "john@example.com",
-                                            "role": "admin"
+                                            "role": "admin",
                                         },
                                         {
                                             "id": 2,
                                             "name": "Jane Smith",
                                             "email": "jane@example.com",
-                                            "role": "user"
-                                        }
+                                            "role": "user",
+                                        },
                                     ]
                                 }
-                            }
+                            },
                         }
-                    }
+                    },
                 },
                 "post": {
                     "summary": "Create a new user",
@@ -69,12 +69,12 @@ async def main():
                                     "properties": {
                                         "name": {"type": "string"},
                                         "email": {"type": "string"},
-                                        "role": {"type": "string"}
+                                        "role": {"type": "string"},
                                     },
-                                    "required": ["name", "email"]
+                                    "required": ["name", "email"],
                                 }
                             }
-                        }
+                        },
                     },
                     "responses": {
                         "201": {
@@ -85,13 +85,13 @@ async def main():
                                         "id": 3,
                                         "name": "New User",
                                         "email": "newuser@example.com",
-                                        "role": "user"
+                                        "role": "user",
                                     }
                                 }
-                            }
+                            },
                         }
-                    }
-                }
+                    },
+                },
             },
             "/users/{id}": {
                 "get": {
@@ -103,7 +103,7 @@ async def main():
                             "in": "path",
                             "required": True,
                             "schema": {"type": "integer"},
-                            "description": "User ID"
+                            "description": "User ID",
                         }
                     ],
                     "responses": {
@@ -116,26 +116,23 @@ async def main():
                                         "name": "John Doe",
                                         "email": "john@example.com",
                                         "role": "admin",
-                                        "created_at": "2023-01-01T00:00:00Z"
+                                        "created_at": "2023-01-01T00:00:00Z",
                                     }
                                 }
-                            }
+                            },
                         },
                         "404": {
                             "description": "User not found",
                             "content": {
                                 "application/json": {
-                                    "example": {
-                                        "error": "User not found",
-                                        "code": 404
-                                    }
+                                    "example": {"error": "User not found", "code": 404}
                                 }
-                            }
-                        }
-                    }
+                            },
+                        },
+                    },
                 }
-            }
-        }
+            },
+        },
     }
 
     # Step 1: Create MCP plugin in mock mode
@@ -148,7 +145,7 @@ async def main():
             plugin_name="user_management_api",
             target_url=None,  # No target URL needed for mock mode
             auth_config=None,  # No authentication for this example
-            proxy_config=None  # No proxy config needed for mock mode
+            proxy_config=None,  # No proxy config needed for mock mode
         )
 
         print("✅ Plugin created successfully!")
@@ -171,7 +168,7 @@ async def main():
             mode="mock",  # Explicitly use mock mode
             validation_mode="strict",  # Strict validation for development
             auto_generate_scenarios=True,
-            execute_immediately=True
+            execute_immediately=True,
         )
 
         print("✅ Test execution completed!")
@@ -181,13 +178,15 @@ async def main():
         print(f"   Duration: {test_results.get('duration', 0):.2f}s")
 
         # Display test details
-        if test_results.get('test_details'):
+        if test_results.get("test_details"):
             print("\n📊 Test Details:")
-            for test in test_results['test_details'][:3]:  # Show first 3 tests
-                status = "✅" if test.get('passed') else "❌"
-                print(f"   {status} {test.get('method', 'GET')} {test.get('path', '/')}")
+            for test in test_results["test_details"][:3]:  # Show first 3 tests
+                status = "✅" if test.get("passed") else "❌"
+                print(
+                    f"   {status} {test.get('method', 'GET')} {test.get('path', '/')}"
+                )
                 print(f"      Response: {test.get('status_code', 'N/A')}")
-                if test.get('response_time'):
+                if test.get("response_time"):
                     print(f"      Time: {test.get('response_time', 0):.3f}s")
 
     except Exception as e:
@@ -208,16 +207,16 @@ async def main():
                         "name": "Alice Johnson",
                         "email": "alice@company.com",
                         "role": "admin",
-                        "department": "Engineering"
+                        "department": "Engineering",
                     },
                     {
                         "id": 2,
                         "name": "Bob Wilson",
                         "email": "bob@company.com",
                         "role": "developer",
-                        "department": "Engineering"
-                    }
-                ]
+                        "department": "Engineering",
+                    },
+                ],
             }
         },
         "/users/{id}": {
@@ -229,10 +228,10 @@ async def main():
                     "email": "alice@company.com",
                     "role": "admin",
                     "department": "Engineering",
-                    "last_login": "2023-12-01T10:30:00Z"
-                }
+                    "last_login": "2023-12-01T10:30:00Z",
+                },
             }
-        }
+        },
     }
 
     print("📝 Custom mock responses configured:")
@@ -248,11 +247,19 @@ async def main():
     print("   • Offline development capability")
 
     print("\n✨ Next Steps:")
-    print("   1. Explore `create_plugin_modes_example.py` to see PROXY and HYBRID mode plugin creation.")
-    print("   2. Run `execute_plan_with_proxy_example.py` to test PROXY mode against a live API.")
-    print("   3. Examine `hybrid_mode_routing_example.py` for HYBRID mode with custom routing.")
+    print(
+        "   1. Explore `create_plugin_modes_example.py` to see PROXY and HYBRID mode plugin creation."
+    )
+    print(
+        "   2. Run `execute_plan_with_proxy_example.py` to test PROXY mode against a live API."
+    )
+    print(
+        "   3. Examine `hybrid_mode_routing_example.py` for HYBRID mode with custom routing."
+    )
     print("   4. Review `authentication-example.py` for various auth scenarios.")
-    print("   5. Check `proxy-validation-example.py` and `hybrid-workflow-example.py` for other advanced use cases.")
+    print(
+        "   5. Check `proxy-validation-example.py` and `hybrid-workflow-example.py` for other advanced use cases."
+    )
 
 
 if __name__ == "__main__":

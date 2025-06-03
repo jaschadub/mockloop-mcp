@@ -29,7 +29,7 @@ async def main():
         "info": {
             "title": "JSONPlaceholder API",
             "version": "1.0.0",
-            "description": "A fake online REST API for testing and prototyping"
+            "description": "A fake online REST API for testing and prototyping",
         },
         "servers": [
             {"url": "https://jsonplaceholder.typicode.com", "description": "Live API"}
@@ -49,13 +49,13 @@ async def main():
                                             "userId": 1,
                                             "id": 1,
                                             "title": "sunt aut facere repellat provident occaecati excepturi optio reprehenderit",
-                                            "body": "quia et suscipit\nsuscipit recusandae consequuntur expedita et cum\nreprehenderit molestiae ut ut quas totam\nnostrum rerum est autem sunt rem eveniet architecto"
+                                            "body": "quia et suscipit\nsuscipit recusandae consequuntur expedita et cum\nreprehenderit molestiae ut ut quas totam\nnostrum rerum est autem sunt rem eveniet architecto",
                                         }
                                     ]
                                 }
-                            }
+                            },
                         }
-                    }
+                    },
                 }
             },
             "/posts/{id}": {
@@ -68,7 +68,7 @@ async def main():
                             "in": "path",
                             "required": True,
                             "schema": {"type": "integer"},
-                            "description": "Post ID"
+                            "description": "Post ID",
                         }
                     ],
                     "responses": {
@@ -80,12 +80,12 @@ async def main():
                                         "userId": 1,
                                         "id": 1,
                                         "title": "sunt aut facere repellat provident occaecati excepturi optio reprehenderit",
-                                        "body": "quia et suscipit\nsuscipit recusandae consequuntur expedita et cum\nreprehenderit molestiae ut ut quas totam\nnostrum rerum est autem sunt rem eveniet architecto"
+                                        "body": "quia et suscipit\nsuscipit recusandae consequuntur expedita et cum\nreprehenderit molestiae ut ut quas totam\nnostrum rerum est autem sunt rem eveniet architecto",
                                     }
                                 }
-                            }
+                            },
                         }
-                    }
+                    },
                 }
             },
             "/users": {
@@ -107,17 +107,17 @@ async def main():
                                                 "street": "Kulas Light",
                                                 "suite": "Apt. 556",
                                                 "city": "Gwenborough",
-                                                "zipcode": "92998-3874"
-                                            }
+                                                "zipcode": "92998-3874",
+                                            },
                                         }
                                     ]
                                 }
-                            }
+                            },
                         }
-                    }
+                    },
                 }
-            }
-        }
+            },
+        },
     }
 
     # Step 1: Create plugin in mock mode first
@@ -130,7 +130,7 @@ async def main():
             plugin_name="jsonplaceholder_mock",
             target_url=None,
             auth_config=None,
-            proxy_config=None
+            proxy_config=None,
         )
 
         print("✅ Mock plugin created successfully!")
@@ -152,7 +152,7 @@ async def main():
             mode="mock",
             validation_mode="strict",
             auto_generate_scenarios=True,
-            execute_immediately=True
+            execute_immediately=True,
         )
 
         print("✅ Mock tests completed!")
@@ -178,8 +178,8 @@ async def main():
             proxy_config={
                 "timeout": 30,
                 "retry_count": 3,
-                "rate_limit": {"requests_per_minute": 60}
-            }
+                "rate_limit": {"requests_per_minute": 60},
+            },
         )
 
         print("✅ Proxy plugin created successfully!")
@@ -201,7 +201,7 @@ async def main():
             mode="proxy",
             validation_mode="soft",  # Use soft validation for live API
             auto_generate_scenarios=True,
-            execute_immediately=True
+            execute_immediately=True,
         )
 
         print("✅ Proxy tests completed!")
@@ -229,38 +229,44 @@ async def main():
                     "userId",  # User IDs might differ
                     "timestamp",  # Timestamps will differ
                     "created_at",
-                    "updated_at"
+                    "updated_at",
                 ],
                 "tolerance": 0.1,  # 10% tolerance for numeric values
                 "strict_arrays": False,  # Allow array order differences
                 "compare_structure": True,  # Focus on structure comparison
-                "compare_types": True  # Ensure data types match
+                "compare_types": True,  # Ensure data types match
             },
             report_differences=True,
             auto_generate_scenarios=True,
-            execute_immediately=True
+            execute_immediately=True,
         )
 
         print("✅ Comparison completed!")
 
         # Display comparison results
-        differences = comparison_results.get('differences', [])
+        differences = comparison_results.get("differences", [])
         if differences:
             print(f"   Found {len(differences)} differences:")
             for diff in differences[:3]:  # Show first 3 differences
-                endpoint = diff.get('endpoint', 'Unknown')
-                diff_type = diff.get('type', 'Unknown')
+                endpoint = diff.get("endpoint", "Unknown")
+                diff_type = diff.get("type", "Unknown")
                 print(f"   • {endpoint}: {diff_type}")
         else:
             print("   🎉 No significant differences found!")
 
         # Show validation summary
-        validation_summary = comparison_results.get('validation_summary', {})
+        validation_summary = comparison_results.get("validation_summary", {})
         if validation_summary:
             print("\n📈 Validation Summary:")
-            print(f"   Structure match: {validation_summary.get('structure_match', 'N/A')}%")
-            print(f"   Type consistency: {validation_summary.get('type_consistency', 'N/A')}%")
-            print(f"   Response similarity: {validation_summary.get('similarity_score', 'N/A')}%")
+            print(
+                f"   Structure match: {validation_summary.get('structure_match', 'N/A')}%"
+            )
+            print(
+                f"   Type consistency: {validation_summary.get('type_consistency', 'N/A')}%"
+            )
+            print(
+                f"   Response similarity: {validation_summary.get('similarity_score', 'N/A')}%"
+            )
 
     except Exception as e:
         print(f"❌ Comparison failed: {e}")
@@ -275,25 +281,22 @@ async def main():
             "auth_type": "api_key",
             "credentials": {"api_key": "your-api-key-here"},
             "location": "header",
-            "name": "X-API-Key"
+            "name": "X-API-Key",
         },
         "API Key (Query)": {
             "auth_type": "api_key",
             "credentials": {"api_key": "your-api-key-here"},
             "location": "query",
-            "name": "key"
+            "name": "key",
         },
         "Bearer Token": {
             "auth_type": "bearer_token",
-            "credentials": {"token": "your-bearer-token-here"}
+            "credentials": {"token": "your-bearer-token-here"},
         },
         "Basic Auth": {
             "auth_type": "basic_auth",
-            "credentials": {
-                "username": "your-username",
-                "password": "your-password"
-            }
-        }
+            "credentials": {"username": "your-username", "password": "your-password"},
+        },
     }
 
     print("📝 Authentication configuration examples:")
@@ -307,8 +310,8 @@ async def main():
     # Step 7: Performance comparison
     print("\n⚡ Step 7: Performance comparison...")
 
-    mock_duration = mock_results.get('duration', 0)
-    proxy_duration = proxy_results.get('duration', 0)
+    mock_duration = mock_results.get("duration", 0)
+    proxy_duration = proxy_results.get("duration", 0)
 
     if mock_duration > 0 and proxy_duration > 0:
         speed_ratio = proxy_duration / mock_duration
@@ -317,7 +320,9 @@ async def main():
         print(f"   Proxy is {speed_ratio:.1f}x slower than mock (expected)")
 
         if speed_ratio > 10:
-            print("   💡 Consider using mock mode for development and proxy for validation")
+            print(
+                "   💡 Consider using mock mode for development and proxy for validation"
+            )
         elif speed_ratio < 3:
             print("   🚀 Live API is quite fast - suitable for regular testing")
 

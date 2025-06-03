@@ -20,8 +20,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 # MockLoop MCP imports
 from mockloop_mcp.mcp_tools import create_mcp_plugin, execute_test_plan
 from mockloop_mcp.proxy import (
-    PluginManager, ProxyHandler, AuthHandler, ProxyConfig,
-    AuthConfig, EndpointConfig, RouteRule
+    PluginManager,
+    ProxyHandler,
+    AuthHandler,
+    ProxyConfig,
+    AuthConfig,
+    EndpointConfig,
+    RouteRule,
 )
 from mockloop_mcp.proxy.config import ProxyMode, AuthType
 
@@ -37,7 +42,7 @@ class TestMCPProxyIntegration:
             "info": {
                 "title": "Test API",
                 "version": "1.0.0",
-                "description": "Test API for proxy integration testing"
+                "description": "Test API for proxy integration testing",
             },
             "servers": [
                 {"url": "https://api.example.com", "description": "Production server"}
@@ -52,13 +57,21 @@ class TestMCPProxyIntegration:
                                 "content": {
                                     "application/json": {
                                         "example": [
-                                            {"id": 1, "name": "John Doe", "email": "john@example.com"},
-                                            {"id": 2, "name": "Jane Smith", "email": "jane@example.com"}
+                                            {
+                                                "id": 1,
+                                                "name": "John Doe",
+                                                "email": "john@example.com",
+                                            },
+                                            {
+                                                "id": 2,
+                                                "name": "Jane Smith",
+                                                "email": "jane@example.com",
+                                            },
                                         ]
                                     }
-                                }
+                                },
                             }
-                        }
+                        },
                     },
                     "post": {
                         "summary": "Create user",
@@ -70,24 +83,28 @@ class TestMCPProxyIntegration:
                                         "type": "object",
                                         "properties": {
                                             "name": {"type": "string"},
-                                            "email": {"type": "string"}
+                                            "email": {"type": "string"},
                                         },
-                                        "required": ["name", "email"]
+                                        "required": ["name", "email"],
                                     }
                                 }
-                            }
+                            },
                         },
                         "responses": {
                             "201": {
                                 "description": "User created",
                                 "content": {
                                     "application/json": {
-                                        "example": {"id": 3, "name": "New User", "email": "new@example.com"}
+                                        "example": {
+                                            "id": 3,
+                                            "name": "New User",
+                                            "email": "new@example.com",
+                                        }
                                     }
-                                }
+                                },
                             }
-                        }
-                    }
+                        },
+                    },
                 },
                 "/users/{id}": {
                     "get": {
@@ -97,7 +114,7 @@ class TestMCPProxyIntegration:
                                 "name": "id",
                                 "in": "path",
                                 "required": True,
-                                "schema": {"type": "integer"}
+                                "schema": {"type": "integer"},
                             }
                         ],
                         "responses": {
@@ -105,27 +122,29 @@ class TestMCPProxyIntegration:
                                 "description": "User details",
                                 "content": {
                                     "application/json": {
-                                        "example": {"id": 1, "name": "John Doe", "email": "john@example.com"}
+                                        "example": {
+                                            "id": 1,
+                                            "name": "John Doe",
+                                            "email": "john@example.com",
+                                        }
                                     }
-                                }
+                                },
                             },
-                            "404": {
-                                "description": "User not found"
-                            }
-                        }
+                            "404": {"description": "User not found"},
+                        },
                     }
-                }
+                },
             },
             "components": {
                 "securitySchemes": {
                     "ApiKeyAuth": {
                         "type": "apiKey",
                         "in": "header",
-                        "name": "X-API-Key"
+                        "name": "X-API-Key",
                     }
                 }
             },
-            "security": [{"ApiKeyAuth": []}]
+            "security": [{"ApiKeyAuth": []}],
         }
 
     @pytest.fixture
@@ -140,27 +159,35 @@ class TestMCPProxyIntegration:
                     "get": {
                         "summary": "Get a specific todo item",
                         "operationId": "getTodoById",
-                        "parameters": [{
-                            "name": "todoId", "in": "path", "required": True,
-                            "schema": {"type": "integer"}
-                        }],
+                        "parameters": [
+                            {
+                                "name": "todoId",
+                                "in": "path",
+                                "required": True,
+                                "schema": {"type": "integer"},
+                            }
+                        ],
                         "responses": {
                             "200": {
                                 "description": "Successful operation",
-                                "content": {"application/json": {"schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "userId": {"type": "integer"},
-                                        "id": {"type": "integer"},
-                                        "title": {"type": "string"},
-                                        "completed": {"type": "boolean"}
+                                "content": {
+                                    "application/json": {
+                                        "schema": {
+                                            "type": "object",
+                                            "properties": {
+                                                "userId": {"type": "integer"},
+                                                "id": {"type": "integer"},
+                                                "title": {"type": "string"},
+                                                "completed": {"type": "boolean"},
+                                            },
+                                        }
                                     }
-                                }}}
+                                },
                             }
-                        }
+                        },
                     }
                 }
-            }
+            },
         }
 
     @pytest.fixture
@@ -171,15 +198,15 @@ class TestMCPProxyIntegration:
                 "auth_type": "api_key",
                 "credentials": {"api_key": "test-api-key-123"},
                 "location": "header",
-                "name": "X-API-Key"
+                "name": "X-API-Key",
             },
             "bearer_token": {
                 "auth_type": "bearer_token",
-                "credentials": {"token": "test-bearer-token-456"}
+                "credentials": {"token": "test-bearer-token-456"},
             },
             "basic_auth": {
                 "auth_type": "basic_auth",
-                "credentials": {"username": "testuser", "password": "testpass"}
+                "credentials": {"username": "testuser", "password": "testpass"},
             },
             "oauth2": {
                 "auth_type": "oauth2",
@@ -187,15 +214,15 @@ class TestMCPProxyIntegration:
                     "access_token": "test-access-token",
                     "refresh_token": "test-refresh-token",
                     "client_id": "test-client-id",
-                    "client_secret": "test-client-secret"
-                }
-            }
+                    "client_secret": "test-client-secret",
+                },
+            },
         }
 
     @pytest.mark.asyncio
     async def test_plugin_creation_mock_mode(self, sample_api_spec):
         """Test creating MCP plugin in mock mode."""
-        with patch('mockloop_mcp.mcp_tools.PluginManager') as mock_plugin_manager:
+        with patch("mockloop_mcp.mcp_tools.PluginManager") as mock_plugin_manager:
             mock_manager = AsyncMock()
             mock_plugin_manager.return_value = mock_manager
             mock_manager.create_plugin.return_value = "test_plugin_id"
@@ -206,7 +233,7 @@ class TestMCPProxyIntegration:
                 plugin_name="test_api_mock",
                 target_url=None,
                 auth_config=None,
-                proxy_config=None
+                proxy_config=None,
             )
 
             assert result["status"] == "success"
@@ -219,7 +246,7 @@ class TestMCPProxyIntegration:
     @pytest.mark.asyncio
     async def test_plugin_creation_proxy_mode(self, sample_api_spec, auth_configs):
         """Test creating MCP plugin in proxy mode with authentication."""
-        with patch('mockloop_mcp.mcp_tools.PluginManager') as mock_plugin_manager:
+        with patch("mockloop_mcp.mcp_tools.PluginManager") as mock_plugin_manager:
             mock_manager = AsyncMock()
             mock_plugin_manager.return_value = mock_manager
             mock_manager.create_plugin.return_value = "test_plugin_proxy_id"
@@ -230,7 +257,7 @@ class TestMCPProxyIntegration:
                 plugin_name="test_api_proxy",
                 target_url="https://api.example.com",
                 auth_config=auth_configs["api_key"],
-                proxy_config=None
+                proxy_config=None,
             )
 
             assert result["status"] == "success"
@@ -247,21 +274,17 @@ class TestMCPProxyIntegration:
         """Test creating MCP plugin in hybrid mode with routing rules."""
         proxy_config = {
             "route_rules": [
-                {
-                    "pattern": "/users",
-                    "mode": "mock",
-                    "priority": 10
-                },
+                {"pattern": "/users", "mode": "mock", "priority": 10},
                 {
                     "pattern": "/users/{id}",
                     "mode": "proxy",
                     "condition": "request.method == 'GET'",
-                    "priority": 5
-                }
+                    "priority": 5,
+                },
             ]
         }
 
-        with patch('mockloop_mcp.mcp_tools.PluginManager') as mock_plugin_manager:
+        with patch("mockloop_mcp.mcp_tools.PluginManager") as mock_plugin_manager:
             mock_manager = AsyncMock()
             mock_plugin_manager.return_value = mock_manager
             mock_manager.create_plugin.return_value = "test_plugin_hybrid_id"
@@ -272,7 +295,7 @@ class TestMCPProxyIntegration:
                 plugin_name="test_api_hybrid",
                 target_url="https://api.example.com",
                 auth_config=auth_configs["bearer_token"],
-                proxy_config=proxy_config
+                proxy_config=proxy_config,
             )
 
             assert result["status"] == "success"
@@ -293,28 +316,24 @@ class TestMCPProxyIntegration:
             path="/users",
             method="GET",
             proxy_url="https://api.example.com/users",
-            timeout=30
+            timeout=30,
         )
 
         endpoint2 = EndpointConfig(
             path="/users/{id}",
             method="GET",
             proxy_url="https://api.example.com/users/{id}",
-            timeout=15
+            timeout=15,
         )
 
         # Create route rules
-        rule1 = RouteRule(
-            pattern="/users",
-            mode=ProxyMode.MOCK,
-            priority=10
-        )
+        rule1 = RouteRule(pattern="/users", mode=ProxyMode.MOCK, priority=10)
 
         rule2 = RouteRule(
             pattern="/users/{id}",
             mode=ProxyMode.PROXY,
             condition="request.method == 'GET'",
-            priority=5
+            priority=5,
         )
 
         # Create proxy config
@@ -324,7 +343,7 @@ class TestMCPProxyIntegration:
             mode=ProxyMode.HYBRID,
             default_auth=auth_config,
             timeout=30,
-            retry_count=3
+            retry_count=3,
         )
 
         proxy_config.add_endpoint(endpoint1)
@@ -355,16 +374,14 @@ class TestMCPProxyIntegration:
         result = auth_handler.add_credentials(
             "test_api",
             AuthType.API_KEY,
-            {
-                "api_key": "test-api-key-123",
-                "location": "header",
-                "name": "X-API-Key"
-            }
+            {"api_key": "test-api-key-123", "location": "header", "name": "X-API-Key"},
         )
         assert result is True
 
         request_data = {"headers": {}, "params": {}}
-        authenticated_request = auth_handler.authenticate_request("test_api", request_data)
+        authenticated_request = auth_handler.authenticate_request(
+            "test_api", request_data
+        )
         # Verify the function returns a valid response
         assert authenticated_request is not None
         assert "headers" in authenticated_request
@@ -377,25 +394,27 @@ class TestMCPProxyIntegration:
         result = auth_handler.add_credentials(
             "bearer_api",
             AuthType.BEARER_TOKEN,
-            auth_configs["bearer_token"]["credentials"]
+            auth_configs["bearer_token"]["credentials"],
         )
         assert result is True
 
         request_data = {"headers": {}}
-        authenticated_request = auth_handler.authenticate_request("bearer_api", request_data)
+        authenticated_request = auth_handler.authenticate_request(
+            "bearer_api", request_data
+        )
         assert authenticated_request is not None
         assert "headers" in authenticated_request
 
         # Test Basic authentication
         result = auth_handler.add_credentials(
-            "basic_api",
-            AuthType.BASIC_AUTH,
-            auth_configs["basic_auth"]["credentials"]
+            "basic_api", AuthType.BASIC_AUTH, auth_configs["basic_auth"]["credentials"]
         )
         assert result is True
 
         request_data = {"headers": {}}
-        authenticated_request = auth_handler.authenticate_request("basic_api", request_data)
+        authenticated_request = auth_handler.authenticate_request(
+            "basic_api", request_data
+        )
         assert authenticated_request is not None
         assert "headers" in authenticated_request
 
@@ -432,12 +451,7 @@ class TestMCPProxyIntegration:
         """Test ProxyHandler request handling in different modes."""
         handler = ProxyHandler(mode=ProxyMode.MOCK)
 
-        request_data = {
-            "method": "GET",
-            "path": "/users",
-            "headers": {},
-            "params": {}
-        }
+        request_data = {"method": "GET", "path": "/users", "headers": {}, "params": {}}
 
         # Test mock mode
         response = await handler.handle_request(request_data)
@@ -459,14 +473,23 @@ class TestMCPProxyIntegration:
     @pytest.mark.asyncio
     async def test_execute_test_plan_mock_mode(self, sample_api_spec):
         """Test execute_test_plan in mock mode."""
-        with patch('mockloop_mcp.mcp_tools.discover_running_servers') as mock_discover, \
-             patch('mockloop_mcp.mcp_tools.MockServerClient') as mock_client_class:
-
+        with (
+            patch("mockloop_mcp.mcp_tools.discover_running_servers") as mock_discover,
+            patch("mockloop_mcp.mcp_tools.MockServerClient") as mock_client_class,
+        ):
             mock_discover.return_value = [
-                {"url": "http://localhost:8000", "status": "healthy", "is_mockloop_server": True}
+                {
+                    "url": "http://localhost:8000",
+                    "status": "healthy",
+                    "is_mockloop_server": True,
+                }
             ]
             mock_client = AsyncMock()
-            mock_client.query_logs.return_value = {"status": "success", "logs": [], "analysis": {"total_requests": 0}}
+            mock_client.query_logs.return_value = {
+                "status": "success",
+                "logs": [],
+                "analysis": {"total_requests": 0},
+            }
             mock_client_class.return_value = mock_client
 
             result = await execute_test_plan(
@@ -476,7 +499,7 @@ class TestMCPProxyIntegration:
                 mode="mock",
                 validation_mode="strict",
                 auto_generate_scenarios=True,
-                execute_immediately=True
+                execute_immediately=True,
             )
 
             assert result["status"] in ["success", "completed"]
@@ -487,14 +510,23 @@ class TestMCPProxyIntegration:
     @pytest.mark.asyncio
     async def test_execute_test_plan_proxy_mode(self, sample_api_spec):
         """Test execute_test_plan in proxy mode with validation."""
-        with patch('mockloop_mcp.mcp_tools.discover_running_servers') as mock_discover, \
-             patch('mockloop_mcp.mcp_tools.MockServerClient') as mock_client_class:
-
+        with (
+            patch("mockloop_mcp.mcp_tools.discover_running_servers") as mock_discover,
+            patch("mockloop_mcp.mcp_tools.MockServerClient") as mock_client_class,
+        ):
             mock_discover.return_value = [
-                {"url": "http://localhost:8000", "status": "healthy", "is_mockloop_server": True}
+                {
+                    "url": "http://localhost:8000",
+                    "status": "healthy",
+                    "is_mockloop_server": True,
+                }
             ]
             mock_client = AsyncMock()
-            mock_client.query_logs.return_value = {"status": "success", "logs": [], "analysis": {"total_requests": 0}}
+            mock_client.query_logs.return_value = {
+                "status": "success",
+                "logs": [],
+                "analysis": {"total_requests": 0},
+            }
             mock_client_class.return_value = mock_client
 
             result = await execute_test_plan(
@@ -505,11 +537,11 @@ class TestMCPProxyIntegration:
                 validation_mode="soft",
                 comparison_config={
                     "ignore_fields": ["timestamp", "request_id"],
-                    "tolerance": 0.1
+                    "tolerance": 0.1,
                 },
                 report_differences=True,
                 auto_generate_scenarios=True,
-                execute_immediately=True
+                execute_immediately=True,
             )
 
             assert result["status"] in ["success", "completed"]
@@ -519,14 +551,23 @@ class TestMCPProxyIntegration:
     @pytest.mark.asyncio
     async def test_execute_test_plan_hybrid_mode(self, sample_api_spec):
         """Test execute_test_plan in hybrid mode with comparison."""
-        with patch('mockloop_mcp.mcp_tools.discover_running_servers') as mock_discover, \
-             patch('mockloop_mcp.mcp_tools.MockServerClient') as mock_client_class:
-
+        with (
+            patch("mockloop_mcp.mcp_tools.discover_running_servers") as mock_discover,
+            patch("mockloop_mcp.mcp_tools.MockServerClient") as mock_client_class,
+        ):
             mock_discover.return_value = [
-                {"url": "http://localhost:8000", "status": "healthy", "is_mockloop_server": True}
+                {
+                    "url": "http://localhost:8000",
+                    "status": "healthy",
+                    "is_mockloop_server": True,
+                }
             ]
             mock_client = AsyncMock()
-            mock_client.query_logs.return_value = {"status": "success", "logs": [], "analysis": {"total_requests": 0}}
+            mock_client.query_logs.return_value = {
+                "status": "success",
+                "logs": [],
+                "analysis": {"total_requests": 0},
+            }
             mock_client_class.return_value = mock_client
 
             result = await execute_test_plan(
@@ -538,12 +579,12 @@ class TestMCPProxyIntegration:
                 comparison_config={
                     "ignore_fields": ["timestamp"],
                     "tolerance": 0.05,
-                    "strict_arrays": False
+                    "strict_arrays": False,
                 },
                 parallel_execution=True,
                 report_differences=True,
                 auto_generate_scenarios=True,
-                execute_immediately=True
+                execute_immediately=True,
             )
 
             assert result["status"] in ["success", "completed", "partial_success"]
@@ -553,14 +594,24 @@ class TestMCPProxyIntegration:
     @pytest.mark.asyncio
     async def test_execute_test_plan_auto_mode_detection(self, sample_api_spec):
         """Test execute_test_plan with automatic mode detection."""
-        with patch('mockloop_mcp.mcp_tools.discover_running_servers') as mock_discover, \
-             patch('mockloop_mcp.mcp_tools.MockServerClient') as mock_client_class:
-
+        with (
+            patch("mockloop_mcp.mcp_tools.discover_running_servers") as mock_discover,
+            patch("mockloop_mcp.mcp_tools.MockServerClient") as mock_client_class,
+        ):
             mock_discover.return_value = [
-                {"url": "http://localhost:8000", "status": "healthy", "is_mockloop_server": True, "mode": "hybrid"}
+                {
+                    "url": "http://localhost:8000",
+                    "status": "healthy",
+                    "is_mockloop_server": True,
+                    "mode": "hybrid",
+                }
             ]
             mock_client = AsyncMock()
-            mock_client.query_logs.return_value = {"status": "success", "logs": [], "analysis": {"total_requests": 0}}
+            mock_client.query_logs.return_value = {
+                "status": "success",
+                "logs": [],
+                "analysis": {"total_requests": 0},
+            }
             mock_client_class.return_value = mock_client
 
             result = await execute_test_plan(
@@ -570,7 +621,7 @@ class TestMCPProxyIntegration:
                 mode="auto",  # Auto-detect mode
                 validation_mode="strict",
                 auto_generate_scenarios=True,
-                execute_immediately=True
+                execute_immediately=True,
             )
 
             assert result["status"] in ["success", "completed", "partial_success"]
@@ -588,7 +639,7 @@ class TestMCPProxyIntegration:
         plugin_id = manager.create_plugin(
             "test_api",
             {"openapi": "3.0.0", "info": {"title": "Test"}},
-            {"mode": "mock"}
+            {"mode": "mock"},
         )
         assert plugin_id.startswith("mcp_test_api_")
 
@@ -610,32 +661,33 @@ class TestMCPProxyIntegration:
 
     def test_error_handling_invalid_spec(self):
         """Test error handling with invalid API specifications."""
-        result = asyncio.run(create_mcp_plugin(
-            spec_url_or_path="invalid-json",
-            mode="mock",
-            plugin_name="invalid_test",
-            target_url=None,
-            auth_config=None,
-            proxy_config=None
-        ))
+        result = asyncio.run(
+            create_mcp_plugin(
+                spec_url_or_path="invalid-json",
+                mode="mock",
+                plugin_name="invalid_test",
+                target_url=None,
+                auth_config=None,
+                proxy_config=None,
+            )
+        )
         assert result["status"] == "error"
         assert "Failed to load OpenAPI specification" in result["error"]
 
     def test_error_handling_invalid_auth_config(self, sample_api_spec):
         """Test error handling with invalid authentication configuration."""
-        invalid_auth = {
-            "type": "invalid_type",
-            "credentials": {}
-        }
+        invalid_auth = {"type": "invalid_type", "credentials": {}}
 
-        result = asyncio.run(create_mcp_plugin(
-            spec_url_or_path=json.dumps(sample_api_spec),
-            mode="proxy",
-            plugin_name="invalid_auth_test",
-            target_url="https://api.example.com",
-            auth_config=invalid_auth,
-            proxy_config=None
-        ))
+        result = asyncio.run(
+            create_mcp_plugin(
+                spec_url_or_path=json.dumps(sample_api_spec),
+                mode="proxy",
+                plugin_name="invalid_auth_test",
+                target_url="https://api.example.com",
+                auth_config=invalid_auth,
+                proxy_config=None,
+            )
+        )
         # The function should handle invalid auth gracefully and still succeed
         # but with warnings in the validation result
         assert result["status"] in ["success", "error"]
@@ -645,7 +697,7 @@ class TestMCPProxyIntegration:
         config = ProxyConfig(
             api_name="file_test_api",
             base_url="https://api.example.com",
-            mode=ProxyMode.MOCK
+            mode=ProxyMode.MOCK,
         )
 
         # Test saving to file
@@ -662,20 +714,35 @@ class TestMCPProxyIntegration:
     @pytest.mark.asyncio
     async def test_performance_monitoring_integration(self, sample_api_spec):
         """Test performance monitoring integration."""
-        with patch('mockloop_mcp.mcp_tools.discover_running_servers') as mock_discover, \
-             patch('mockloop_mcp.mcp_tools.MockServerClient') as mock_client_class:
-
+        with (
+            patch("mockloop_mcp.mcp_tools.discover_running_servers") as mock_discover,
+            patch("mockloop_mcp.mcp_tools.MockServerClient") as mock_client_class,
+        ):
             mock_discover.return_value = [
-                {"url": "http://localhost:8000", "status": "healthy", "is_mockloop_server": True}
+                {
+                    "url": "http://localhost:8000",
+                    "status": "healthy",
+                    "is_mockloop_server": True,
+                }
             ]
             mock_client = AsyncMock()
             mock_client.query_logs.return_value = {
                 "status": "success",
                 "logs": [
-                    {"method": "GET", "path": "/users", "response_time": 0.123, "status_code": 200},
-                    {"method": "POST", "path": "/users", "response_time": 0.456, "status_code": 201}
+                    {
+                        "method": "GET",
+                        "path": "/users",
+                        "response_time": 0.123,
+                        "status_code": 200,
+                    },
+                    {
+                        "method": "POST",
+                        "path": "/users",
+                        "response_time": 0.456,
+                        "status_code": 201,
+                    },
                 ],
-                "analysis": {"total_requests": 2, "avg_response_time": 0.289}
+                "analysis": {"total_requests": 2, "avg_response_time": 0.289},
             }
             mock_client_class.return_value = mock_client
 
@@ -686,7 +753,7 @@ class TestMCPProxyIntegration:
                 mode="mock",
                 validation_mode="strict",
                 auto_generate_scenarios=True,
-                execute_immediately=True
+                execute_immediately=True,
             )
 
             assert result["status"] in ["success", "completed", "partial_success"]
@@ -698,8 +765,7 @@ class TestMCPProxyIntegration:
     def test_route_rule_priority_sorting(self):
         """Test that route rules are sorted by priority correctly."""
         config = ProxyConfig(
-            api_name="priority_test",
-            base_url="https://api.example.com"
+            api_name="priority_test", base_url="https://api.example.com"
         )
 
         # Add rules in random order
@@ -718,10 +784,7 @@ class TestMCPProxyIntegration:
 
     def test_endpoint_config_lookup(self):
         """Test endpoint configuration lookup functionality."""
-        config = ProxyConfig(
-            api_name="lookup_test",
-            base_url="https://api.example.com"
-        )
+        config = ProxyConfig(api_name="lookup_test", base_url="https://api.example.com")
 
         endpoint1 = EndpointConfig(path="/users", method="GET")
         endpoint2 = EndpointConfig(path="/users", method="POST")
@@ -749,7 +812,9 @@ class TestMCPProxyIntegration:
         assert found is None
 
     @pytest.mark.asyncio
-    async def test_e2e_create_plugin_and_execute_proxy_mode_jsonplaceholder(self, jsonplaceholder_todo_spec):
+    async def test_e2e_create_plugin_and_execute_proxy_mode_jsonplaceholder(
+        self, jsonplaceholder_todo_spec
+    ):
         """
         Test e2e flow:
         1. create_mcp_plugin in 'proxy' mode for JSONPlaceholder.
@@ -760,26 +825,33 @@ class TestMCPProxyIntegration:
         target_url = "https://jsonplaceholder.typicode.com"
 
         # Patch internal parts of create_mcp_plugin that are placeholders or deal with file system
-        with patch('mockloop_mcp.mcp_tools.PluginManager') as mock_plugin_manager_cls, \
-             patch('mockloop_mcp.mcp_tools._register_mcp_plugin', new_callable=AsyncMock) as mock_register, \
-             patch('mockloop_mcp.mcp_tools.generate_mock_api', new_callable=AsyncMock) as mock_gen_api: # In case mode logic touches it
-
+        with (
+            patch("mockloop_mcp.mcp_tools.PluginManager") as mock_plugin_manager_cls,
+            patch(
+                "mockloop_mcp.mcp_tools._register_mcp_plugin", new_callable=AsyncMock
+            ) as mock_register,
+            patch(
+                "mockloop_mcp.mcp_tools.generate_mock_api", new_callable=AsyncMock
+            ) as mock_gen_api,
+        ):  # In case mode logic touches it
             mock_plugin_manager_instance = AsyncMock()
-            mock_plugin_manager_instance.create_plugin.return_value = f"mcp_{plugin_name}_id"
+            mock_plugin_manager_instance.create_plugin.return_value = (
+                f"mcp_{plugin_name}_id"
+            )
             mock_plugin_manager_cls.return_value = mock_plugin_manager_instance
             mock_register.return_value = {"status": "success", "registered": True}
             import tempfile
+
             with tempfile.TemporaryDirectory() as temp_dir:
                 mock_gen_api.return_value = Path(temp_dir) / f"{plugin_name}_mock"
-
 
             plugin_result = await create_mcp_plugin(
                 spec_url_or_path=json.dumps(jsonplaceholder_todo_spec),
                 mode="proxy",
                 plugin_name=plugin_name,
                 target_url=target_url,
-                auth_config=None, # JSONPlaceholder /todos doesn't need auth
-                auto_register=True
+                auth_config=None,  # JSONPlaceholder /todos doesn't need auth
+                auto_register=True,
             )
 
             assert plugin_result["status"] == "success"
@@ -789,13 +861,21 @@ class TestMCPProxyIntegration:
 
             # Now test execute_test_plan
             # We expect _execute_proxy_test (called by execute_test_plan) to use aiohttp.ClientSession
-            with patch('aiohttp.ClientSession.request', new_callable=AsyncMock) as mock_aiohttp_request:
+            with patch(
+                "aiohttp.ClientSession.request", new_callable=AsyncMock
+            ) as mock_aiohttp_request:
                 # Mock the response from the external API
                 mock_response = AsyncMock()
                 mock_response.status = 200
                 mock_response.headers = {"content-type": "application/json"}
-                mock_response.json.return_value = {"id": 1, "title": "delectus aut autem", "completed": False}
-                mock_response.text.return_value = json.dumps({"id": 1, "title": "delectus aut autem", "completed": False})
+                mock_response.json.return_value = {
+                    "id": 1,
+                    "title": "delectus aut autem",
+                    "completed": False,
+                }
+                mock_response.text.return_value = json.dumps(
+                    {"id": 1, "title": "delectus aut autem", "completed": False}
+                )
 
                 # __aenter__ and __aexit__ are needed for async context manager
                 mock_session_instance = AsyncMock()
@@ -805,47 +885,66 @@ class TestMCPProxyIntegration:
 
                 # Patch deploy_scenario as it might be called if auto_generate_scenarios creates mock-based ones
                 # even if the top-level mode is proxy.
-                with patch('mockloop_mcp.mcp_tools.deploy_scenario', new_callable=AsyncMock) as mock_deploy_scenario:
-                    mock_deploy_scenario.return_value = {"status": "success", "deployed": True}
+                with patch(
+                    "mockloop_mcp.mcp_tools.deploy_scenario", new_callable=AsyncMock
+                ) as mock_deploy_scenario:
+                    mock_deploy_scenario.return_value = {
+                        "status": "success",
+                        "deployed": True,
+                    }
 
                     test_plan_result = await execute_test_plan(
                         openapi_spec=jsonplaceholder_todo_spec,
-                        server_url=target_url, # For proxy mode, server_url is the target
-                        mode="proxy", # Explicitly tell execute_test_plan to use proxy logic
+                        server_url=target_url,  # For proxy mode, server_url is the target
+                        mode="proxy",  # Explicitly tell execute_test_plan to use proxy logic
                         test_focus="functional",
-                        auto_generate_scenarios=True, # This will try to hit /todos/1 (or similar)
+                        auto_generate_scenarios=True,  # This will try to hit /todos/1 (or similar)
                         execute_immediately=True,
-                        validation_mode="soft"
+                        validation_mode="soft",
                     )
 
-                assert test_plan_result["status"] in ["success", "partial_success", "completed"] # 'completed' is from older version
+                assert test_plan_result["status"] in [
+                    "success",
+                    "partial_success",
+                    "completed",
+                ]  # 'completed' is from older version
 
                 # Verify aiohttp.request was called, indicating an attempt to hit the external API
                 mock_aiohttp_request.assert_called()
                 called_url = mock_aiohttp_request.call_args[0][1]
                 assert target_url in called_url
-                assert "/todos/" in called_url # Check if it tried to hit a specific todo
+                assert (
+                    "/todos/" in called_url
+                )  # Check if it tried to hit a specific todo
 
                 # Check if execution results contain data from the mocked external call
                 assert len(test_plan_result.get("execution_results", [])) > 0
                 first_exec_result = test_plan_result["execution_results"][0]
                 # The structure of execution_results can vary, check for logs or responses
                 if first_exec_result.get("request_logs"):
-                     actual_response_body = first_exec_result["request_logs"][0].get("body")
-                     # Check if we got a response body (may be None in mock scenarios)
-                     # Check for response data in different possible locations
-                     assert "live_responses" in first_exec_result or "request_logs" in first_exec_result
-                     # Check if response body exists and has expected structure
-                     if actual_response_body is not None:
-                         assert actual_response_body.get("id") == 1
-                elif first_exec_result.get("live_responses"): # Older structure
-                     actual_response_body = first_exec_result["live_responses"][0].get("body")
-                     assert actual_response_body is not None
-                     assert actual_response_body.get("id") == 1
-
+                    actual_response_body = first_exec_result["request_logs"][0].get(
+                        "body"
+                    )
+                    # Check if we got a response body (may be None in mock scenarios)
+                    # Check for response data in different possible locations
+                    assert (
+                        "live_responses" in first_exec_result
+                        or "request_logs" in first_exec_result
+                    )
+                    # Check if response body exists and has expected structure
+                    if actual_response_body is not None:
+                        assert actual_response_body.get("id") == 1
+                elif first_exec_result.get("live_responses"):  # Older structure
+                    actual_response_body = first_exec_result["live_responses"][0].get(
+                        "body"
+                    )
+                    assert actual_response_body is not None
+                    assert actual_response_body.get("id") == 1
 
     @pytest.mark.asyncio
-    async def test_e2e_create_plugin_hybrid_routing(self, jsonplaceholder_todo_spec, sample_api_spec):
+    async def test_e2e_create_plugin_hybrid_routing(
+        self, jsonplaceholder_todo_spec, sample_api_spec
+    ):
         """
         Test create_mcp_plugin for hybrid mode with routing rules.
         Verifies that the plugin configuration reflects the hybrid setup.
@@ -854,10 +953,12 @@ class TestMCPProxyIntegration:
         target_url = "https://jsonplaceholder.typicode.com"
 
         # Combine paths from both specs for a richer hybrid scenario
-        combined_paths = {**sample_api_spec["paths"], **jsonplaceholder_todo_spec["paths"]}
+        combined_paths = {
+            **sample_api_spec["paths"],
+            **jsonplaceholder_todo_spec["paths"],
+        }
         hybrid_spec = {**jsonplaceholder_todo_spec, "paths": combined_paths}
         hybrid_spec["info"]["title"] = "Hybrid E2E API"
-
 
         proxy_cfg_dict = {
             "api_name": plugin_name,
@@ -865,30 +966,40 @@ class TestMCPProxyIntegration:
             "mode": "hybrid",
             "route_rules": [
                 RouteRule(pattern="/users", mode=ProxyMode.MOCK, priority=10).to_dict(),
-                RouteRule(pattern="/todos/{todoId}", mode=ProxyMode.PROXY, priority=5).to_dict()
+                RouteRule(
+                    pattern="/todos/{todoId}", mode=ProxyMode.PROXY, priority=5
+                ).to_dict(),
             ],
-            "default_auth": None
+            "default_auth": None,
         }
 
-        with patch('mockloop_mcp.mcp_tools.PluginManager') as mock_plugin_manager_cls, \
-             patch('mockloop_mcp.mcp_tools._register_mcp_plugin', new_callable=AsyncMock) as mock_register, \
-             patch('mockloop_mcp.mcp_tools.generate_mock_api', new_callable=AsyncMock) as mock_gen_api:
-
+        with (
+            patch("mockloop_mcp.mcp_tools.PluginManager") as mock_plugin_manager_cls,
+            patch(
+                "mockloop_mcp.mcp_tools._register_mcp_plugin", new_callable=AsyncMock
+            ) as mock_register,
+            patch(
+                "mockloop_mcp.mcp_tools.generate_mock_api", new_callable=AsyncMock
+            ) as mock_gen_api,
+        ):
             mock_plugin_manager_instance = AsyncMock()
-            mock_plugin_manager_instance.create_plugin.return_value = f"mcp_{plugin_name}_id"
+            mock_plugin_manager_instance.create_plugin.return_value = (
+                f"mcp_{plugin_name}_id"
+            )
             mock_plugin_manager_cls.return_value = mock_plugin_manager_instance
             mock_register.return_value = {"status": "success", "registered": True}
             import tempfile
+
             with tempfile.TemporaryDirectory() as temp_dir:
                 mock_gen_api.return_value = Path(temp_dir) / f"{plugin_name}_mock"
 
             plugin_result = await create_mcp_plugin(
                 spec_url_or_path=json.dumps(hybrid_spec),
-                mode="hybrid", # Top-level mode
+                mode="hybrid",  # Top-level mode
                 plugin_name=plugin_name,
                 target_url=target_url,
-                proxy_config=proxy_cfg_dict, # Pass the dict containing route_rules
-                auto_register=True
+                proxy_config=proxy_cfg_dict,  # Pass the dict containing route_rules
+                auto_register=True,
             )
 
             assert plugin_result["status"] == "success"
@@ -897,18 +1008,25 @@ class TestMCPProxyIntegration:
 
             # Verify that the output proxy_config reflects the input route_rules
             output_proxy_config = plugin_result.get("proxy_config", {})
-            assert output_proxy_config.get("mode") == "hybrid" # from proxy_cfg_dict
+            assert output_proxy_config.get("mode") == "hybrid"  # from proxy_cfg_dict
             # Route rules may be empty if not generated - check if they exist
             route_rules = output_proxy_config.get("route_rules", [])
             assert isinstance(route_rules, list)
             # Only check route rules if they exist
             if route_rules:
-                assert any(r["pattern"] == "/users" and r["mode"] == "mock" for r in route_rules)
-                assert any(r["pattern"] == "/todos/{todoId}" and r["mode"] == "proxy" for r in route_rules)
+                assert any(
+                    r["pattern"] == "/users" and r["mode"] == "mock"
+                    for r in route_rules
+                )
+                assert any(
+                    r["pattern"] == "/todos/{todoId}" and r["mode"] == "proxy"
+                    for r in route_rules
+                )
 
             # Further testing execute_test_plan with this hybrid setup would require
             # a more sophisticated mock/patch setup for how it handles internal routing
             # or a running MockLoop instance. This test focuses on create_mcp_plugin's configuration.
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

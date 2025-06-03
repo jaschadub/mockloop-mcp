@@ -3,9 +3,9 @@ from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 env = Environment(
-    loader=FileSystemLoader("templates"),
-    autoescape=select_autoescape(['html', 'xml'])
+    loader=FileSystemLoader("templates"), autoescape=select_autoescape(["html", "xml"])
 )
+
 
 def generate_routes(spec: dict, output_path: str):
     template = env.get_template("route_template.j2")
@@ -24,4 +24,6 @@ def generate_routes(spec: dict, output_path: str):
 
     output_file = Path(output_path)
     output_file.parent.mkdir(parents=True, exist_ok=True)
-    output_file.write_text(f"from fastapi import FastAPI\n\napp = FastAPI()\n\n{routes_code}")
+    output_file.write_text(
+        f"from fastapi import FastAPI\n\napp = FastAPI()\n\n{routes_code}"
+    )

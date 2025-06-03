@@ -33,7 +33,9 @@ class VersionBumper:
     def get_current_version(self) -> str:
         """Get the current version from pyproject.toml."""
         if not self.pyproject_path.exists():
-            raise FileNotFoundError(f"pyproject.toml not found at {self.pyproject_path}")
+            raise FileNotFoundError(
+                f"pyproject.toml not found at {self.pyproject_path}"
+            )
 
         content = self.pyproject_path.read_text()
         match = re.search(r'version\s*=\s*"([^"]+)"', content)
@@ -105,9 +107,7 @@ class VersionBumper:
         # Update pyproject.toml
         content = self.pyproject_path.read_text()
         content = re.sub(
-            r'version\s*=\s*"[^"]+"',
-            f'version = "{new_version}"',
-            content
+            r'version\s*=\s*"[^"]+"', f'version = "{new_version}"', content
         )
         self.pyproject_path.write_text(content)
 
@@ -115,12 +115,9 @@ class VersionBumper:
         if self.init_path.exists():
             content = self.init_path.read_text()
             content = re.sub(
-                r'__version__\s*=\s*"[^"]+"',
-                f'__version__ = "{new_version}"',
-                content
+                r'__version__\s*=\s*"[^"]+"', f'__version__ = "{new_version}"', content
             )
             self.init_path.write_text(content)
-
 
     def update_changelog(self, new_version: str) -> None:
         """Update CHANGELOG.md with new version and date."""
@@ -132,10 +129,7 @@ class VersionBumper:
 
         # Replace [Unreleased] with the new version
         content = re.sub(
-            r"\[Unreleased\]",
-            f"[{new_version}] - {today}",
-            content,
-            count=1
+            r"\[Unreleased\]", f"[{new_version}] - {today}", content, count=1
         )
 
         # Add new [Unreleased] section at the top
@@ -159,7 +153,9 @@ class VersionBumper:
         version_pattern = r"(## \[\d+\.\d+\.\d+.*?\])"
         match = re.search(version_pattern, content)
         if match:
-            content = content.replace(match.group(1), unreleased_section + match.group(1))
+            content = content.replace(
+                match.group(1), unreleased_section + match.group(1)
+            )
         else:
             # If no version sections found, add after the header
             header_end = content.find("\n\n") + 2
@@ -168,11 +164,13 @@ class VersionBumper:
         # Update comparison links at the bottom
         if f"[{new_version}]:" not in content:
             # Add new version link
-            unreleased_link = "[Unreleased]: https://github.com/mockloop/mockloop-mcp/compare/"
+            unreleased_link = (
+                "[Unreleased]: https://github.com/mockloop/mockloop-mcp/compare/"
+            )
             if unreleased_link in content:
                 content = content.replace(
                     unreleased_link,
-                    f"{unreleased_link}v{new_version}...HEAD\n[{new_version}]: https://github.com/mockloop/mockloop-mcp/releases/tag/v{new_version}\n"
+                    f"{unreleased_link}v{new_version}...HEAD\n[{new_version}]: https://github.com/mockloop/mockloop-mcp/releases/tag/v{new_version}\n",
                 )
 
         self.changelog_path.write_text(content)
@@ -197,8 +195,9 @@ class VersionBumper:
             # Create tag
             tag_name = f"v{version}"
             tag_message = f"Release version {version}"
-            subprocess.run(["git", "tag", "-a", tag_name, "-m", tag_message], check=True)
-
+            subprocess.run(
+                ["git", "tag", "-a", tag_name, "-m", tag_message], check=True
+            )
 
         except subprocess.CalledProcessError:
             pass
@@ -211,13 +210,23 @@ def main():
     parser = argparse.ArgumentParser(description="Bump version for mockloop-mcp")
 
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument("bump_type", nargs="?", choices=["major", "minor", "patch"],
-                      help="Type of version bump")
+    group.add_argument(
+        "bump_type",
+        nargs="?",
+        choices=["major", "minor", "patch"],
+        help="Type of version bump",
+    )
     group.add_argument("--version", help="Set specific version")
 
-    parser.add_argument("--pre-release", help="Pre-release identifier (alpha, beta, rc)")
+    parser.add_argument(
+        "--pre-release", help="Pre-release identifier (alpha, beta, rc)"
+    )
     parser.add_argument("--no-git", action="store_true", help="Skip git operations")
-    parser.add_argument("--dry-run", action="store_true", help="Show what would be done without making changes")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show what would be done without making changes",
+    )
 
     args = parser.parse_args()
 
@@ -240,7 +249,6 @@ def main():
         else:
             new_version = bumper.bump_version(args.bump_type, args.pre_release)
 
-
         if args.dry_run:
             return
 
@@ -250,7 +258,6 @@ def main():
 
         if not args.no_git:
             bumper.create_git_commit_and_tag(new_version)
-
 
     except Exception:
         sys.exit(1)

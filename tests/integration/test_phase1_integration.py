@@ -118,7 +118,9 @@ def test_mock_generation():
     ]
 
     for endpoint in required_endpoints:
-        assert endpoint in main_py_content, f"Required endpoint {endpoint} not found in main.py"
+        assert endpoint in main_py_content, (
+            f"Required endpoint {endpoint} not found in main.py"
+        )
 
     # Check if the admin UI has the new analytics tab
     admin_html_content = (output_dir / "templates" / "admin.html").read_text()
@@ -128,11 +130,13 @@ def test_mock_generation():
         "Request Logs",
         "total-requests",  # ID for total requests counter
         "active-webhooks",  # ID for webhooks counter
-        "Server Status",   # Server status section
+        "Server Status",  # Server status section
     ]
 
     for element in required_ui_elements:
-        assert element in admin_html_content, f"Required UI element {element} not found in admin.html"
+        assert element in admin_html_content, (
+            f"Required UI element {element} not found in admin.html"
+        )
 
     # Check middleware enhancements
     middleware_content = (output_dir / "logging_middleware.py").read_text()
@@ -146,7 +150,9 @@ def test_mock_generation():
     ]
 
     for feature in required_middleware_features:
-        assert feature in middleware_content, f"Required middleware feature {feature} not found"
+        assert feature in middleware_content, (
+            f"Required middleware feature {feature} not found"
+        )
 
 
 def test_database_migration():
@@ -157,6 +163,7 @@ def test_database_migration():
 
     # Simulate database path - use a test-specific path
     from tempfile import mkdtemp
+
     temp_dir = Path(mkdtemp())
     db_path = temp_dir / "db" / "request_logs.db"
     db_path.parent.mkdir(exist_ok=True)
@@ -175,7 +182,9 @@ def test_database_migration():
 
     # Check final status
     final_status = migrator.get_migration_status()
-    assert isinstance(final_status, dict), "Final migration status should be a dictionary"
+    assert isinstance(final_status, dict), (
+        "Final migration status should be a dictionary"
+    )
 
     # Test backup functionality
     backup_path = migrator.backup_database()
@@ -248,15 +257,15 @@ def test_log_analyzer_integration():
         assert key in analysis, f"Expected key {key} not found in analysis results"
 
     # Test filtering
-    filtered_logs = analyzer.filter_logs(
-        sample_logs, method="GET", include_admin=False
-    )
+    filtered_logs = analyzer.filter_logs(sample_logs, method="GET", include_admin=False)
 
     assert len(filtered_logs) == 2, f"Expected 2 GET requests, got {len(filtered_logs)}"
 
     # Test quick analysis function
     quick_result = quick_analyze(sample_logs)
-    assert "total_requests" in quick_result, "Quick analysis should include total_requests"
+    assert "total_requests" in quick_result, (
+        "Quick analysis should include total_requests"
+    )
 
 
 def main():

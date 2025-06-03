@@ -26,10 +26,13 @@ async def main():
         "info": {
             "title": "Secure API",
             "version": "1.0.0",
-            "description": "API demonstrating various authentication methods"
+            "description": "API demonstrating various authentication methods",
         },
         "servers": [
-            {"url": "https://api.secure-example.com", "description": "Production server"}
+            {
+                "url": "https://api.secure-example.com",
+                "description": "Production server",
+            }
         ],
         "paths": {
             "/public/status": {
@@ -43,9 +46,9 @@ async def main():
                                 "application/json": {
                                     "example": {"status": "healthy", "version": "1.0.0"}
                                 }
-                            }
+                            },
                         }
-                    }
+                    },
                 }
             },
             "/api/users": {
@@ -59,13 +62,13 @@ async def main():
                                 "application/json": {
                                     "example": [
                                         {"id": 1, "name": "John Doe", "role": "admin"},
-                                        {"id": 2, "name": "Jane Smith", "role": "user"}
+                                        {"id": 2, "name": "Jane Smith", "role": "user"},
                                     ]
                                 }
-                            }
+                            },
                         },
-                        "401": {"description": "Unauthorized"}
-                    }
+                        "401": {"description": "Unauthorized"},
+                    },
                 }
             },
             "/api/profile": {
@@ -81,13 +84,16 @@ async def main():
                                         "id": 1,
                                         "name": "John Doe",
                                         "email": "john@example.com",
-                                        "preferences": {"theme": "dark", "notifications": True}
+                                        "preferences": {
+                                            "theme": "dark",
+                                            "notifications": True,
+                                        },
                                     }
                                 }
-                            }
+                            },
                         },
-                        "401": {"description": "Unauthorized"}
-                    }
+                        "401": {"description": "Unauthorized"},
+                    },
                 }
             },
             "/admin/settings": {
@@ -102,14 +108,14 @@ async def main():
                                     "example": {
                                         "maintenance_mode": False,
                                         "max_users": 1000,
-                                        "features": ["analytics", "reporting"]
+                                        "features": ["analytics", "reporting"],
                                     }
                                 }
-                            }
+                            },
                         },
                         "401": {"description": "Unauthorized"},
-                        "403": {"description": "Forbidden"}
-                    }
+                        "403": {"description": "Forbidden"},
+                    },
                 }
             },
             "/oauth/userinfo": {
@@ -125,15 +131,15 @@ async def main():
                                         "sub": "user123",
                                         "name": "John Doe",
                                         "email": "john@example.com",
-                                        "scope": ["read:user", "write:profile"]
+                                        "scope": ["read:user", "write:profile"],
                                     }
                                 }
-                            }
+                            },
                         },
-                        "401": {"description": "Invalid token"}
-                    }
+                        "401": {"description": "Invalid token"},
+                    },
                 }
-            }
+            },
         },
         "components": {
             "securitySchemes": {
@@ -141,18 +147,18 @@ async def main():
                     "type": "apiKey",
                     "in": "header",
                     "name": "X-API-Key",
-                    "description": "API key authentication"
+                    "description": "API key authentication",
                 },
                 "BearerAuth": {
                     "type": "http",
                     "scheme": "bearer",
                     "bearerFormat": "JWT",
-                    "description": "Bearer token authentication"
+                    "description": "Bearer token authentication",
                 },
                 "BasicAuth": {
                     "type": "http",
                     "scheme": "basic",
-                    "description": "Basic HTTP authentication"
+                    "description": "Basic HTTP authentication",
                 },
                 "OAuth2": {
                     "type": "oauth2",
@@ -162,13 +168,13 @@ async def main():
                             "tokenUrl": "https://api.secure-example.com/oauth/token",
                             "scopes": {
                                 "read:user": "Read user information",
-                                "write:profile": "Update user profile"
-                            }
+                                "write:profile": "Update user profile",
+                            },
                         }
-                    }
-                }
+                    },
+                },
             }
-        }
+        },
     }
 
     # Authentication configurations for different scenarios
@@ -177,15 +183,17 @@ async def main():
             "auth_type": "api_key",
             "credentials": {"api_key": "sk-test-api-key-12345"},
             "location": "header",
-            "name": "X-API-Key"
+            "name": "X-API-Key",
         },
         "bearer_token": {
             "auth_type": "bearer_token",
-            "credentials": {"token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.test-jwt-token"}
+            "credentials": {
+                "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.test-jwt-token"
+            },
         },
         "basic_auth": {
             "auth_type": "basic_auth",
-            "credentials": {"username": "admin", "password": "secure-password-123"}
+            "credentials": {"username": "admin", "password": "secure-password-123"},
         },
         "oauth2": {
             "auth_type": "oauth2",
@@ -193,9 +201,9 @@ async def main():
                 "access_token": "ya29.test-oauth2-access-token",
                 "refresh_token": "1//test-refresh-token",
                 "client_id": "test-client-id.apps.googleusercontent.com",
-                "client_secret": "test-client-secret"
-            }
-        }
+                "client_secret": "test-client-secret",
+            },
+        },
     }
 
     # Scenario 1: API Key Authentication
@@ -209,12 +217,16 @@ async def main():
             plugin_name="secure_api_key",
             target_url="https://api.secure-example.com",
             auth_config=auth_configs["api_key"],
-            proxy_config=None
+            proxy_config=None,
         )
 
         print(f"✅ API Key plugin created: {api_key_plugin.get('plugin_id', 'N/A')}")
-        print(f"   Auth type: {api_key_plugin.get('auth_config', {}).get('auth_type', 'N/A')}")
-        print(f"   Key location: {api_key_plugin.get('auth_config', {}).get('location', 'N/A')}")
+        print(
+            f"   Auth type: {api_key_plugin.get('auth_config', {}).get('auth_type', 'N/A')}"
+        )
+        print(
+            f"   Key location: {api_key_plugin.get('auth_config', {}).get('location', 'N/A')}"
+        )
 
     except Exception as e:
         print(f"❌ API Key plugin creation failed: {e}")
@@ -230,11 +242,15 @@ async def main():
             plugin_name="secure_api_bearer",
             target_url="https://api.secure-example.com",
             auth_config=auth_configs["bearer_token"],
-            proxy_config=None
+            proxy_config=None,
         )
 
-        print(f"✅ Bearer token plugin created: {bearer_plugin.get('plugin_id', 'N/A')}")
-        print(f"   Auth type: {bearer_plugin.get('auth_config', {}).get('auth_type', 'N/A')}")
+        print(
+            f"✅ Bearer token plugin created: {bearer_plugin.get('plugin_id', 'N/A')}"
+        )
+        print(
+            f"   Auth type: {bearer_plugin.get('auth_config', {}).get('auth_type', 'N/A')}"
+        )
         print("   Token format: JWT")
 
     except Exception as e:
@@ -253,23 +269,19 @@ async def main():
             auth_config=auth_configs["basic_auth"],
             proxy_config={
                 "route_rules": [
-                    {
-                        "pattern": "/admin/*",
-                        "mode": "proxy",
-                        "priority": 10
-                    },
-                    {
-                        "pattern": "/public/*",
-                        "mode": "mock",
-                        "priority": 5
-                    }
+                    {"pattern": "/admin/*", "mode": "proxy", "priority": 10},
+                    {"pattern": "/public/*", "mode": "mock", "priority": 5},
                 ]
-            }
+            },
         )
 
         print(f"✅ Basic auth plugin created: {basic_plugin.get('plugin_id', 'N/A')}")
-        print(f"   Auth type: {basic_plugin.get('auth_config', {}).get('auth_type', 'N/A')}")
-        print(f"   Username: {basic_plugin.get('auth_config', {}).get('credentials', {}).get('username', 'N/A')}")
+        print(
+            f"   Auth type: {basic_plugin.get('auth_config', {}).get('auth_type', 'N/A')}"
+        )
+        print(
+            f"   Username: {basic_plugin.get('auth_config', {}).get('credentials', {}).get('username', 'N/A')}"
+        )
 
     except Exception as e:
         print(f"❌ Basic auth plugin creation failed: {e}")
@@ -285,12 +297,16 @@ async def main():
             plugin_name="secure_api_oauth2",
             target_url="https://api.secure-example.com",
             auth_config=auth_configs["oauth2"],
-            proxy_config=None
+            proxy_config=None,
         )
 
         print(f"✅ OAuth2 plugin created: {oauth2_plugin.get('plugin_id', 'N/A')}")
-        print(f"   Auth type: {oauth2_plugin.get('auth_config', {}).get('auth_type', 'N/A')}")
-        print(f"   Has refresh token: {'Yes' if 'refresh_token' in auth_configs['oauth2']['credentials'] else 'No'}")
+        print(
+            f"   Auth type: {oauth2_plugin.get('auth_config', {}).get('auth_type', 'N/A')}"
+        )
+        print(
+            f"   Has refresh token: {'Yes' if 'refresh_token' in auth_configs['oauth2']['credentials'] else 'No'}"
+        )
 
     except Exception as e:
         print(f"❌ OAuth2 plugin creation failed: {e}")
@@ -308,7 +324,7 @@ async def main():
             mode="mock",  # Use mock mode for demonstration
             validation_mode="strict",
             auto_generate_scenarios=True,
-            execute_immediately=True
+            execute_immediately=True,
         )
 
         print("✅ Multi-auth testing completed!")
@@ -329,12 +345,12 @@ async def main():
             "auth_type": "api_key",
             "credentials": {"api_key": "invalid-key"},
             "location": "header",
-            "name": "X-API-Key"
+            "name": "X-API-Key",
         },
         "expired_token": {
             "auth_type": "bearer_token",
-            "credentials": {"token": "expired.jwt.token"}
-        }
+            "credentials": {"token": "expired.jwt.token"},
+        },
     }
 
     for auth_name, auth_config in invalid_auth_configs.items():
@@ -345,7 +361,7 @@ async def main():
                 plugin_name=f"test_{auth_name}",
                 target_url="https://api.secure-example.com",
                 auth_config=auth_config,
-                proxy_config=None
+                proxy_config=None,
             )
             print(f"⚠️  {auth_name} plugin created (will fail on real requests)")
 

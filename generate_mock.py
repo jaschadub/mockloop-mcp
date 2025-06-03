@@ -2,7 +2,7 @@
 import sys
 
 # Add the current directory to path to find the modules
-sys.path.append('.')
+sys.path.append(".")
 
 # Import the necessary functions directly
 from src.mockloop_mcp.generator import generate_mock_api
@@ -23,10 +23,11 @@ def main():
         auth_enabled=True,
         webhooks_enabled=True,
         admin_ui_enabled=True,
-        storage_enabled=True
+        storage_enabled=True,
     )
 
     str(generated_path.resolve())
+
 
 if __name__ == "__main__":
     main()

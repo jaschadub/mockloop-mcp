@@ -46,7 +46,9 @@ class ReleasePreparation:
     def get_current_version(self) -> str:
         """Get the current version from pyproject.toml."""
         if not self.pyproject_path.exists():
-            raise FileNotFoundError(f"pyproject.toml not found at {self.pyproject_path}")
+            raise FileNotFoundError(
+                f"pyproject.toml not found at {self.pyproject_path}"
+            )
 
         content = self.pyproject_path.read_text()
         match = re.search(r'version\s*=\s*"([^"]+)"', content)
@@ -62,7 +64,7 @@ class ReleasePreparation:
                 ["git", "status", "--porcelain"],
                 capture_output=True,
                 text=True,
-                check=True
+                check=True,
             )
             is_clean = len(result.stdout.strip()) == 0
 
@@ -75,7 +77,11 @@ class ReleasePreparation:
             return is_clean
 
         except (subprocess.CalledProcessError, FileNotFoundError):
-            self.print_check("Git working directory clean", False, "Git not available or not a git repository")
+            self.print_check(
+                "Git working directory clean",
+                False,
+                "Git not available or not a git repository",
+            )
             return False
 
     def check_version_consistency(self) -> bool:
@@ -120,13 +126,18 @@ class ReleasePreparation:
             has_version = bool(re.search(version_pattern, content))
 
             # Check if there's content in Unreleased section
-            unreleased_match = re.search(r"## \[Unreleased\](.*?)(?=## \[|\Z)", content, re.DOTALL)
+            unreleased_match = re.search(
+                r"## \[Unreleased\](.*?)(?=## \[|\Z)", content, re.DOTALL
+            )
             has_unreleased_content = False
             if unreleased_match:
                 unreleased_content = unreleased_match.group(1).strip()
                 # Remove section headers and check if there's actual content
-                content_lines = [line.strip() for line in unreleased_content.split('\n')
-                               if line.strip() and not line.strip().startswith('###')]
+                content_lines = [
+                    line.strip()
+                    for line in unreleased_content.split("\n")
+                    if line.strip() and not line.strip().startswith("###")
+                ]
                 has_unreleased_content = len(content_lines) > 0
 
             if has_version:
@@ -153,14 +164,20 @@ class ReleasePreparation:
                 ["python", "-m", "pytest", "tests/", "-v", "--tb=short"],
                 capture_output=True,
                 text=True,
-                cwd=self.project_root, check=False
+                cwd=self.project_root,
+                check=False,
             )
 
             tests_pass = result.returncode == 0
             if tests_pass:
                 # Count tests from output
-                output_lines = result.stdout.split('\n')
-                test_summary = [line for line in output_lines if 'passed' in line and ('failed' in line or 'error' in line or 'skipped' in line)]
+                output_lines = result.stdout.split("\n")
+                test_summary = [
+                    line
+                    for line in output_lines
+                    if "passed" in line
+                    and ("failed" in line or "error" in line or "skipped" in line)
+                ]
                 details = test_summary[-1] if test_summary else "All tests passed"
             else:
                 details = "Some tests failed - check output above"
@@ -169,7 +186,9 @@ class ReleasePreparation:
             return tests_pass
 
         except FileNotFoundError:
-            self.print_check("All tests pass", False, "pytest not found - install dev dependencies")
+            self.print_check(
+                "All tests pass", False, "pytest not found - install dev dependencies"
+            )
             return False
         except Exception as e:
             self.print_check("All tests pass", False, str(e))
@@ -183,7 +202,8 @@ class ReleasePreparation:
                 ["bandit", "-r", "src/", "-f", "txt"],
                 capture_output=True,
                 text=True,
-                cwd=self.project_root, check=False
+                cwd=self.project_root,
+                check=False,
             )
 
             # Bandit returns 1 if issues found, 0 if clean
@@ -200,7 +220,11 @@ class ReleasePreparation:
             return bandit_clean
 
         except FileNotFoundError:
-            self.print_check("Security scan (Bandit)", False, "bandit not found - install dev dependencies")
+            self.print_check(
+                "Security scan (Bandit)",
+                False,
+                "bandit not found - install dev dependencies",
+            )
             return False
         except Exception as e:
             self.print_check("Security scan (Bandit)", False, str(e))
@@ -214,7 +238,8 @@ class ReleasePreparation:
                 ["safety", "check"],
                 capture_output=True,
                 text=True,
-                cwd=self.project_root, check=False
+                cwd=self.project_root,
+                check=False,
             )
 
             safety_clean = safety_result.returncode == 0
@@ -228,7 +253,11 @@ class ReleasePreparation:
             return safety_clean
 
         except FileNotFoundError:
-            self.print_check("Dependency security (Safety)", False, "safety not found - install dev dependencies")
+            self.print_check(
+                "Dependency security (Safety)",
+                False,
+                "safety not found - install dev dependencies",
+            )
             return False
         except Exception as e:
             self.print_check("Dependency security (Safety)", False, str(e))
@@ -251,7 +280,8 @@ class ReleasePreparation:
                 ["python", "-m", "build"],
                 capture_output=True,
                 text=True,
-                cwd=self.project_root, check=False
+                cwd=self.project_root,
+                check=False,
             )
 
             build_success = result.returncode == 0
@@ -267,7 +297,11 @@ class ReleasePreparation:
             return build_success
 
         except FileNotFoundError:
-            self.print_check("Package builds successfully", False, "build module not found - install build dependencies")
+            self.print_check(
+                "Package builds successfully",
+                False,
+                "build module not found - install build dependencies",
+            )
             return False
         except Exception as e:
             self.print_check("Package builds successfully", False, str(e))
@@ -281,17 +315,21 @@ class ReleasePreparation:
         content = self.changelog_path.read_text()
 
         # Try to find the version section
-        version_pattern = rf'## \[{re.escape(version)}\].*?\n(.*?)(?=\n## \[|\n\[.*?\]:|\Z)'
+        version_pattern = (
+            rf"## \[{re.escape(version)}\].*?\n(.*?)(?=\n## \[|\n\[.*?\]:|\Z)"
+        )
         match = re.search(version_pattern, content, re.DOTALL)
 
         if match:
             notes = match.group(1).strip()
             # Remove any trailing links section
-            notes = re.sub(r'\n\[.*?\]:.*$', '', notes, flags=re.MULTILINE)
+            notes = re.sub(r"\n\[.*?\]:.*$", "", notes, flags=re.MULTILINE)
             return notes
 
         # If version not found, try unreleased section
-        unreleased_match = re.search(r"## \[Unreleased\](.*?)(?=## \[|\Z)", content, re.DOTALL)
+        unreleased_match = re.search(
+            r"## \[Unreleased\](.*?)(?=## \[|\Z)", content, re.DOTALL
+        )
         if unreleased_match:
             notes = unreleased_match.group(1).strip()
             return notes
@@ -332,7 +370,9 @@ class ReleasePreparation:
 
         return len(self.checks_failed) == 0
 
-    def interactive_release_preparation(self, target_version: str | None = None) -> None:
+    def interactive_release_preparation(
+        self, target_version: str | None = None
+    ) -> None:
         """Interactive release preparation workflow."""
         self.print_header("MockLoop MCP Release Preparation")
 
@@ -349,7 +389,6 @@ class ReleasePreparation:
         if not all_passed:
             return
 
-
         # Show next steps
         self.print_header("Next Steps")
 
@@ -364,7 +403,11 @@ def main():
     """Main entry point for the release preparation script."""
     parser = argparse.ArgumentParser(description="Prepare release for mockloop-mcp")
     parser.add_argument("--version", help="Target version for release")
-    parser.add_argument("--check-only", action="store_true", help="Only run checks, don't show interactive guide")
+    parser.add_argument(
+        "--check-only",
+        action="store_true",
+        help="Only run checks, don't show interactive guide",
+    )
 
     args = parser.parse_args()
 

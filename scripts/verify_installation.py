@@ -30,21 +30,18 @@ class InstallationVerifier:
                 "python_implementation": platform.python_implementation(),
             },
             "tests": [],
-            "summary": {
-                "total": 0,
-                "passed": 0,
-                "failed": 0,
-                "errors": []
-            }
+            "summary": {"total": 0, "passed": 0, "failed": 0, "errors": []},
         }
 
-    def log_test(self, name: str, success: bool, message: str = "", details: dict | None = None):
+    def log_test(
+        self, name: str, success: bool, message: str = "", details: dict | None = None
+    ):
         """Log a test result."""
         test_result = {
             "name": name,
             "success": success,
             "message": message,
-            "details": details or {}
+            "details": details or {},
         }
         self.results["tests"].append(test_result)
         self.results["summary"]["total"] += 1
@@ -55,7 +52,9 @@ class InstallationVerifier:
             self.results["summary"]["failed"] += 1
             self.results["summary"]["errors"].append(f"{name}: {message}")
 
-    def run_command(self, cmd: list[str], capture_output: bool = True, timeout: int = 60) -> tuple[bool, str, str]:
+    def run_command(
+        self, cmd: list[str], capture_output: bool = True, timeout: int = 60
+    ) -> tuple[bool, str, str]:
         """Run a command and return success status, stdout, stderr."""
         try:
             result = subprocess.run(
@@ -63,7 +62,7 @@ class InstallationVerifier:
                 capture_output=capture_output,
                 text=True,
                 timeout=timeout,
-                check=False
+                check=False,
             )
             return result.returncode == 0, result.stdout, result.stderr
         except subprocess.TimeoutExpired:
@@ -77,10 +76,15 @@ class InstallationVerifier:
         # Prepare installation command
         if self.use_testpypi:
             cmd = [
-                sys.executable, "-m", "pip", "install",
-                "--index-url", "https://test.pypi.org/simple/",
-                "--extra-index-url", "https://pypi.org/simple/",
-                "mockloop-mcp"
+                sys.executable,
+                "-m",
+                "pip",
+                "install",
+                "--index-url",
+                "https://test.pypi.org/simple/",
+                "--extra-index-url",
+                "https://pypi.org/simple/",
+                "mockloop-mcp",
             ]
             source = "TestPyPI"
         else:
@@ -98,14 +102,14 @@ class InstallationVerifier:
                 "pip_installation",
                 True,
                 f"Successfully installed from {source}",
-                {"source": source, "version": self.version}
+                {"source": source, "version": self.version},
             )
         else:
             self.log_test(
                 "pip_installation",
                 False,
                 f"Failed to install from {source}: {stderr}",
-                {"source": source, "version": self.version, "error": stderr}
+                {"source": source, "version": self.version, "error": stderr},
             )
 
         return success
@@ -114,9 +118,9 @@ class InstallationVerifier:
         """Test that the CLI command works."""
 
         # Test --version flag
-        success, stdout, stderr = self.run_command([
-            sys.executable, "-m", "mockloop_mcp", "--version"
-        ])
+        success, stdout, stderr = self.run_command(
+            [sys.executable, "-m", "mockloop_mcp", "--version"]
+        )
 
         if success:
             version_output = stdout.strip()
@@ -124,35 +128,32 @@ class InstallationVerifier:
                 "cli_version",
                 True,
                 f"CLI version command works: {version_output}",
-                {"output": version_output}
+                {"output": version_output},
             )
         else:
             self.log_test(
                 "cli_version",
                 False,
                 f"CLI version command failed: {stderr}",
-                {"error": stderr}
+                {"error": stderr},
             )
             return False
 
         # Test --help flag
-        success, stdout, stderr = self.run_command([
-            sys.executable, "-m", "mockloop_mcp", "--help"
-        ])
+        success, stdout, stderr = self.run_command(
+            [sys.executable, "-m", "mockloop_mcp", "--help"]
+        )
 
         if success and "usage:" in stdout.lower():
             self.log_test(
-                "cli_help",
-                True,
-                "CLI help command works",
-                {"help_length": len(stdout)}
+                "cli_help", True, "CLI help command works", {"help_length": len(stdout)}
             )
         else:
             self.log_test(
                 "cli_help",
                 False,
                 f"CLI help command failed: {stderr}",
-                {"error": stderr}
+                {"error": stderr},
             )
             return False
 
@@ -165,29 +166,30 @@ class InstallationVerifier:
             import mockloop_mcp
 
             # Test basic attributes
-            if hasattr(mockloop_mcp, '__version__'):
+            if hasattr(mockloop_mcp, "__version__"):
                 version = mockloop_mcp.__version__
                 self.log_test(
                     "package_import",
                     True,
                     f"Package imported successfully, version: {version}",
-                    {"version": version}
+                    {"version": version},
                 )
             else:
                 self.log_test(
                     "package_import",
                     True,
                     "Package imported successfully (no version attribute)",
-                    {}
+                    {},
                 )
 
             # Test main modules
             from mockloop_mcp import generator, parser
+
             self.log_test(
                 "module_imports",
                 True,
                 "Core modules imported successfully",
-                {"modules": ["generator", "parser"]}
+                {"modules": ["generator", "parser"]},
             )
 
             return True
@@ -197,7 +199,7 @@ class InstallationVerifier:
                 "package_import",
                 False,
                 f"Failed to import package: {e}",
-                {"error": str(e)}
+                {"error": str(e)},
             )
             return False
         except Exception as e:
@@ -205,7 +207,7 @@ class InstallationVerifier:
                 "package_import",
                 False,
                 f"Unexpected error during import: {e}",
-                {"error": str(e)}
+                {"error": str(e)},
             )
             return False
 
@@ -231,16 +233,16 @@ class InstallationVerifier:
                                             "application/json": {
                                                 "schema": {"type": "object"}
                                             }
-                                        }
+                                        },
                                     }
                                 }
                             }
                         }
-                    }
+                    },
                 }
 
                 spec_file = temp_path / "test_spec.json"
-                with open(spec_file, 'w') as f:
+                with open(spec_file, "w") as f:
                     json.dump(test_spec, f)
 
                 # Test mock generation
@@ -251,8 +253,7 @@ class InstallationVerifier:
 
                 # This should not raise an exception
                 generator.generate_mock_server(
-                    spec_path=str(spec_file),
-                    output_dir=str(output_dir)
+                    spec_path=str(spec_file), output_dir=str(output_dir)
                 )
 
                 # Check if files were generated
@@ -261,7 +262,7 @@ class InstallationVerifier:
                         "basic_functionality",
                         True,
                         "Mock server generation works",
-                        {"output_files": [f.name for f in output_dir.iterdir()]}
+                        {"output_files": [f.name for f in output_dir.iterdir()]},
                     )
                     return True
                 else:
@@ -269,7 +270,7 @@ class InstallationVerifier:
                         "basic_functionality",
                         False,
                         "Mock server generation produced no output",
-                        {}
+                        {},
                     )
                     return False
 
@@ -278,7 +279,7 @@ class InstallationVerifier:
                 "basic_functionality",
                 False,
                 f"Basic functionality test failed: {e}",
-                {"error": str(e)}
+                {"error": str(e)},
             )
             return False
 
@@ -291,7 +292,7 @@ class InstallationVerifier:
             "jinja2",
             "pydantic",
             "click",
-            "requests"
+            "requests",
         ]
 
         failed_imports = []
@@ -307,7 +308,7 @@ class InstallationVerifier:
                 "dependencies",
                 True,
                 "All required dependencies are available",
-                {"packages": required_packages}
+                {"packages": required_packages},
             )
             return True
         else:
@@ -315,7 +316,7 @@ class InstallationVerifier:
                 "dependencies",
                 False,
                 f"Missing dependencies: {', '.join(failed_imports)}",
-                {"missing": failed_imports, "required": required_packages}
+                {"missing": failed_imports, "required": required_packages},
             )
             return False
 
@@ -340,10 +341,7 @@ class InstallationVerifier:
                     all_passed = False
             except Exception as e:
                 self.log_test(
-                    test.__name__,
-                    False,
-                    f"Test crashed: {e}",
-                    {"error": str(e)}
+                    test.__name__, False, f"Test crashed: {e}", {"error": str(e)}
                 )
                 all_passed = False
 
@@ -357,15 +355,15 @@ class InstallationVerifier:
 # MockLoop MCP Installation Verification Report
 
 ## Platform Information
-- **System**: {self.results['platform']['system']} {self.results['platform']['release']}
-- **Architecture**: {self.results['platform']['machine']}
-- **Python**: {self.results['platform']['python_version']} ({self.results['platform']['python_implementation']})
+- **System**: {self.results["platform"]["system"]} {self.results["platform"]["release"]}
+- **Architecture**: {self.results["platform"]["machine"]}
+- **Python**: {self.results["platform"]["python_version"]} ({self.results["platform"]["python_implementation"]})
 
 ## Test Summary
-- **Total Tests**: {summary['total']}
-- **Passed**: {summary['passed']}
-- **Failed**: {summary['failed']}
-- **Success Rate**: {(summary['passed'] / summary['total'] * 100) if summary['total'] > 0 else 0:.1f}%
+- **Total Tests**: {summary["total"]}
+- **Passed**: {summary["passed"]}
+- **Failed**: {summary["failed"]}
+- **Success Rate**: {(summary["passed"] / summary["total"] * 100) if summary["total"] > 0 else 0:.1f}%
 
 ## Test Results
 """
@@ -379,10 +377,12 @@ class InstallationVerifier:
             for error in summary["errors"]:
                 report += f"- {error}\n"
 
-        report += f"\n## Raw Results\n```json\n{json.dumps(self.results, indent=2)}\n```\n"
+        report += (
+            f"\n## Raw Results\n```json\n{json.dumps(self.results, indent=2)}\n```\n"
+        )
 
         if output_file:
-            with open(output_file, 'w') as f:
+            with open(output_file, "w") as f:
                 f.write(report)
 
         return report
@@ -393,34 +393,18 @@ def main():
     parser = argparse.ArgumentParser(
         description="Verify mockloop-mcp installation from PyPI"
     )
+    parser.add_argument("--version", help="Specific version to test (default: latest)")
     parser.add_argument(
-        "--version",
-        help="Specific version to test (default: latest)"
+        "--testpypi", action="store_true", help="Use TestPyPI instead of PyPI"
     )
-    parser.add_argument(
-        "--testpypi",
-        action="store_true",
-        help="Use TestPyPI instead of PyPI"
-    )
-    parser.add_argument(
-        "--output",
-        help="Output file for verification report"
-    )
-    parser.add_argument(
-        "--json",
-        action="store_true",
-        help="Output results as JSON"
-    )
+    parser.add_argument("--output", help="Output file for verification report")
+    parser.add_argument("--json", action="store_true", help="Output results as JSON")
 
     args = parser.parse_args()
 
-    verifier = InstallationVerifier(
-        version=args.version,
-        use_testpypi=args.testpypi
-    )
+    verifier = InstallationVerifier(version=args.version, use_testpypi=args.testpypi)
 
     success = verifier.run_all_tests()
-
 
     if args.json:
         pass

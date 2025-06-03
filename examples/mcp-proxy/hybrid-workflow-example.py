@@ -14,7 +14,13 @@ from pathlib import Path
 
 # MockLoop MCP imports
 from mockloop_mcp.mcp_tools import create_mcp_plugin, execute_test_plan
-from mockloop_mcp.proxy.config import ProxyConfig, AuthConfig, AuthType, RouteRule, ProxyMode
+from mockloop_mcp.proxy.config import (
+    ProxyConfig,
+    AuthConfig,
+    AuthType,
+    RouteRule,
+    ProxyMode,
+)
 
 
 async def main():
@@ -29,10 +35,13 @@ async def main():
         "info": {
             "title": "E-commerce API",
             "version": "1.0.0",
-            "description": "A comprehensive e-commerce API with multiple endpoints"
+            "description": "A comprehensive e-commerce API with multiple endpoints",
         },
         "servers": [
-            {"url": "https://api.ecommerce.example.com", "description": "Production API"}
+            {
+                "url": "https://api.ecommerce.example.com",
+                "description": "Production API",
+            }
         ],
         "paths": {
             "/products": {
@@ -44,14 +53,14 @@ async def main():
                             "name": "category",
                             "in": "query",
                             "schema": {"type": "string"},
-                            "description": "Filter by category"
+                            "description": "Filter by category",
                         },
                         {
                             "name": "limit",
                             "in": "query",
                             "schema": {"type": "integer", "default": 20},
-                            "description": "Number of products to return"
-                        }
+                            "description": "Number of products to return",
+                        },
                     ],
                     "responses": {
                         "200": {
@@ -64,13 +73,13 @@ async def main():
                                             "name": "Laptop",
                                             "price": 999.99,
                                             "category": "electronics",
-                                            "in_stock": True
+                                            "in_stock": True,
                                         }
                                     ]
                                 }
-                            }
+                            },
                         }
-                    }
+                    },
                 }
             },
             "/products/{id}": {
@@ -81,7 +90,7 @@ async def main():
                             "name": "id",
                             "in": "path",
                             "required": True,
-                            "schema": {"type": "integer"}
+                            "schema": {"type": "integer"},
                         }
                     ],
                     "responses": {
@@ -96,12 +105,12 @@ async def main():
                                         "category": "electronics",
                                         "description": "High-performance laptop",
                                         "in_stock": True,
-                                        "reviews_count": 42
+                                        "reviews_count": 42,
                                     }
                                 }
-                            }
+                            },
                         }
-                    }
+                    },
                 }
             },
             "/orders": {
@@ -117,11 +126,11 @@ async def main():
                                     "properties": {
                                         "product_id": {"type": "integer"},
                                         "quantity": {"type": "integer"},
-                                        "customer_id": {"type": "integer"}
-                                    }
+                                        "customer_id": {"type": "integer"},
+                                    },
                                 }
                             }
-                        }
+                        },
                     },
                     "responses": {
                         "201": {
@@ -131,12 +140,12 @@ async def main():
                                     "example": {
                                         "order_id": 12345,
                                         "status": "pending",
-                                        "total": 999.99
+                                        "total": 999.99,
                                     }
                                 }
-                            }
+                            },
                         }
-                    }
+                    },
                 }
             },
             "/orders/{id}": {
@@ -147,7 +156,7 @@ async def main():
                             "name": "id",
                             "in": "path",
                             "required": True,
-                            "schema": {"type": "integer"}
+                            "schema": {"type": "integer"},
                         }
                     ],
                     "responses": {
@@ -159,12 +168,12 @@ async def main():
                                         "order_id": 12345,
                                         "status": "shipped",
                                         "total": 999.99,
-                                        "tracking_number": "TRK123456"
+                                        "tracking_number": "TRK123456",
                                     }
                                 }
-                            }
+                            },
                         }
-                    }
+                    },
                 }
             },
             "/analytics/stats": {
@@ -179,15 +188,15 @@ async def main():
                                     "example": {
                                         "total_orders": 1000,
                                         "revenue": 50000.00,
-                                        "top_products": ["laptop", "phone"]
+                                        "top_products": ["laptop", "phone"],
                                     }
                                 }
-                            }
+                            },
                         }
-                    }
+                    },
                 }
-            }
-        }
+            },
+        },
     }
 
     # Step 1: Create hybrid plugin with intelligent routing rules
@@ -200,29 +209,29 @@ async def main():
             "mode": "proxy",  # Use live API for critical operations
             "condition": "request.method in ['POST', 'PUT', 'DELETE']",
             "priority": 10,
-            "description": "Route critical order operations to live API"
+            "description": "Route critical order operations to live API",
         },
         {
             "pattern": "/analytics/*",  # Analytics endpoints
             "mode": "mock",  # Use mock for internal analytics
             "condition": None,
             "priority": 8,
-            "description": "Use mock responses for analytics during development"
+            "description": "Use mock responses for analytics during development",
         },
         {
             "pattern": "/products*",  # Product endpoints
             "mode": "proxy",  # Use live API for product data
             "condition": "'test' not in request.headers.get('User-Agent', '').lower()",
             "priority": 5,
-            "description": "Use live API for products unless in test mode"
+            "description": "Use live API for products unless in test mode",
         },
         {
             "pattern": "*",  # Default fallback
             "mode": "mock",  # Default to mock
             "condition": None,
             "priority": 1,
-            "description": "Default to mock for all other endpoints"
-        }
+            "description": "Default to mock for all other endpoints",
+        },
     ]
 
     try:
@@ -235,14 +244,14 @@ async def main():
                 "auth_type": "bearer_token",
                 "credentials": {"token": os.getenv("API_TOKEN", "demo-token")},
                 "location": "header",
-                "name": "Authorization"
+                "name": "Authorization",
             },
             proxy_config={
                 "timeout": 30,
                 "retry_count": 3,
                 "rate_limit": {"requests_per_minute": 100},
-                "routing_rules": routing_rules
-            }
+                "routing_rules": routing_rules,
+            },
         )
 
         print("✅ Hybrid plugin created successfully!")
@@ -253,8 +262,10 @@ async def main():
         # Display routing rules
         print("\n📋 Routing Rules Configuration:")
         for i, rule in enumerate(routing_rules, 1):
-            print(f"   {i}. {rule['pattern']} → {rule['mode']} (priority: {rule['priority']})")
-            if rule['condition']:
+            print(
+                f"   {i}. {rule['pattern']} → {rule['mode']} (priority: {rule['priority']})"
+            )
+            if rule["condition"]:
                 print(f"      Condition: {rule['condition']}")
 
     except Exception as e:
@@ -269,26 +280,26 @@ async def main():
             "name": "Product Browsing (Mock Mode)",
             "description": "Test product endpoints with test user agent",
             "headers": {"User-Agent": "test-client/1.0"},
-            "expected_mode": "mock"
+            "expected_mode": "mock",
         },
         {
             "name": "Product Browsing (Proxy Mode)",
             "description": "Test product endpoints with regular user agent",
             "headers": {"User-Agent": "Mozilla/5.0"},
-            "expected_mode": "proxy"
+            "expected_mode": "proxy",
         },
         {
             "name": "Order Creation (Proxy Mode)",
             "description": "Test critical order operations",
             "headers": {"User-Agent": "app-client/1.0"},
-            "expected_mode": "proxy"
+            "expected_mode": "proxy",
         },
         {
             "name": "Analytics (Mock Mode)",
             "description": "Test internal analytics endpoints",
             "headers": {"User-Agent": "admin-dashboard/1.0"},
-            "expected_mode": "mock"
-        }
+            "expected_mode": "mock",
+        },
     ]
 
     for scenario in test_scenarios:
@@ -305,21 +316,23 @@ async def main():
                 validation_mode="soft",
                 comparison_config={
                     "ignore_fields": ["timestamp", "request_id"],
-                    "tolerance": 0.1
+                    "tolerance": 0.1,
                 },
                 auto_generate_scenarios=True,
                 execute_immediately=True,
                 # Pass scenario-specific headers
-                request_headers=scenario["headers"]
+                request_headers=scenario["headers"],
             )
 
-            detected_mode = scenario_results.get('detected_mode', 'unknown')
+            detected_mode = scenario_results.get("detected_mode", "unknown")
             print(f"      ✅ Detected mode: {detected_mode}")
 
-            if detected_mode == scenario['expected_mode']:
+            if detected_mode == scenario["expected_mode"]:
                 print("      🎯 Routing worked as expected!")
             else:
-                print(f"      ⚠️  Unexpected routing (expected {scenario['expected_mode']})")
+                print(
+                    f"      ⚠️  Unexpected routing (expected {scenario['expected_mode']})"
+                )
 
         except Exception as e:
             print(f"      ❌ Scenario failed: {e}")
@@ -332,31 +345,33 @@ async def main():
             "phase": "Development Phase",
             "description": "Mostly mock with some proxy for critical paths",
             "mock_percentage": 80,
-            "proxy_percentage": 20
+            "proxy_percentage": 20,
         },
         {
             "phase": "Integration Testing",
             "description": "Balanced mix for comprehensive testing",
             "mock_percentage": 50,
-            "proxy_percentage": 50
+            "proxy_percentage": 50,
         },
         {
             "phase": "Pre-Production",
             "description": "Mostly proxy with mock for non-critical paths",
             "mock_percentage": 20,
-            "proxy_percentage": 80
+            "proxy_percentage": 80,
         },
         {
             "phase": "Production Validation",
             "description": "Full proxy mode for production readiness",
             "mock_percentage": 0,
-            "proxy_percentage": 100
-        }
+            "proxy_percentage": 100,
+        },
     ]
 
     print("📈 Migration phases:")
     for phase in migration_phases:
-        print(f"   • {phase['phase']}: {phase['proxy_percentage']}% proxy, {phase['mock_percentage']}% mock")
+        print(
+            f"   • {phase['phase']}: {phase['proxy_percentage']}% proxy, {phase['mock_percentage']}% mock"
+        )
         print(f"     {phase['description']}")
 
     # Step 4: Performance and reliability comparison
@@ -373,22 +388,30 @@ async def main():
             parallel_execution=True,
             monitor_performance=True,
             auto_generate_scenarios=True,
-            execute_immediately=True
+            execute_immediately=True,
         )
 
         # Display performance metrics
-        metrics = performance_results.get('performance_metrics', {})
+        metrics = performance_results.get("performance_metrics", {})
         print("📊 Performance Analysis:")
-        print(f"   Mock endpoints avg response time: {metrics.get('mock_avg_time', 'N/A')}ms")
-        print(f"   Proxy endpoints avg response time: {metrics.get('proxy_avg_time', 'N/A')}ms")
+        print(
+            f"   Mock endpoints avg response time: {metrics.get('mock_avg_time', 'N/A')}ms"
+        )
+        print(
+            f"   Proxy endpoints avg response time: {metrics.get('proxy_avg_time', 'N/A')}ms"
+        )
         print(f"   Overall success rate: {metrics.get('success_rate', 'N/A')}%")
         print(f"   Routing accuracy: {metrics.get('routing_accuracy', 'N/A')}%")
 
         # Reliability metrics
-        reliability = performance_results.get('reliability_metrics', {})
+        reliability = performance_results.get("reliability_metrics", {})
         print("\n🛡️  Reliability Analysis:")
-        print(f"   Mock endpoint availability: {reliability.get('mock_availability', 'N/A')}%")
-        print(f"   Proxy endpoint availability: {reliability.get('proxy_availability', 'N/A')}%")
+        print(
+            f"   Mock endpoint availability: {reliability.get('mock_availability', 'N/A')}%"
+        )
+        print(
+            f"   Proxy endpoint availability: {reliability.get('proxy_availability', 'N/A')}%"
+        )
         print(f"   Fallback success rate: {reliability.get('fallback_rate', 'N/A')}%")
 
     except Exception as e:
@@ -401,23 +424,23 @@ async def main():
         {
             "name": "Time-based routing",
             "condition": "datetime.now().hour >= 9 and datetime.now().hour <= 17",
-            "description": "Use proxy during business hours, mock otherwise"
+            "description": "Use proxy during business hours, mock otherwise",
         },
         {
             "name": "Load-based routing",
             "condition": "request.headers.get('X-Load-Test') is None",
-            "description": "Use mock for load testing to avoid impacting production"
+            "description": "Use mock for load testing to avoid impacting production",
         },
         {
             "name": "Feature flag routing",
             "condition": "request.headers.get('X-Feature-Flag') == 'new-api'",
-            "description": "Route to proxy only when feature flag is enabled"
+            "description": "Route to proxy only when feature flag is enabled",
         },
         {
             "name": "User-based routing",
             "condition": "request.headers.get('X-User-Type') == 'internal'",
-            "description": "Use proxy for internal users, mock for external"
-        }
+            "description": "Use proxy for internal users, mock for external",
+        },
     ]
 
     print("🔧 Advanced routing conditions:")
@@ -433,23 +456,23 @@ async def main():
         {
             "scenario": "Proxy endpoint unavailable",
             "strategy": "Automatic fallback to mock",
-            "implementation": "Circuit breaker pattern with health checks"
+            "implementation": "Circuit breaker pattern with health checks",
         },
         {
             "scenario": "Authentication failure",
             "strategy": "Retry with refresh token, then fallback to mock",
-            "implementation": "Token refresh middleware with fallback"
+            "implementation": "Token refresh middleware with fallback",
         },
         {
             "scenario": "Rate limit exceeded",
             "strategy": "Queue requests or fallback to cached mock responses",
-            "implementation": "Rate limiting with intelligent queuing"
+            "implementation": "Rate limiting with intelligent queuing",
         },
         {
             "scenario": "Network timeout",
             "strategy": "Immediate fallback to mock with logging",
-            "implementation": "Timeout detection with fast failover"
-        }
+            "implementation": "Timeout detection with fast failover",
+        },
     ]
 
     print("🔄 Fallback strategies:")
@@ -468,7 +491,7 @@ async def main():
         "Fallback trigger frequency",
         "Authentication success/failure rates",
         "Cache hit/miss ratios",
-        "Network latency and availability"
+        "Network latency and availability",
     ]
 
     print("📈 Key monitoring metrics:")

@@ -1179,7 +1179,11 @@ async def create_mcp_plugin(
         auth_cfg = None
         if auth_config:
             auth_type_str = auth_config.get("type", "none")
-            auth_type = AuthType(auth_type_str.lower()) if auth_type_str != "none" else AuthType.NONE
+            auth_type = (
+                AuthType(auth_type_str.lower())
+                if auth_type_str != "none"
+                else AuthType.NONE
+            )
 
             auth_cfg = AuthConfig(
                 auth_type=auth_type,

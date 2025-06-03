@@ -2,6 +2,7 @@
 """
 Fix the database migration issue by ensuring the base request_logs table is created.
 """
+
 from pathlib import Path
 import sqlite3
 import sys
@@ -22,7 +23,7 @@ def fix_database(db_path):
     existing_tables = {row[0] for row in cursor.fetchall()}
 
     # If request_logs table doesn't exist, create it manually
-    if 'request_logs' not in existing_tables:
+    if "request_logs" not in existing_tables:
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS request_logs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -55,6 +56,7 @@ def fix_database(db_path):
 
     conn.close()
     return True
+
 
 if __name__ == "__main__":
     # Fix the test database

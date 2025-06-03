@@ -262,8 +262,14 @@ def create_stdio_server() -> Server:
                     "properties": {
                         "server_url": {"type": "string"},
                         "api_spec": {"type": "object"},
-                        "security_focus": {"type": "array", "items": {"type": "string"}},
-                        "compliance_requirements": {"type": "array", "items": {"type": "string"}},
+                        "security_focus": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                        },
+                        "compliance_requirements": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                        },
                         "scenario_name": {"type": "string"},
                     },
                     "required": ["server_url", "api_spec"],
@@ -305,9 +311,18 @@ def create_stdio_server() -> Server:
                 inputSchema={
                     "type": "object",
                     "properties": {
-                        "baseline_results": {"type": "array", "items": {"type": "object"}},
-                        "comparison_results": {"type": "array", "items": {"type": "object"}},
-                        "comparison_metrics": {"type": "array", "items": {"type": "string"}},
+                        "baseline_results": {
+                            "type": "array",
+                            "items": {"type": "object"},
+                        },
+                        "comparison_results": {
+                            "type": "array",
+                            "items": {"type": "object"},
+                        },
+                        "comparison_metrics": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                        },
                     },
                     "required": ["baseline_results", "comparison_results"],
                 },
@@ -375,7 +390,10 @@ def create_stdio_server() -> Server:
                     "type": "object",
                     "properties": {
                         "session_id": {"type": "string"},
-                        "include_performance_data": {"type": "boolean", "default": True},
+                        "include_performance_data": {
+                            "type": "boolean",
+                            "default": True,
+                        },
                         "alert_on_issues": {"type": "boolean", "default": True},
                     },
                     "required": ["session_id"],
@@ -525,9 +543,21 @@ def create_stdio_server() -> Server:
                 description="Analyze an OpenAPI specification to identify testable scenarios and risk areas. "
                 "Generates comprehensive testing recommendations based on API structure and security configuration.",
                 arguments=[
-                    {"name": "openapi_spec", "description": "The OpenAPI specification to analyze", "required": True},
-                    {"name": "testing_focus", "description": "Focus area for testing", "required": False},
-                    {"name": "risk_assessment", "description": "Whether to include risk assessment", "required": False},
+                    {
+                        "name": "openapi_spec",
+                        "description": "The OpenAPI specification to analyze",
+                        "required": True,
+                    },
+                    {
+                        "name": "testing_focus",
+                        "description": "Focus area for testing",
+                        "required": False,
+                    },
+                    {
+                        "name": "risk_assessment",
+                        "description": "Whether to include risk assessment",
+                        "required": False,
+                    },
                 ],
             ),
             Prompt(
@@ -535,10 +565,26 @@ def create_stdio_server() -> Server:
                 description="Generate a specific scenario configuration for MockLoop testing. "
                 "Creates detailed scenario configurations that can be directly used with MockLoop servers.",
                 arguments=[
-                    {"name": "scenario_type", "description": "Type of scenario", "required": True},
-                    {"name": "endpoints", "description": "List of endpoint configurations", "required": True},
-                    {"name": "test_parameters", "description": "Optional test parameters", "required": False},
-                    {"name": "scenario_name", "description": "Optional custom name", "required": False},
+                    {
+                        "name": "scenario_type",
+                        "description": "Type of scenario",
+                        "required": True,
+                    },
+                    {
+                        "name": "endpoints",
+                        "description": "List of endpoint configurations",
+                        "required": True,
+                    },
+                    {
+                        "name": "test_parameters",
+                        "description": "Optional test parameters",
+                        "required": False,
+                    },
+                    {
+                        "name": "scenario_name",
+                        "description": "Optional custom name",
+                        "required": False,
+                    },
                 ],
             ),
             Prompt(
@@ -546,9 +592,21 @@ def create_stdio_server() -> Server:
                 description="Optimize a scenario configuration for load testing performance. "
                 "Takes a base scenario and optimizes it for high-load testing by adjusting response times and concurrency settings.",
                 arguments=[
-                    {"name": "base_scenario", "description": "Base scenario configuration", "required": True},
-                    {"name": "target_load", "description": "Target number of concurrent users", "required": True},
-                    {"name": "performance_requirements", "description": "Optional performance requirements", "required": False},
+                    {
+                        "name": "base_scenario",
+                        "description": "Base scenario configuration",
+                        "required": True,
+                    },
+                    {
+                        "name": "target_load",
+                        "description": "Target number of concurrent users",
+                        "required": True,
+                    },
+                    {
+                        "name": "performance_requirements",
+                        "description": "Optional performance requirements",
+                        "required": False,
+                    },
                 ],
             ),
             Prompt(
@@ -556,9 +614,21 @@ def create_stdio_server() -> Server:
                 description="Generate error simulation scenarios for testing error handling. "
                 "Creates scenarios that simulate various error conditions to test API resilience.",
                 arguments=[
-                    {"name": "api_endpoints", "description": "List of API endpoints to test", "required": True},
-                    {"name": "error_types", "description": "Optional list of specific error types", "required": False},
-                    {"name": "severity_level", "description": "Severity level of errors", "required": False},
+                    {
+                        "name": "api_endpoints",
+                        "description": "List of API endpoints to test",
+                        "required": True,
+                    },
+                    {
+                        "name": "error_types",
+                        "description": "Optional list of specific error types",
+                        "required": False,
+                    },
+                    {
+                        "name": "severity_level",
+                        "description": "Severity level of errors",
+                        "required": False,
+                    },
                 ],
             ),
             Prompt(
@@ -566,9 +636,21 @@ def create_stdio_server() -> Server:
                 description="Generate security testing scenarios for API vulnerability assessment. "
                 "Creates scenarios that test for common security vulnerabilities and compliance with security standards.",
                 arguments=[
-                    {"name": "api_spec", "description": "OpenAPI specification to analyze", "required": True},
-                    {"name": "security_focus", "description": "Optional list of security areas", "required": False},
-                    {"name": "compliance_requirements", "description": "Optional list of compliance standards", "required": False},
+                    {
+                        "name": "api_spec",
+                        "description": "OpenAPI specification to analyze",
+                        "required": True,
+                    },
+                    {
+                        "name": "security_focus",
+                        "description": "Optional list of security areas",
+                        "required": False,
+                    },
+                    {
+                        "name": "compliance_requirements",
+                        "description": "Optional list of compliance standards",
+                        "required": False,
+                    },
                 ],
             ),
         ]
@@ -577,23 +659,74 @@ def create_stdio_server() -> Server:
     async def list_resources():
         """List all available resources."""
         return [
-            Resource(uri="scenario-pack://error-simulation/4xx-client-errors", name="4xx Client Error Simulation Scenario Pack"),
-            Resource(uri="scenario-pack://error-simulation/5xx-server-errors", name="5xx Server Error Simulation Scenario Pack"),
-            Resource(uri="scenario-pack://error-simulation/network-timeouts", name="Network Timeout Simulation Scenario Pack"),
-            Resource(uri="scenario-pack://error-simulation/rate-limiting", name="Rate Limiting Simulation Scenario Pack"),
-            Resource(uri="scenario-pack://performance-testing/load-testing", name="Load Testing Scenario Pack"),
-            Resource(uri="scenario-pack://performance-testing/stress-testing", name="Stress Testing Scenario Pack"),
-            Resource(uri="scenario-pack://performance-testing/spike-testing", name="Spike Testing Scenario Pack"),
-            Resource(uri="scenario-pack://performance-testing/endurance-testing", name="Endurance Testing Scenario Pack"),
-            Resource(uri="scenario-pack://security-testing/auth-bypass", name="Authentication Bypass Testing Scenario Pack"),
-            Resource(uri="scenario-pack://security-testing/injection-attacks", name="Injection Attack Testing Scenario Pack"),
-            Resource(uri="scenario-pack://security-testing/xss-attacks", name="XSS Attack Testing Scenario Pack"),
-            Resource(uri="scenario-pack://security-testing/csrf-attacks", name="CSRF Attack Testing Scenario Pack"),
-            Resource(uri="scenario-pack://business-logic/edge-cases", name="Edge Case Testing Scenario Pack"),
-            Resource(uri="scenario-pack://business-logic/data-validation", name="Data Validation Testing Scenario Pack"),
-            Resource(uri="scenario-pack://business-logic/workflow-testing", name="Workflow Testing Scenario Pack"),
-            Resource(uri="scenario-pack://discovery/list-all", name="List all available scenario packs"),
-            Resource(uri="scenario-pack://discovery/community-info", name="Community scenarios architecture information"),
+            Resource(
+                uri="scenario-pack://error-simulation/4xx-client-errors",
+                name="4xx Client Error Simulation Scenario Pack",
+            ),
+            Resource(
+                uri="scenario-pack://error-simulation/5xx-server-errors",
+                name="5xx Server Error Simulation Scenario Pack",
+            ),
+            Resource(
+                uri="scenario-pack://error-simulation/network-timeouts",
+                name="Network Timeout Simulation Scenario Pack",
+            ),
+            Resource(
+                uri="scenario-pack://error-simulation/rate-limiting",
+                name="Rate Limiting Simulation Scenario Pack",
+            ),
+            Resource(
+                uri="scenario-pack://performance-testing/load-testing",
+                name="Load Testing Scenario Pack",
+            ),
+            Resource(
+                uri="scenario-pack://performance-testing/stress-testing",
+                name="Stress Testing Scenario Pack",
+            ),
+            Resource(
+                uri="scenario-pack://performance-testing/spike-testing",
+                name="Spike Testing Scenario Pack",
+            ),
+            Resource(
+                uri="scenario-pack://performance-testing/endurance-testing",
+                name="Endurance Testing Scenario Pack",
+            ),
+            Resource(
+                uri="scenario-pack://security-testing/auth-bypass",
+                name="Authentication Bypass Testing Scenario Pack",
+            ),
+            Resource(
+                uri="scenario-pack://security-testing/injection-attacks",
+                name="Injection Attack Testing Scenario Pack",
+            ),
+            Resource(
+                uri="scenario-pack://security-testing/xss-attacks",
+                name="XSS Attack Testing Scenario Pack",
+            ),
+            Resource(
+                uri="scenario-pack://security-testing/csrf-attacks",
+                name="CSRF Attack Testing Scenario Pack",
+            ),
+            Resource(
+                uri="scenario-pack://business-logic/edge-cases",
+                name="Edge Case Testing Scenario Pack",
+            ),
+            Resource(
+                uri="scenario-pack://business-logic/data-validation",
+                name="Data Validation Testing Scenario Pack",
+            ),
+            Resource(
+                uri="scenario-pack://business-logic/workflow-testing",
+                name="Workflow Testing Scenario Pack",
+            ),
+            Resource(
+                uri="scenario-pack://discovery/list-all",
+                name="List all available scenario packs",
+            ),
+            Resource(
+                uri="scenario-pack://discovery/community-info",
+                name="Community scenarios architecture information",
+            ),
         ]
 
     @mcp_server.call_tool()

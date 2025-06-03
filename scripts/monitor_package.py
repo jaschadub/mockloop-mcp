@@ -49,9 +49,7 @@ class PyPIMonitor:
         self.base_url = "https://pypi.org/pypi"
         self.stats_url = "https://pypistats.org/api"
         self.session = requests.Session()
-        self.session.headers.update({
-            "User-Agent": "MockLoop-MCP-Monitor/1.0"
-        })
+        self.session.headers.update({"User-Agent": "MockLoop-MCP-Monitor/1.0"})
 
     def get_package_info(self) -> dict[str, Any] | None:
         """Get package information from PyPI."""
@@ -67,7 +65,7 @@ class PyPIMonitor:
         try:
             response = self.session.get(
                 f"{self.stats_url}/packages/{self.package_name}/recent",
-                params={"period": period}
+                params={"period": period},
             )
             response.raise_for_status()
             return response.json()
@@ -97,7 +95,9 @@ class PyPIMonitor:
         last_release = info.get("upload_time_iso_8601", "")
         if last_release:
             try:
-                release_date = datetime.fromisoformat(last_release.replace("Z", "+00:00"))
+                release_date = datetime.fromisoformat(
+                    last_release.replace("Z", "+00:00")
+                )
                 days_since_release = (datetime.now().astimezone() - release_date).days
 
                 if days_since_release > 365:
@@ -131,7 +131,9 @@ class PyPIMonitor:
 
         # Extract version information
         versions = list(releases.keys())
-        versions.sort(key=lambda x: [int(i) for i in x.split('.') if i.isdigit()], reverse=True)
+        versions.sort(
+            key=lambda x: [int(i) for i in x.split(".") if i.isdigit()], reverse=True
+        )
 
         current_version = info.get("version", "")
         latest_version = versions[0] if versions else ""
@@ -179,7 +181,7 @@ class PyPIMonitor:
             repository=info.get("project_url", ""),
             license=info.get("license", ""),
             python_versions=python_versions,
-            classifiers=classifiers
+            classifiers=classifiers,
         )
 
     def save_stats(self, stats: PackageStats, output_file: Path | None = None) -> None:
@@ -204,13 +206,11 @@ class PyPIMonitor:
             existing_stats = existing_stats[-100:]
 
         # Save updated stats
-        with open(output_file, 'w') as f:
+        with open(output_file, "w") as f:
             json.dump(existing_stats, f, indent=2, default=str)
-
 
     def print_stats(self, stats: PackageStats) -> None:
         """Print statistics in a readable format."""
-
 
         for _version in stats.python_versions:
             pass
@@ -234,11 +234,13 @@ class PyPIMonitor:
             "issues": [],
             "recommendations": [],
             "metrics": {
-                "version_freshness": "good" if stats.health_status == "HEALTHY" else "needs_attention",
+                "version_freshness": "good"
+                if stats.health_status == "HEALTHY"
+                else "needs_attention",
                 "download_trend": "unknown",  # Would need historical data
                 "dependency_count": len(stats.dependencies),
-                "python_version_support": len(stats.python_versions)
-            }
+                "python_version_support": len(stats.python_versions),
+            },
         }
 
         # Check for issues
@@ -248,11 +250,15 @@ class PyPIMonitor:
 
         if stats.health_status == "AGING":
             report["issues"].append("Package hasn't been updated in over 6 months")
-            report["recommendations"].append("Review for potential updates or bug fixes")
+            report["recommendations"].append(
+                "Review for potential updates or bug fixes"
+            )
 
         if stats.recent_downloads < 100:
             report["issues"].append("Low download count in recent period")
-            report["recommendations"].append("Consider improving documentation or marketing")
+            report["recommendations"].append(
+                "Consider improving documentation or marketing"
+            )
 
         if len(stats.python_versions) < 3:
             report["issues"].append("Limited Python version support")
@@ -267,33 +273,35 @@ class PyPIMonitor:
 
 def main():
     """Main function for command-line usage."""
-    parser = argparse.ArgumentParser(description="Monitor MockLoop MCP package statistics")
+    parser = argparse.ArgumentParser(
+        description="Monitor MockLoop MCP package statistics"
+    )
     parser.add_argument(
         "--package",
         default="mockloop-mcp",
-        help="Package name to monitor (default: mockloop-mcp)"
+        help="Package name to monitor (default: mockloop-mcp)",
     )
     parser.add_argument(
         "--output",
         type=Path,
-        help="Output file for statistics (default: package_stats.json)"
+        help="Output file for statistics (default: package_stats.json)",
     )
     parser.add_argument(
         "--format",
         choices=["json", "text", "both"],
         default="both",
-        help="Output format (default: both)"
+        help="Output format (default: both)",
     )
     parser.add_argument(
         "--health-report",
         action="store_true",
-        help="Generate health report with recommendations"
+        help="Generate health report with recommendations",
     )
     parser.add_argument(
         "--continuous",
         type=int,
         metavar="MINUTES",
-        help="Run continuously, checking every N minutes"
+        help="Run continuously, checking every N minutes",
     )
 
     args = parser.parse_args()
@@ -330,7 +338,6 @@ def main():
         return True
 
     if args.continuous:
-
         try:
             while True:
                 success = run_check()
