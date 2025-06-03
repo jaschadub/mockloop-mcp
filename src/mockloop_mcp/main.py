@@ -175,6 +175,7 @@ else:
 from mcp.server.fastmcp import (
     FastMCP,
 )
+from mcp.types import TextContent
 
 # MCP Audit Logging Configuration
 MCP_AUDIT_ENABLED = True  # Can be configured via environment variable
@@ -396,7 +397,7 @@ async def generate_mock_api_tool(
     business_port: int = 8000,
     admin_port: int | None = None,
     # ctx: Context # MCP Context, can be added if tool needs to report progress, etc.
-) -> str:
+) -> list[TextContent]:
     """
     MCP Tool to generate a mock API server.
 
@@ -437,14 +438,26 @@ async def generate_mock_api_tool(
 
         resolved_path = str(generated_path.resolve())
 
-        return f"Mock API server generated successfully at {resolved_path}. Navigate to this directory and use 'docker-compose up --build' to run it."
+        return [TextContent(
+            type="text",
+            text=f"Mock API server generated successfully at {resolved_path}. Navigate to this directory and use 'docker-compose up --build' to run it."
+        )]
 
     except APIParsingError as e:
-        return f"Error parsing API specification: {e}"
+        return [TextContent(
+            type="text",
+            text=f"Error parsing API specification: {e}"
+        )]
     except APIGenerationError as e:
-        return f"Error generating mock API: {e}"
+        return [TextContent(
+            type="text",
+            text=f"Error generating mock API: {e}"
+        )]
     except Exception as e:
-        return f"An unexpected error occurred: {e}"
+        return [TextContent(
+            type="text",
+            text=f"An unexpected error occurred: {e}"
+        )]
 
 
 @server.tool(
@@ -1739,9 +1752,11 @@ async def run_tool_from_cli(args):
         spec_url_or_path=args.spec_source,
         output_dir_name=args.output_name,
     )
-    print(result)
+    # Extract text from TextContent for CLI display
+    text_result = result[0].text if result and hasattr(result[0], 'text') else str(result)
+    print(text_result)
 
-    if "Error" in result:
+    if "Error" in text_result:
         sys.exit(1)
 
 
@@ -1766,9 +1781,11 @@ async def run_tool_from_cli_enhanced(
         business_port=business_port,
         admin_port=admin_port,
     )
-    print(result)
+    # Extract text from TextContent for CLI display
+    text_result = result[0].text if result and hasattr(result[0], 'text') else str(result)
+    print(text_result)
 
-    if "Error" in result:
+    if "Error" in text_result:
         sys.exit(1)
 
 
