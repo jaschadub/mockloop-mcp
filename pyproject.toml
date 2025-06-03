@@ -99,7 +99,8 @@ skip_glob = ["src/mockloop_mcp/templates/*"]
 
 [tool.ruff]
 line-length = 88
-target-version = "2.2.9"
+# CRITICAL: target-version must be Python version specifier (py310, py311, py312), NOT package version
+target-version = "py312"
 src = ["src", "tests"]
 exclude = [
     ".bzr",
@@ -189,7 +190,8 @@ known-first-party = ["mockloop_mcp"]
 force-sort-within-sections = true
 
 [tool.mypy]
-python_version = "2.2.9"
+# CRITICAL: python_version must be semantic version (3.10, 3.11, 3.12), NOT package version
+python_version = "3.12"
 warn_return_any = true
 warn_unused_configs = true
 warn_redundant_casts = true
@@ -234,7 +236,8 @@ skips = ["B101", "B601"]  # Skip assert_used and shell_injection for templates
 skips = ["*_test.py", "test_*.py"]
 
 [tool.pytest.ini_options]
-minversion = "2.2.9"
+# CRITICAL: minversion must be pytest version (7.0), NOT package version
+minversion = "7.0"
 addopts = [
     "--strict-markers",
     "--strict-config",
