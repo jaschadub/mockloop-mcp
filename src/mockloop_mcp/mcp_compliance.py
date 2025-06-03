@@ -179,7 +179,7 @@ class MCPComplianceReporter:
             report_id=self._generate_report_id(),
             report_type=f"{regulation.value}_compliance",
             regulation=regulation.value,
-            generated_at=datetime.now(timezone.utc).isoformat(),
+            generated_at=datetime.now(timezone.utc).isoformat(),  # noqa: UP017
             period_start=start_date,
             period_end=end_date,
             total_operations=len(audit_logs),
@@ -357,7 +357,7 @@ class MCPComplianceReporter:
                 "source_statistics": source_stats,
                 "total_entries": len(lineage_map),
                 "unique_sources": len(source_stats),
-                "generated_at": datetime.now(timezone.utc).isoformat(),
+                "generated_at": datetime.now(timezone.utc).isoformat(),  # noqa: UP017
             }
 
     def check_retention_compliance(self) -> dict[str, Any]:
@@ -367,7 +367,7 @@ class MCPComplianceReporter:
         Returns:
             Retention compliance report
         """
-        current_time = datetime.now(timezone.utc)
+        current_time = datetime.now(timezone.utc)  # noqa: UP017
 
         with sqlite3.connect(str(self.audit_db_path)) as conn:
             conn.row_factory = sqlite3.Row
@@ -434,7 +434,7 @@ class MCPComplianceReporter:
         Returns:
             Purge operation results
         """
-        current_time = datetime.now(timezone.utc)
+        current_time = datetime.now(timezone.utc)  # noqa: UP017
 
         with sqlite3.connect(str(self.audit_db_path)) as conn:
             conn.row_factory = sqlite3.Row
@@ -529,7 +529,7 @@ class MCPComplianceReporter:
             "risk_analysis": risk_analysis,
             "recommendations": recommendations,
             "compliance_status": risk_analysis.get("overall_risk_level", "unknown"),
-            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "generated_at": datetime.now(timezone.utc).isoformat(),  # noqa: UP017
         }
 
     def _query_audit_logs(
@@ -634,7 +634,7 @@ class MCPComplianceReporter:
             "metadata": {
                 "regulation": regulation.value,
                 "total_logs_analyzed": len(audit_logs),
-                "analysis_timestamp": datetime.now(timezone.utc).isoformat(),
+                "analysis_timestamp": datetime.now(timezone.utc).isoformat(),  # noqa: UP017
             },
         }
 
