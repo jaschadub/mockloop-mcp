@@ -26,7 +26,7 @@ import uuid
 import hashlib
 from functools import wraps
 from typing import Any, Optional
-from datetime import datetime, timezone
+from datetime import datetime, timezone, UTC
 
 # Handle imports for different execution contexts
 if __package__ is None or __package__ == "":
@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
 # Resource metadata and versioning
 RESOURCE_VERSION = "1.0.0"
 RESOURCE_SCHEMA_VERSION = "1.0"
-LAST_UPDATED = datetime.now(timezone.utc).isoformat()
+LAST_UPDATED = datetime.now(UTC).isoformat()
 
 # Resource categories and their scenario packs
 SCENARIO_PACK_CATEGORIES = {
@@ -1496,5 +1496,5 @@ def get_resource_integrity_info(pack_data: dict[str, Any]) -> dict[str, Any]:
         "is_valid": is_valid,
         "validation_errors": errors,
         "content_size": len(json.dumps(pack_data)),
-        "last_validated": datetime.now(timezone.utc).isoformat(),
+        "last_validated": datetime.now(UTC).isoformat(),
     }

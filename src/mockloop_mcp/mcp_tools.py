@@ -21,7 +21,7 @@ import json
 import logging
 import time
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, UTC
 from functools import wraps
 from pathlib import Path
 from typing import Any, Optional, Union
@@ -874,7 +874,7 @@ async def run_test_iteration(
         # Record start time
         start_time = time.time()
         iteration_result["start_time"] = datetime.fromtimestamp(
-            start_time, tz=timezone.utc
+            start_time, tz=UTC
         ).isoformat()
 
         # Get initial metrics if monitoring is enabled
@@ -891,7 +891,7 @@ async def run_test_iteration(
         # Record end time
         end_time = time.time()
         iteration_result["end_time"] = datetime.fromtimestamp(
-            end_time, tz=timezone.utc
+            end_time, tz=UTC
         ).isoformat()
 
         # Collect final metrics
@@ -1114,7 +1114,7 @@ async def create_mcp_plugin(
             "mode": mode,
             "spec_source": spec_url_or_path,
             "target_url": target_url,
-            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
             "plugin_config": {},
             "mcp_config": {},
             "mock_server_path": None,
@@ -1274,7 +1274,7 @@ async def create_mcp_plugin(
             "mode": mode,
             "spec_source": spec_url_or_path,
             "error": f"Plugin creation failed: {e!s}",
-            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
             "plugin_config": {},
             "mcp_config": {},
             "mock_server_path": None,
@@ -1778,7 +1778,7 @@ def _generate_session_summary(session_data: dict[str, Any]) -> dict[str, Any]:
 def _calculate_next_execution(schedule_config: dict[str, Any]) -> str:
     """Calculate next execution time."""
     # Simplified implementation
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def _validate_test_suite(test_suite: dict[str, Any]) -> dict[str, bool]:
@@ -2246,7 +2246,7 @@ async def generate_test_report(
             "report_id": str(uuid.uuid4()),
             "report_format": report_format,
             "output_format": output_format,
-            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "generated_at": datetime.now(UTC).isoformat(),
             "report_content": {},
             "chart_data": None,
             "export_data": None,
@@ -2299,7 +2299,7 @@ async def generate_test_report(
             "report_format": report_format,
             "output_format": output_format,
             "error": f"Report generation failed: {e!s}",
-            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "generated_at": datetime.now(UTC).isoformat(),
             "report_content": {},
             "chart_data": None,
             "export_data": None,
@@ -2543,7 +2543,7 @@ async def create_test_session(
             "status": "success",
             "session_id": session_id,
             "session_name": session_name,
-            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
             "test_plan": test_plan,
             "session_config": session_config or {},
             "session_state": "created",
@@ -2567,7 +2567,7 @@ async def create_test_session(
             "session_id": None,
             "session_name": session_name,
             "error": f"Test session creation failed: {e!s}",
-            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
             "test_plan": {},
             "session_config": {},
             "session_state": "error",
@@ -2595,14 +2595,14 @@ async def end_test_session(
                 "status": "error",
                 "session_id": session_id,
                 "error": "Test session not found",
-                "ended_at": datetime.now(timezone.utc).isoformat(),
+                "ended_at": datetime.now(UTC).isoformat(),
                 "final_report": None,
                 "session_summary": {},
             }
 
         session_data = _active_test_sessions[session_id]
         session_data["session_state"] = "completed"
-        session_data["ended_at"] = datetime.now(timezone.utc).isoformat()
+        session_data["ended_at"] = datetime.now(UTC).isoformat()
 
         end_result = {
             "status": "success",
@@ -2636,7 +2636,7 @@ async def end_test_session(
             "status": "error",
             "session_id": session_id,
             "error": f"Test session completion failed: {e!s}",
-            "ended_at": datetime.now(timezone.utc).isoformat(),
+            "ended_at": datetime.now(UTC).isoformat(),
             "final_report": None,
             "session_summary": {},
         }
@@ -2667,7 +2667,7 @@ async def schedule_test_suite(
             "test_suite": test_suite,
             "schedule_config": schedule_config,
             "notification_config": notification_config or {},
-            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
             "next_execution": _calculate_next_execution(schedule_config),
             "schedule_state": "active",
             "validation_result": _validate_test_suite(test_suite),
@@ -2691,7 +2691,7 @@ async def schedule_test_suite(
             "test_suite": {},
             "schedule_config": {},
             "notification_config": {},
-            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
             "next_execution": None,
             "schedule_state": "error",
             "validation_result": {"valid": False, "errors": []},
@@ -2722,7 +2722,7 @@ async def monitor_test_progress(
                 "progress": {},
                 "performance_data": {},
                 "alerts": [],
-                "monitoring_timestamp": datetime.now(timezone.utc).isoformat(),
+                "monitoring_timestamp": datetime.now(UTC).isoformat(),
             }
 
         session_data = _active_test_sessions[session_id]
@@ -2736,7 +2736,7 @@ async def monitor_test_progress(
             "progress_percentage": _calculate_progress_percentage(progress),
             "performance_data": {},
             "alerts": [],
-            "monitoring_timestamp": datetime.now(timezone.utc).isoformat(),
+            "monitoring_timestamp": datetime.now(UTC).isoformat(),
         }
 
         # Include performance data if requested
@@ -2773,7 +2773,7 @@ async def monitor_test_progress(
             "progress": {},
             "performance_data": {},
             "alerts": [],
-            "monitoring_timestamp": datetime.now(timezone.utc).isoformat(),
+            "monitoring_timestamp": datetime.now(UTC).isoformat(),
         }
 
 
@@ -3099,7 +3099,7 @@ async def _register_mcp_plugin(plugin_config: PluginConfig) -> dict[str, Any]:
             "status": "success",
             "registered": True,
             "plugin_id": plugin_config.mcp_server_name,
-            "registration_time": datetime.now(timezone.utc).isoformat(),
+            "registration_time": datetime.now(UTC).isoformat(),
             "message": f"Plugin {plugin_config.plugin_name} registered successfully",
         }
 
@@ -3111,7 +3111,7 @@ async def _register_mcp_plugin(plugin_config: PluginConfig) -> dict[str, Any]:
             "status": "error",
             "registered": False,
             "error": str(e),
-            "registration_time": datetime.now(timezone.utc).isoformat(),
+            "registration_time": datetime.now(UTC).isoformat(),
         }
 
 

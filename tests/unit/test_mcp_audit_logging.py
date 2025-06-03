@@ -12,7 +12,7 @@ import json
 import sqlite3
 import tempfile
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timezone, UTC
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -287,7 +287,7 @@ class TestMCPAuditLogger(unittest.TestCase):
             cursor = conn.cursor()
 
             # Insert a log entry that's already expired
-            past_time = datetime.now(timezone.utc).replace(year=2020).isoformat()
+            past_time = datetime.now(UTC).replace(year=2020).isoformat()
             cursor.execute(
                 """
                 INSERT INTO mcp_audit_logs (
@@ -490,7 +490,7 @@ class TestMCPComplianceReporter(unittest.TestCase):
         # First, create an expired entry
         with sqlite3.connect(str(self.db_path)) as conn:
             cursor = conn.cursor()
-            past_time = datetime.now(timezone.utc).replace(year=2020).isoformat()
+            past_time = datetime.now(UTC).replace(year=2020).isoformat()
             cursor.execute(
                 """
                 INSERT INTO mcp_audit_logs (
