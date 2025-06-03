@@ -9,7 +9,7 @@ import json
 import sqlite3
 import time
 import uuid
-from datetime import datetime, timezone, UTC
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Union
 import hashlib
@@ -312,7 +312,7 @@ class MCPAuditLogger:
             Unique entry ID for the logged event
         """
         entry_id = str(uuid.uuid4())
-        timestamp = datetime.now(UTC).isoformat()
+        timestamp = datetime.now(timezone.utc).isoformat()
 
         # Generate content hash if enabled
         content_hash = None
@@ -433,7 +433,7 @@ class MCPAuditLogger:
             Unique entry ID for the logged event
         """
         entry_id = str(uuid.uuid4())
-        timestamp = datetime.now(UTC).isoformat()
+        timestamp = datetime.now(timezone.utc).isoformat()
 
         # Generate content hash if enabled
         content_hash = None
@@ -542,7 +542,7 @@ class MCPAuditLogger:
             Unique entry ID for the logged event
         """
         entry_id = str(uuid.uuid4())
-        timestamp = datetime.now(UTC).isoformat()
+        timestamp = datetime.now(timezone.utc).isoformat()
 
         try:
             with sqlite3.connect(self.db_path) as conn:
@@ -624,7 +624,7 @@ class MCPAuditLogger:
             Unique entry ID for the logged event
         """
         entry_id = str(uuid.uuid4())
-        timestamp = datetime.now(UTC).isoformat()
+        timestamp = datetime.now(timezone.utc).isoformat()
 
         # Use generated_output if provided, otherwise use execution_result
         output_data = (
@@ -781,7 +781,7 @@ class MCPAuditLogger:
             Number of deleted log entries
         """
         try:
-            current_time = datetime.now(UTC).isoformat()
+            current_time = datetime.now(timezone.utc).isoformat()
 
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
