@@ -460,16 +460,194 @@ async def favicon():
         import io
         import zipfile
         from fastapi.responses import StreamingResponse
-        # Implementation here...
-        return {"message": "Export functionality"}
+        
+        try:
+            # Create in-memory zip file
+            zip_buffer = io.BytesIO()
+            
+            with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+                # Export request logs
+                conn = sqlite3.connect(str(DB_PATH))
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                
+                # Get all request logs
+                cursor.execute('''
+                    SELECT * FROM request_logs ORDER BY created_at DESC
+                ''')
+                logs = cursor.fetchall()
+                
+                # Convert to JSON
+                logs_data = []
+                for row in logs:
+                    log_entry = dict(row)
+                    if log_entry.get('headers'):
+                        try:
+                            log_entry['headers'] = json.loads(log_entry['headers'])
+                        except:
+                            pass
+                    logs_data.append(log_entry)
+                
+                # Add logs to zip
+                zip_file.writestr("request_logs.json", json.dumps(logs_data, indent=2))
+                
+                # Export performance metrics if available
+                try:
+                    cursor.execute('SELECT * FROM performance_metrics ORDER BY recorded_at DESC')
+                    metrics = [dict(row) for row in cursor.fetchall()]
+                    zip_file.writestr("performance_metrics.json", json.dumps(metrics, indent=2))
+                except:
+                    pass
+                
+                # Export test sessions if available
+                try:
+                    cursor.execute('SELECT * FROM test_sessions ORDER BY created_at DESC')
+                    sessions = [dict(row) for row in cursor.fetchall()]
+                    zip_file.writestr("test_sessions.json", json.dumps(sessions, indent=2))
+                except:
+                    pass
+                
+                conn.close()
+                
+                # Add metadata
+                metadata = {
+                    "export_timestamp": time.strftime('%Y-%m-%dT%H:%M:%S%z', time.gmtime()),
+                    "total_logs": len(logs_data),
+                    "database_path": str(DB_PATH),
+                    "server_info": {
+                        "business_port": """ + str(business_port) + """,
+                        "admin_port": """ + str(admin_port) + """,
+                        "active_scenario": active_scenario
+                    }
+                }
+                zip_file.writestr("metadata.json", json.dumps(metadata, indent=2))
+            
+            zip_buffer.seek(0)
+            
+            # Return as streaming response
+            def iter_zip():
+                yield zip_buffer.getvalue()
+            
+            timestamp = time.strftime('%Y%m%d_%H%M%S', time.gmtime())
+            filename = f"mockloop_export_{timestamp}.zip"
+            
+            print(f"DEBUG ADMIN: Exported {len(logs_data)} logs to {filename}")
+            
+            return StreamingResponse(
+                iter_zip(),
+                media_type="application/zip",
+                headers={"Content-Disposition": f"attachment; filename={filename}"}
+            )
+            
+        except Exception as e:
+            print(f"DEBUG ADMIN: Error exporting data: {e}")
+            return {"error": str(e)}
 
     @admin_app.get("/api/requests", tags=["_admin"])
     async def get_request_logs(limit: int = 100, offset: int = 0):
-        return {"logs": [], "count": 0}
+        try:
+            conn = sqlite3.connect(str(DB_PATH))
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            
+            # Get total count
+            cursor.execute("SELECT COUNT(*) FROM request_logs")
+            total_count = cursor.fetchone()[0]
+            
+            # Get paginated logs with all available columns
+            cursor.execute('''
+                SELECT id, timestamp, type, method, path, status_code, process_time_ms,
+                       client_host, client_port, headers, query_params, request_body,
+                       response_body, session_id, test_scenario, correlation_id,
+                       user_agent, response_size, is_admin, created_at
+                FROM request_logs
+                ORDER BY created_at DESC
+                LIMIT ? OFFSET ?
+            ''', (limit, offset))
+            
+            logs = []
+            for row in cursor.fetchall():
+                log_entry = {
+                    "id": row["id"],
+                    "timestamp": row["timestamp"],
+                    "type": row["type"],
+                    "method": row["method"],
+                    "path": row["path"],
+                    "status_code": row["status_code"],
+                    "process_time_ms": row["process_time_ms"],
+                    "client_host": row["client_host"],
+                    "client_port": row["client_port"],
+                    "headers": json.loads(row["headers"]) if row["headers"] else {},
+                    "query_params": row["query_params"],
+                    "request_body": row["request_body"],
+                    "response_body": row["response_body"],
+                    "session_id": row["session_id"],
+                    "test_scenario": row["test_scenario"],
+                    "correlation_id": row["correlation_id"],
+                    "user_agent": row["user_agent"],
+                    "response_size": row["response_size"],
+                    "is_admin": bool(row["is_admin"]),
+                    "created_at": row["created_at"]
+                }
+                logs.append(log_entry)
+            
+            conn.close()
+            print(f"DEBUG ADMIN: Retrieved {len(logs)} logs from database (total: {total_count})")
+            return {"logs": logs, "count": total_count}
+            
+        except Exception as e:
+            print(f"DEBUG ADMIN: Error querying database: {e}")
+            return {"logs": [], "count": 0, "error": str(e)}
 
     @admin_app.get("/api/debug", tags=["_admin"])
     async def get_debug_info():
-        return {"status": "ok"}"""
+        try:
+            # Get database info
+            conn = sqlite3.connect(str(DB_PATH))
+            cursor = conn.cursor()
+            
+            # Check database tables and counts
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+            tables = [row[0] for row in cursor.fetchall()]
+            
+            table_info = {}
+            for table in tables:
+                cursor.execute(f"SELECT COUNT(*) FROM {table}")
+                count = cursor.fetchone()[0]
+                table_info[table] = count
+            
+            # Get recent logs count
+            cursor.execute("SELECT COUNT(*) FROM request_logs WHERE created_at > datetime('now', '-1 hour')")
+            recent_logs = cursor.fetchone()[0]
+            
+            # Get schema version
+            cursor.execute("SELECT MAX(version) FROM schema_version")
+            schema_version = cursor.fetchone()[0] or 0
+            
+            conn.close()
+            
+            debug_info = {
+                "status": "ok",
+                "database": {
+                    "path": str(DB_PATH),
+                    "tables": table_info,
+                    "schema_version": schema_version,
+                    "recent_logs_1h": recent_logs
+                },
+                "server": {
+                    "business_port": """ + str(business_port) + """,
+                    "admin_port": """ + str(admin_port) + """,
+                    "active_scenario": active_scenario
+                },
+                "timestamp": time.strftime('%Y-%m-%dT%H:%M:%S%z', time.gmtime())
+            }
+            
+            print(f"DEBUG ADMIN: Debug info retrieved successfully")
+            return debug_info
+            
+        except Exception as e:
+            print(f"DEBUG ADMIN: Error getting debug info: {e}")
+            return {"status": "error", "error": str(e)}"""
         webhook_api_endpoints_str = ""
         if webhooks_enabled_bool and admin_ui_enabled_bool:
             _webhook_api_endpoints_raw = """
