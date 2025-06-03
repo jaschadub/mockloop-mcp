@@ -1745,25 +1745,200 @@ async def run_tool_from_cli(args):
         sys.exit(1)
 
 
+async def run_tool_from_cli_enhanced(
+    spec_source: str,
+    output_name: str | None = None,
+    auth_enabled: bool = True,
+    webhooks_enabled: bool = True,
+    admin_ui_enabled: bool = True,
+    storage_enabled: bool = True,
+    business_port: int = 8000,
+    admin_port: int | None = None,
+):
+    """Enhanced CLI helper with full configuration options."""
+    result = await generate_mock_api_tool(
+        spec_url_or_path=spec_source,
+        output_dir_name=output_name,
+        auth_enabled=auth_enabled,
+        webhooks_enabled=webhooks_enabled,
+        admin_ui_enabled=admin_ui_enabled,
+        storage_enabled=storage_enabled,
+        business_port=business_port,
+        admin_port=admin_port,
+    )
+    print(result)
+
+    if "Error" in result:
+        sys.exit(1)
+
+
 def main_cli():
+    # Handle imports for different execution contexts
+    if __package__ is None or __package__ == "":
+        from __init__ import __version__
+    else:
+        from . import __version__
+
     parser = argparse.ArgumentParser(
-        description="MockLoop API Mock Generator (CLI Test Utility for Tool Logic)"
+        prog="mockloop-mcp",
+        description="MockLoop MCP Server - Generate and manage mock API servers from specifications",
+        epilog="For more information, visit: https://github.com/mockloop/mockloop-mcp",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
+
+    # Add version argument
     parser.add_argument(
-        "spec_source", help="URL or local file path to the API specification."
+        "--version", "-V",
+        action="version",
+        version=f"%(prog)s {__version__}",
+        help="Show version information and exit"
     )
-    parser.add_argument(
-        "-o",
-        "--output-name",
-        help="Optional name for the generated mock server directory.",
+
+    # Add mode selection arguments
+    mode_group = parser.add_mutually_exclusive_group()
+    mode_group.add_argument(
+        "--stdio",
+        action="store_true",
+        help="Run in stdio mode for MCP client communication"
+    )
+    mode_group.add_argument(
+        "--sse",
+        action="store_true",
+        help="Run in Server-Sent Events mode (default)"
+    )
+    mode_group.add_argument(
+        "--cli",
+        action="store_true",
+        help="Run in CLI mode for direct API generation"
+    )
+
+    # CLI-specific arguments (only used when --cli is specified)
+    cli_group = parser.add_argument_group("CLI mode options")
+    cli_group.add_argument(
+        "spec_source",
+        nargs="?",
+        help="URL or local file path to the API specification (required for CLI mode)"
+    )
+    cli_group.add_argument(
+        "-o", "--output-name",
+        help="Optional name for the generated mock server directory",
         default=None,
     )
-    # output_base_dir is handled by the generator.py, not passed to tool directly
+    cli_group.add_argument(
+        "--auth-enabled",
+        action="store_true",
+        default=True,
+        help="Enable authentication middleware (default: enabled)"
+    )
+    cli_group.add_argument(
+        "--no-auth",
+        action="store_true",
+        help="Disable authentication middleware"
+    )
+    cli_group.add_argument(
+        "--webhooks-enabled",
+        action="store_true",
+        default=True,
+        help="Enable webhook support (default: enabled)"
+    )
+    cli_group.add_argument(
+        "--no-webhooks",
+        action="store_true",
+        help="Disable webhook support"
+    )
+    cli_group.add_argument(
+        "--admin-ui-enabled",
+        action="store_true",
+        default=True,
+        help="Enable admin UI (default: enabled)"
+    )
+    cli_group.add_argument(
+        "--no-admin-ui",
+        action="store_true",
+        help="Disable admin UI"
+    )
+    cli_group.add_argument(
+        "--storage-enabled",
+        action="store_true",
+        default=True,
+        help="Enable storage functionality (default: enabled)"
+    )
+    cli_group.add_argument(
+        "--no-storage",
+        action="store_true",
+        help="Disable storage functionality"
+    )
+    cli_group.add_argument(
+        "--mock-port",
+        type=int,
+        default=8000,
+        help="Port for the mock API (default: 8000)"
+    )
+    cli_group.add_argument(
+        "--admin-port",
+        type=int,
+        help="Port for the admin API (if different from business port)"
+    )
+
+    # Logging and debug options
+    debug_group = parser.add_argument_group("debug and logging options")
+    debug_group.add_argument(
+        "-v", "--verbose",
+        action="store_true",
+        help="Enable verbose output"
+    )
+    debug_group.add_argument(
+        "-q", "--quiet",
+        action="store_true",
+        help="Suppress non-error output"
+    )
+    debug_group.add_argument(
+        "--log-level",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        default="INFO",
+        help="Set logging level (default: INFO)"
+    )
+
     args = parser.parse_args()
 
-    import asyncio
+    # Configure logging based on arguments
+    log_level = getattr(logging, args.log_level.upper())
+    if args.verbose:
+        log_level = logging.DEBUG
+    elif args.quiet:
+        log_level = logging.ERROR
 
-    asyncio.run(run_tool_from_cli(args))
+    logging.basicConfig(
+        level=log_level,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+
+    # Handle CLI mode
+    if args.cli or args.spec_source:
+        if not args.spec_source:
+            parser.error("spec_source is required when using CLI mode")
+
+        # Process boolean flags
+        auth_enabled = args.auth_enabled and not args.no_auth
+        webhooks_enabled = args.webhooks_enabled and not args.no_webhooks
+        admin_ui_enabled = args.admin_ui_enabled and not args.no_admin_ui
+        storage_enabled = args.storage_enabled and not args.no_storage
+
+        import asyncio
+        asyncio.run(run_tool_from_cli_enhanced(
+            args.spec_source,
+            args.output_name,
+            auth_enabled,
+            webhooks_enabled,
+            admin_ui_enabled,
+            storage_enabled,
+            args.mock_port,
+            args.admin_port
+        ))
+    else:
+        # Default behavior - show help if no mode specified
+        parser.print_help()
+        sys.exit(0)
 
 
 def main():
@@ -1771,13 +1946,33 @@ def main():
     import sys
     import os
 
+    # Handle version and help early for better UX
+    if "--version" in sys.argv or "-V" in sys.argv:
+        # Handle imports for different execution contexts
+        if __package__ is None or __package__ == "":
+            from __init__ import __version__
+        else:
+            from . import __version__
+        print(f"mockloop-mcp {__version__}")
+        sys.exit(0)
+
+    if "--help" in sys.argv or "-h" in sys.argv:
+        main_cli()
+        return
+
     # Auto-detect stdio mode when run by Claude or other MCP clients
     # This happens when stdin is not a terminal (piped) and no explicit flags are given
     is_stdin_piped = not sys.stdin.isatty()
     has_explicit_flags = any(arg.startswith("-") for arg in sys.argv[1:])
 
-    # Check for explicit --stdio flag or auto-detect stdio mode
-    if "--stdio" in sys.argv or (is_stdin_piped and not has_explicit_flags):
+    # Check for explicit mode flags
+    has_stdio_flag = "--stdio" in sys.argv
+    has_sse_flag = "--sse" in sys.argv
+    has_cli_flag = "--cli" in sys.argv
+    has_positional_args = any(not arg.startswith("-") for arg in sys.argv[1:])
+
+    # Determine mode based on flags and context
+    if has_stdio_flag or (is_stdin_piped and not has_explicit_flags and not has_positional_args):
         # Remove --stdio from sys.argv if present
         if "--stdio" in sys.argv:
             sys.argv.remove("--stdio")
@@ -1791,13 +1986,18 @@ def main():
 
         import asyncio
         asyncio.run(run_stdio_server())
-    elif "--cli" in sys.argv:
-        # Remove --cli from sys.argv so argparse doesn't see it
-        sys.argv.remove("--cli")
+    elif has_cli_flag or has_positional_args:
+        # CLI mode - either explicit --cli flag or positional arguments provided
         main_cli()
-    else:
-        # Start the MCP server in SSE mode (existing behavior)
+    elif has_sse_flag:
+        # Remove --sse from sys.argv if present
+        if "--sse" in sys.argv:
+            sys.argv.remove("--sse")
+        # Start the MCP server in SSE mode
         server.run()
+    else:
+        # Default behavior - show help
+        main_cli()
 
 
 # To run the MCP server:
