@@ -298,13 +298,13 @@ class TestKeyPinningManager(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        self.temp_db = tempfile.NamedTemporaryFile(delete=False, suffix='.db')
-        self.temp_db.close()
-        self.key_manager = KeyPinningManager(self.temp_db.name)
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.db') as temp_db:
+            self.temp_db_name = temp_db.name
+        self.key_manager = KeyPinningManager(self.temp_db_name)
 
     def tearDown(self):
         """Clean up test fixtures."""
-        Path(self.temp_db.name).unlink(missing_ok=True)
+        Path(self.temp_db_name).unlink(missing_ok=True)
 
     def test_pin_and_get_key(self):
         """Test pinning and retrieving keys."""
@@ -438,13 +438,13 @@ class TestSchemaPinAuditLogger(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        self.temp_db = tempfile.NamedTemporaryFile(delete=False, suffix='.db')
-        self.temp_db.close()
-        self.audit_logger = SchemaPinAuditLogger(self.temp_db.name)
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.db') as temp_db:
+            self.temp_db_name = temp_db.name
+        self.audit_logger = SchemaPinAuditLogger(self.temp_db_name)
 
     def tearDown(self):
         """Clean up test fixtures."""
-        Path(self.temp_db.name).unlink(missing_ok=True)
+        Path(self.temp_db_name).unlink(missing_ok=True)
 
     async def test_log_verification_attempt(self):
         """Test logging verification attempts."""
@@ -460,7 +460,7 @@ class TestSchemaPinAuditLogger(unittest.TestCase):
         )
 
         # Verify log entry
-        with sqlite3.connect(self.temp_db.name) as conn:
+        with sqlite3.connect(self.temp_db_name) as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM schemapin_verification_logs")
             logs = cursor.fetchall()
@@ -481,7 +481,7 @@ class TestSchemaPinAuditLogger(unittest.TestCase):
         )
 
         # Verify log entry
-        with sqlite3.connect(self.temp_db.name) as conn:
+        with sqlite3.connect(self.temp_db_name) as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM schemapin_verification_logs")
             logs = cursor.fetchall()
@@ -500,7 +500,7 @@ class TestSchemaPinAuditLogger(unittest.TestCase):
         )
 
         # Verify log entry
-        with sqlite3.connect(self.temp_db.name) as conn:
+        with sqlite3.connect(self.temp_db_name) as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM schemapin_verification_logs")
             logs = cursor.fetchall()
@@ -518,7 +518,7 @@ class TestSchemaPinAuditLogger(unittest.TestCase):
         )
 
         # Verify log entry
-        with sqlite3.connect(self.temp_db.name) as conn:
+        with sqlite3.connect(self.temp_db_name) as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM schemapin_verification_logs")
             logs = cursor.fetchall()
@@ -553,18 +553,18 @@ class TestSchemaVerificationInterceptor(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        self.temp_db = tempfile.NamedTemporaryFile(delete=False, suffix='.db')
-        self.temp_db.close()
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.db') as temp_db:
+            self.temp_db_name = temp_db.name
 
         self.config = SchemaPinConfig(
-            key_pin_storage_path=self.temp_db.name,
+            key_pin_storage_path=self.temp_db_name,
             policy_mode="warn"
         )
         self.interceptor = SchemaVerificationInterceptor(self.config)
 
     def tearDown(self):
         """Clean up test fixtures."""
-        Path(self.temp_db.name).unlink(missing_ok=True)
+        Path(self.temp_db_name).unlink(missing_ok=True)
 
     async def test_verify_tool_schema_no_signature(self):
         """Test verification with no signature provided."""
@@ -732,11 +732,11 @@ class TestSchemaPinIntegrationWithoutLibrary(unittest.TestCase):
     @patch('src.mockloop_mcp.schemapin.verification.SCHEMAPIN_AVAILABLE', False)
     async def test_legacy_verification_workflow(self):
         """Test that legacy verification workflow works without SchemaPin library."""
-        temp_db = tempfile.NamedTemporaryFile(delete=False, suffix='.db')
-        temp_db.close()
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.db') as temp_db:
+            temp_db_name = temp_db.name
 
         try:
-            config = SchemaPinConfig(key_pin_storage_path=temp_db.name)
+            config = SchemaPinConfig(key_pin_storage_path=temp_db_name)
             interceptor = SchemaVerificationInterceptor(config)
 
             schema = {"name": "test_tool", "description": "Test tool"}
@@ -751,7 +751,7 @@ class TestSchemaPinIntegrationWithoutLibrary(unittest.TestCase):
             assert result.valid is False
             assert result.tool_id == "example.com/test_tool"
         finally:
-            Path(temp_db.name).unlink(missing_ok=True)
+            Path(temp_db_name).unlink(missing_ok=True)
 
 
 if __name__ == "__main__":

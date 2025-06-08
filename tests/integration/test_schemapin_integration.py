@@ -35,11 +35,11 @@ class TestSchemaPinEndToEndWorkflow(unittest.TestCase):
 
     def setUp(self):
         """Set up test environment."""
-        self.temp_db = tempfile.NamedTemporaryFile(delete=False, suffix='.db')
-        self.temp_db.close()
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.db') as temp_db:
+            self.temp_db_name = temp_db.name
 
         self.config = SchemaPinConfig(
-            key_pin_storage_path=self.temp_db.name,
+            key_pin_storage_path=self.temp_db_name,
             policy_mode="warn",
             auto_pin_keys=False,
             trusted_domains=["trusted.example.com"],
@@ -47,13 +47,13 @@ class TestSchemaPinEndToEndWorkflow(unittest.TestCase):
         )
 
         self.interceptor = SchemaVerificationInterceptor(self.config)
-        self.key_manager = KeyPinningManager(self.temp_db.name)
+        self.key_manager = KeyPinningManager(self.temp_db_name)
         self.policy_handler = PolicyHandler(self.config)
-        self.audit_logger = SchemaPinAuditLogger(self.temp_db.name)
+        self.audit_logger = SchemaPinAuditLogger(self.temp_db_name)
 
     def tearDown(self):
         """Clean up test environment."""
-        Path(self.temp_db.name).unlink(missing_ok=True)
+        Path(self.temp_db_name).unlink(missing_ok=True)
 
     async def test_first_time_tool_verification_trusted_domain(self):
         """Test TOFU scenario with trusted domain."""
@@ -298,12 +298,12 @@ class TestSchemaPinEndToEndWorkflow(unittest.TestCase):
         public_key = "-----BEGIN PUBLIC KEY-----\npersistent_key\n-----END PUBLIC KEY-----"
 
         # Pin key with first manager instance
-        manager1 = KeyPinningManager(self.temp_db.name)
+        manager1 = KeyPinningManager(self.temp_db_name)
         success = manager1.pin_key(tool_id, domain, public_key, {"session": "1"})
         assert success is True
 
         # Create new manager instance (simulating new session)
-        manager2 = KeyPinningManager(self.temp_db.name)
+        manager2 = KeyPinningManager(self.temp_db_name)
         retrieved_key = manager2.get_pinned_key(tool_id)
         assert retrieved_key == public_key
 
@@ -365,17 +365,17 @@ class TestSchemaPinMockLoopIntegration(unittest.TestCase):
 
     def setUp(self):
         """Set up test environment."""
-        self.temp_db = tempfile.NamedTemporaryFile(delete=False, suffix='.db')
-        self.temp_db.close()
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.db') as temp_db:
+            self.temp_db_name = temp_db.name
 
         self.config = SchemaPinConfig(
-            key_pin_storage_path=self.temp_db.name,
+            key_pin_storage_path=self.temp_db_name,
             policy_mode="warn"
         )
 
     def tearDown(self):
         """Clean up test environment."""
-        Path(self.temp_db.name).unlink(missing_ok=True)
+        Path(self.temp_db_name).unlink(missing_ok=True)
 
     def test_mcp_tool_schema_extraction(self):
         """Test extracting schemas from MCP tool functions."""
@@ -401,7 +401,7 @@ class TestSchemaPinMockLoopIntegration(unittest.TestCase):
 
     async def test_integration_with_mcp_audit_system(self):
         """Test integration with MockLoop's audit system."""
-        audit_logger = SchemaPinAuditLogger(self.temp_db.name)
+        audit_logger = SchemaPinAuditLogger(self.temp_db_name)
 
         # Log various events
         await audit_logger.log_verification_attempt(
@@ -421,10 +421,10 @@ class TestSchemaPinMockLoopIntegration(unittest.TestCase):
 
     def test_database_schema_compatibility(self):
         """Test that SchemaPin tables integrate with MockLoop database."""
-        SchemaPinAuditLogger(self.temp_db.name)  # Creates tables automatically
+        SchemaPinAuditLogger(self.temp_db_name)  # Creates tables automatically
 
         # Verify tables were created
-        with sqlite3.connect(self.temp_db.name) as conn:
+        with sqlite3.connect(self.temp_db_name) as conn:
             cursor = conn.cursor()
             cursor.execute("""
                 SELECT name FROM sqlite_master

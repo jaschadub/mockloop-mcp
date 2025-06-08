@@ -164,7 +164,9 @@ class SchemaPinWorkflowManager:
                 print(f"Trying alternative endpoint: {endpoint}")
                 # Simulate discovery attempt
                 await asyncio.sleep(0.1)
-            except Exception:
+            except Exception as e:
+                # Log the exception for debugging
+                print(f"Failed to connect to {endpoint}: {e}")
                 continue
 
         return None
